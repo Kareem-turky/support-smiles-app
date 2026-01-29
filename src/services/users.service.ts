@@ -1,17 +1,16 @@
 import { User, ApiResponse, UserRole } from '@/types';
-import { STORAGE_KEYS, getStorageItem, setStorageItem } from './storage';
-import { authService } from './auth.service';
+import { mockDb } from './mockDb';
 
 export const usersService = {
   getAll: async (): Promise<ApiResponse<User[]>> => {
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    const currentUser = authService.getCurrentUser();
+    const currentUser = mockDb.getCurrentUser();
     if (!currentUser || currentUser.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
-    const users = getStorageItem<User[]>(STORAGE_KEYS.USERS) || [];
+    const users = mockDb.getUsers();
     // Don't return password hashes
     const safeUsers = users.map(({ password_hash, ...user }) => ({ ...user, password_hash: '***' }));
     
@@ -21,8 +20,7 @@ export const usersService = {
   getById: async (id: string): Promise<ApiResponse<User>> => {
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    const users = getStorageItem<User[]>(STORAGE_KEYS.USERS) || [];
-    const user = users.find(u => u.id === id);
+    const user = mockDb.getUserById(id);
     
     if (!user) {
       return { success: false, error: 'User not found' };
@@ -35,9 +33,8 @@ export const usersService = {
   getByRole: async (role: UserRole): Promise<ApiResponse<User[]>> => {
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    const users = getStorageItem<User[]>(STORAGE_KEYS.USERS) || [];
-    const filteredUsers = users.filter(u => u.role === role && u.is_active);
-    const safeUsers = filteredUsers.map(({ password_hash, ...user }) => ({ ...user, password_hash: '***' }));
+    const users = mockDb.getUsersByRole(role);
+    const safeUsers = users.map(({ password_hash, ...user }) => ({ ...user, password_hash: '***' }));
     
     return { success: true, data: safeUsers as User[] };
   },
@@ -49,15 +46,14 @@ export const usersService = {
   toggleActive: async (userId: string): Promise<ApiResponse<User>> => {
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    const currentUser = authService.getCurrentUser();
+    const currentUser = mockDb.getCurrentUser();
     if (!currentUser || currentUser.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
-    const users = getStorageItem<User[]>(STORAGE_KEYS.USERS) || [];
-    const userIndex = users.findIndex(u => u.id === userId);
+    const user = mockDb.getUserById(userId);
     
-    if (userIndex === -1) {
+    if (!user) {
       return { success: false, error: 'User not found' };
     }
 
@@ -66,46 +62,39 @@ export const usersService = {
       return { success: false, error: 'Cannot deactivate your own account' };
     }
 
-    users[userIndex] = {
-      ...users[userIndex],
-      is_active: !users[userIndex].is_active,
-      updated_at: new Date().toISOString(),
-    };
+    const updated = mockDb.updateUser(userId, {
+      is_active: !user.is_active,
+    });
 
-    setStorageItem(STORAGE_KEYS.USERS, users);
+    if (!updated) {
+      return { success: false, error: 'Failed to update user' };
+    }
     
-    const { password_hash, ...safeUser } = users[userIndex];
+    const { password_hash, ...safeUser } = updated;
     return { success: true, data: { ...safeUser, password_hash: '***' } as User };
   },
 
   create: async (userData: { name: string; email: string; password: string; role: UserRole }): Promise<ApiResponse<User>> => {
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    const currentUser = authService.getCurrentUser();
+    const currentUser = mockDb.getCurrentUser();
     if (!currentUser || currentUser.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized: Admin access required' };
     }
 
-    const users = getStorageItem<User[]>(STORAGE_KEYS.USERS) || [];
-    
     // Check for duplicate email
-    if (users.some(u => u.email === userData.email)) {
+    const existingUser = mockDb.getUserByEmail(userData.email);
+    if (existingUser) {
       return { success: false, error: 'Email already exists' };
     }
 
-    const newUser: User = {
-      id: `user-${Date.now()}`,
+    const newUser = mockDb.createUser({
       name: userData.name,
       email: userData.email,
       password_hash: btoa(userData.password),
       role: userData.role,
       is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    users.push(newUser);
-    setStorageItem(STORAGE_KEYS.USERS, users);
+    });
 
     const { password_hash, ...safeUser } = newUser;
     return { success: true, data: { ...safeUser, password_hash: '***' } as User };
