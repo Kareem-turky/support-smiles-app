@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { authService } from '@/services/auth.service';
-import { seedDatabase, clearDatabase } from '@/services/seed';
-import { STORAGE_KEYS } from '@/services/storage';
+import { mockDb } from '@/services/mockDb';
 
 describe('AuthService', () => {
   beforeEach(() => {
-    clearDatabase();
-    seedDatabase(true);
+    mockDb.reset();
   });
 
   describe('login', () => {
@@ -73,7 +71,6 @@ describe('AuthService', () => {
 
   describe('isAuthenticated', () => {
     it('should return false when not logged in', () => {
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       expect(authService.isAuthenticated()).toBe(false);
     });
 

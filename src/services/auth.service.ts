@@ -1,18 +1,15 @@
 import { User, AuthUser, LoginCredentials, ApiResponse } from '@/types';
-import { STORAGE_KEYS, getStorageItem, setStorageItem, removeStorageItem } from './storage';
-
-// Simple hash function for demo (matches seed.ts)
-function simpleHash(password: string): string {
-  return btoa(password);
-}
+import { mockDb } from './mockDb';
 
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthUser>> => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    const users = getStorageItem<User[]>(STORAGE_KEYS.USERS) || [];
-    const user = users.find(u => u.email === credentials.email);
+    // Ensure database is initialized
+    mockDb.initialize();
+
+    const user = mockDb.getUserByEmail(credentials.email);
 
     if (!user) {
       return { success: false, error: 'Invalid email or password' };
@@ -22,7 +19,7 @@ export const authService = {
       return { success: false, error: 'Account is deactivated' };
     }
 
-    if (user.password_hash !== simpleHash(credentials.password)) {
+    if (!mockDb.validatePassword(user, credentials.password)) {
       return { success: false, error: 'Invalid email or password' };
     }
 
@@ -33,21 +30,29 @@ export const authService = {
       role: user.role,
     };
 
-    // Store current user
-    setStorageItem(STORAGE_KEYS.CURRENT_USER, authUser);
+    // Store current user in mock DB (persists session to localStorage optionally)
+    mockDb.setCurrentUser(user);
 
     return { success: true, data: authUser };
   },
 
   logout: async (): Promise<void> => {
-    removeStorageItem(STORAGE_KEYS.CURRENT_USER);
+    mockDb.setCurrentUser(null);
   },
 
   getCurrentUser: (): AuthUser | null => {
-    return getStorageItem<AuthUser>(STORAGE_KEYS.CURRENT_USER);
+    const user = mockDb.getCurrentUser();
+    if (!user) return null;
+    
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
   },
 
   isAuthenticated: (): boolean => {
-    return !!getStorageItem<AuthUser>(STORAGE_KEYS.CURRENT_USER);
+    return mockDb.getCurrentUser() !== null;
   },
 };

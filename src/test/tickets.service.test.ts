@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ticketsService } from '@/services/tickets.service';
 import { authService } from '@/services/auth.service';
-import { seedDatabase, clearDatabase } from '@/services/seed';
+import { mockDb, USER_IDS } from '@/services/mockDb';
 
 describe('TicketsService', () => {
   beforeEach(() => {
-    clearDatabase();
-    seedDatabase(true);
+    mockDb.reset();
   });
 
   describe('getAll', () => {
@@ -38,7 +37,7 @@ describe('TicketsService', () => {
 
       expect(result.success).toBe(true);
       result.data!.data.forEach(ticket => {
-        expect(ticket.assigned_to).toBe('user-cs-001');
+        expect(ticket.assigned_to).toBe(USER_IDS.CS_MIKE);
       });
     });
   });
@@ -84,12 +83,12 @@ describe('TicketsService', () => {
         issue_type: 'DELIVERY',
         priority: 'MEDIUM',
         description: 'Test with assignee',
-        assigned_to: 'user-cs-001',
+        assigned_to: USER_IDS.CS_MIKE,
       });
 
       expect(result.success).toBe(true);
       expect(result.data?.status).toBe('ASSIGNED');
-      expect(result.data?.assigned_to).toBe('user-cs-001');
+      expect(result.data?.assigned_to).toBe(USER_IDS.CS_MIKE);
     });
   });
 
@@ -97,7 +96,6 @@ describe('TicketsService', () => {
     it('should allow CS to change status to allowed values', async () => {
       await authService.login({ email: 'mike@company.com', password: 'cs123' });
 
-      // Get a ticket assigned to mike
       const ticketsResult = await ticketsService.getAll();
       const ticket = ticketsResult.data!.data[0];
 
@@ -172,7 +170,6 @@ describe('TicketsService', () => {
       const deleteResult = await ticketsService.delete(ticketId);
       expect(deleteResult.success).toBe(true);
 
-      // Ticket should no longer appear in list
       const afterDelete = await ticketsService.getAll();
       const deletedTicket = afterDelete.data!.data.find(t => t.id === ticketId);
       expect(deletedTicket).toBeUndefined();

@@ -2,12 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { notificationsService } from '@/services/notifications.service';
 import { ticketsService } from '@/services/tickets.service';
 import { authService } from '@/services/auth.service';
-import { seedDatabase, clearDatabase } from '@/services/seed';
+import { mockDb, USER_IDS, TICKET_IDS } from '@/services/mockDb';
 
 describe('NotificationsService', () => {
   beforeEach(() => {
-    clearDatabase();
-    seedDatabase(true);
+    mockDb.reset();
   });
 
   describe('getAll', () => {
@@ -18,6 +17,13 @@ describe('NotificationsService', () => {
 
       expect(result.success).toBe(true);
       expect(Array.isArray(result.data)).toBe(true);
+    });
+
+    it('should fail when not authenticated', async () => {
+      const result = await notificationsService.getAll();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Unauthorized');
     });
   });
 
@@ -45,6 +51,20 @@ describe('NotificationsService', () => {
         expect(result.data?.is_read).toBe(true);
       }
     });
+
+    it('should fail for notification not belonging to user', async () => {
+      await authService.login({ email: 'sarah@company.com', password: 'accounting123' });
+
+      // Get a notification belonging to Mike
+      const mikeNotifs = mockDb.getNotificationsByUserId(USER_IDS.CS_MIKE);
+      const mikeNotif = mikeNotifs[0];
+
+      if (mikeNotif) {
+        const result = await notificationsService.markAsRead(mikeNotif.id);
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Notification not found');
+      }
+    });
   });
 
   describe('markAllAsRead', () => {
@@ -70,7 +90,7 @@ describe('NotificationsService', () => {
         issue_type: 'DELIVERY',
         priority: 'HIGH',
         description: 'Testing notification creation',
-        assigned_to: 'user-cs-001',
+        assigned_to: USER_IDS.CS_MIKE,
       });
 
       // Login as CS user and check notifications
