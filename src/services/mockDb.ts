@@ -9,6 +9,8 @@
  */
 
 import { User, Ticket, TicketMessage, Notification, TicketEvent } from '@/types';
+import { TicketReason } from '@/services/reasons.service';
+
 
 // Simple UUID v4 generator
 function generateUUID(): string {
@@ -216,6 +218,67 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
   },
 ];
 
+const INITIAL_REASONS: TicketReason[] = [
+  {
+    id: 'reason-1',
+    name: 'Delayed Delivery',
+    category: 'SHIPPING',
+    sort_order: 1,
+    is_active: true,
+    default_priority: 'HIGH',
+  },
+  {
+    id: 'reason-2',
+    name: 'Wrong Item Received',
+    category: 'SHIPPING',
+    sort_order: 2,
+    is_active: true,
+    default_priority: 'MEDIUM',
+  },
+  {
+    id: 'reason-3',
+    name: 'Damaged Item',
+    category: 'SHIPPING',
+    sort_order: 3,
+    is_active: true,
+    default_priority: 'HIGH',
+  },
+  {
+    id: 'reason-4',
+    name: 'Billing Error',
+    category: 'ACCOUNTING',
+    sort_order: 4,
+    is_active: true,
+    default_priority: 'HIGH',
+    default_assign_role: 'ACCOUNTING',
+  },
+  {
+    id: 'reason-5',
+    name: 'Refund Request',
+    category: 'ACCOUNTING',
+    sort_order: 5,
+    is_active: true,
+    default_priority: 'MEDIUM',
+    default_assign_role: 'ACCOUNTING',
+  },
+  {
+    id: 'reason-6',
+    name: 'General Inquiry',
+    category: 'OTHER',
+    sort_order: 6,
+    is_active: true,
+    default_priority: 'LOW',
+  },
+  {
+    id: 'reason-7',
+    name: 'Legacy Reason',
+    category: 'OTHER',
+    sort_order: 99,
+    is_active: false,
+    default_priority: 'LOW',
+  },
+];
+
 const INITIAL_EVENTS: TicketEvent[] = [
   {
     id: 'e6eebc99-9c0b-4ef8-bb6d-6bb9bd380b11',
@@ -267,6 +330,7 @@ interface DatabaseState {
   messages: TicketMessage[];
   notifications: Notification[];
   events: TicketEvent[];
+  reasons: TicketReason[];
   currentUser: User | null;
 }
 
@@ -281,6 +345,7 @@ class MockDatabase {
       messages: [],
       notifications: [],
       events: [],
+      reasons: [],
       currentUser: null,
     };
   }
@@ -300,6 +365,7 @@ class MockDatabase {
       messages: JSON.parse(JSON.stringify(INITIAL_MESSAGES)),
       notifications: JSON.parse(JSON.stringify(INITIAL_NOTIFICATIONS)),
       events: JSON.parse(JSON.stringify(INITIAL_EVENTS)),
+      reasons: JSON.parse(JSON.stringify(INITIAL_REASONS)),
       currentUser: null,
     };
 
@@ -550,6 +616,12 @@ class MockDatabase {
     };
     this.state.events.push(newEvent);
     return newEvent;
+  }
+
+  // ============= Reasons =============
+
+  getReasons(): TicketReason[] {
+    return [...this.state.reasons].sort((a, b) => a.sort_order - b.sort_order);
   }
 }
 

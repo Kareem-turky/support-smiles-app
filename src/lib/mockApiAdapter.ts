@@ -338,8 +338,30 @@ export const mockApiAdapter = {
         }
 
         // ==================== REASONS ====================
-        if (url === '/reasons' && method === 'GET') {
-            return mockResponse({ data: [] });
+        // ==================== REASONS ====================
+        if ((url === '/reasons' || url.startsWith('/ticket-reasons')) && method === 'GET') {
+            const reasons = mockDb.getReasons();
+
+            // Handle activeOnly filter from URL query string or params object
+            let activeOnly = true; // Default as per service
+
+            // Check params object
+            if (params.activeOnly !== undefined) {
+                activeOnly = String(params.activeOnly) === 'true';
+            }
+            // Check URL query string
+            else if (url.includes('?')) {
+                const searchParams = new URLSearchParams(url.split('?')[1]);
+                if (searchParams.has('activeOnly')) {
+                    activeOnly = searchParams.get('activeOnly') === 'true';
+                }
+            }
+
+            const filtered = activeOnly
+                ? reasons.filter(r => r.is_active)
+                : reasons;
+
+            return mockResponse(filtered);
         }
 
         // Unhandled route
