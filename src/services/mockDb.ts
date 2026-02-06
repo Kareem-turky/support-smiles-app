@@ -399,7 +399,7 @@ class MockDatabase {
   updateUser(id: string, updates: Partial<User>): User | undefined {
     const index = this.state.users.findIndex(u => u.id === id);
     if (index === -1) return undefined;
-    
+
     this.state.users[index] = {
       ...this.state.users[index],
       ...updates,
@@ -447,13 +447,22 @@ class MockDatabase {
   updateTicket(id: string, updates: Partial<Ticket>): Ticket | undefined {
     const index = this.state.tickets.findIndex(t => t.id === id);
     if (index === -1) return undefined;
-    
+
     this.state.tickets[index] = {
       ...this.state.tickets[index],
       ...updates,
       updated_at: new Date().toISOString(),
     };
     return this.state.tickets[index];
+  }
+
+  deleteTicket(id: string): boolean {
+    const index = this.state.tickets.findIndex(t => t.id === id);
+    if (index === -1) return false;
+
+    // Soft delete
+    this.state.tickets[index].deleted_at = new Date().toISOString();
+    return true;
   }
 
   // ============= Messages =============
@@ -507,7 +516,7 @@ class MockDatabase {
   updateNotification(id: string, updates: Partial<Notification>): Notification | undefined {
     const index = this.state.notifications.findIndex(n => n.id === id);
     if (index === -1) return undefined;
-    
+
     this.state.notifications[index] = {
       ...this.state.notifications[index],
       ...updates,
@@ -547,6 +556,9 @@ class MockDatabase {
 // Export singleton instance
 export const mockDb = new MockDatabase();
 
+// Auto-initialize with seed data for runtime use
+mockDb.initialize();
+
 // Export constants for backward compatibility
 export const USER_IDS = {
   ADMIN: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -562,3 +574,4 @@ export const TICKET_IDS = {
   TICKET_4: 'b7eebc99-9c0b-4ef8-bb6d-6bb9bd380a88',
   TICKET_5: 'c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a99',
 } as const;
+
