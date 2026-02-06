@@ -260,7 +260,7 @@ export default function TicketDetails() {
   }
 
   const isResolved = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
-  const canChangeStatus = user?.role === 'ADMIN' || 
+  const canChangeStatus = user?.role === 'ADMIN' ||
     (user?.role === 'CS' && ticket.assigned_to === user.id) ||
     user?.role === 'ACCOUNTING';
 
@@ -347,10 +347,11 @@ export default function TicketDetails() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {messages.length === 0 ? (
+                {/* Defensive check for messages array */}
+                {(!messages || !Array.isArray(messages) || messages.length === 0) ? (
                   <p className="text-muted-foreground text-sm">No messages yet</p>
                 ) : (
-                  messages.map((msg) => (
+                  (Array.isArray(messages) ? messages : []).map((msg) => (
                     <div key={msg.id} className="rounded-lg bg-muted/50 p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium">{getUserName(msg.sender_id)}</span>
@@ -372,8 +373,8 @@ export default function TicketDetails() {
                     onChange={(e) => setNewMessage(e.target.value)}
                     className="min-h-[80px]"
                   />
-                  <Button 
-                    onClick={handleSendMessage} 
+                  <Button
+                    onClick={handleSendMessage}
                     disabled={isSending || !newMessage.trim()}
                     className="self-end"
                   >
@@ -421,6 +422,24 @@ export default function TicketDetails() {
                       {new Date(ticket.resolved_at).toLocaleString()}
                     </p>
                   </div>
+                )}
+
+                {ticket.integration_inbox && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Source System</p>
+                      <Badge variant="outline" className="mt-1">
+                        {ticket.integration_inbox.source}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">External ID</p>
+                      <p className="font-medium text-xs font-mono mt-1">
+                        {ticket.integration_inbox.external_id}
+                      </p>
+                    </div>
+                  </>
                 )}
 
                 {canChangeStatus && (

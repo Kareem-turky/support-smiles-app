@@ -138,7 +138,7 @@ export const mockApiAdapter = {
                 throw mockError('Access denied', 403);
             }
 
-            return mockResponse({ data: ticket });
+            return mockResponse(ticket);
         }
 
         if (url === '/tickets' && method === 'POST') {
@@ -199,7 +199,7 @@ export const mockApiAdapter = {
         if (url.match(/^\/tickets\/[^/]+\/messages$/) && method === 'GET') {
             const ticketId = url.split('/')[2];
             const messages = mockDb.getMessagesByTicketId(ticketId);
-            return mockResponse({ data: messages });
+            return mockResponse(messages);
         }
 
         if (url.match(/^\/tickets\/[^/]+\/messages$/) && method === 'POST') {
@@ -218,7 +218,7 @@ export const mockApiAdapter = {
         if (url.match(/^\/tickets\/[^/]+\/events$/) && method === 'GET') {
             const ticketId = url.split('/')[2];
             const events = mockDb.getEventsByTicketId(ticketId);
-            return mockResponse({ data: events });
+            return mockResponse(events);
         }
 
         if (url.match(/^\/tickets\/[^/]+$/) && method === 'PATCH') {
