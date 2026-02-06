@@ -353,11 +353,13 @@ export const mockApiAdapter = {
                 }
             }
 
-            // Filter if active param is present
-            if (activeParam !== undefined && activeParam !== null) {
-                const isActive = String(activeParam) === 'true';
-                employees = employees.filter(e => e.is_active === isActive);
+            // Filter logic:
+            // active=true -> return only active employees
+            // active=false (or missing) -> return ALL employees (no filter)
+            if (String(activeParam) === 'true') {
+                employees = employees.filter(e => e.is_active);
             }
+            // If activeParam is 'false' or undefined, we return all (do nothing)
 
             return mockResponse(employees);
         }
