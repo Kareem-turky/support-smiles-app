@@ -362,6 +362,15 @@ export const mockApiAdapter = {
             return mockResponse(employees);
         }
 
+        if (url === '/employees' && method === 'POST') {
+            const newEmployee = mockDb.createEmployee({
+                ...data,
+                is_active: data.is_active !== undefined ? data.is_active : true, // Default to true if not specified
+                start_date: data.start_date || new Date().toISOString(), // Fallback if missing, though UI should send it
+            });
+            return mockResponse(newEmployee, 201);
+        }
+
         // ==================== REASONS ====================
         if ((url === '/reasons' || url.startsWith('/ticket-reasons')) && method === 'GET') {
             const reasons = mockDb.getReasons();

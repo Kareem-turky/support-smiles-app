@@ -685,6 +685,17 @@ class MockDatabase {
   getEmployees(): Employee[] {
     return [...this.state.employees].sort((a, b) => a.full_name.localeCompare(b.full_name));
   }
+
+  createEmployee(employee: Omit<Employee, 'id'>): Employee {
+    const newEmployee: Employee = {
+      ...employee,
+      id: generateUUID(),
+      // Ensure defaults if not provided (though Omit<Employee, 'id'> implies they are required if not optional in interface)
+      // Employee interface has optional fields, but let's be safe.
+    };
+    this.state.employees.push(newEmployee);
+    return newEmployee;
+  }
 }
 
 // Export singleton instance
