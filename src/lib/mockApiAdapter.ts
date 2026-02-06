@@ -294,7 +294,7 @@ export const mockApiAdapter = {
             }
 
             const notifications = mockDb.getNotificationsByUserId(currentUser.id);
-            return mockResponse({ data: notifications });
+            return mockResponse(notifications);
         }
 
         if (url.match(/^\/notifications\/[^/]+\/read$/) && method === 'POST') {
@@ -322,7 +322,7 @@ export const mockApiAdapter = {
                 by_priority: {
                     URGENT: tickets.filter(t => t.priority === 'URGENT').length,
                     HIGH: tickets.filter(t => t.priority === 'HIGH').length,
-                    NORMAL: tickets.filter(t => t.priority === 'NORMAL').length,
+                    MEDIUM: tickets.filter(t => t.priority === 'MEDIUM').length,
                     LOW: tickets.filter(t => t.priority === 'LOW').length,
                 },
                 by_status: {
