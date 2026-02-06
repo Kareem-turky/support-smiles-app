@@ -338,6 +338,30 @@ export const mockApiAdapter = {
         }
 
         // ==================== REASONS ====================
+        // ==================== EMPLOYEES ====================
+        if ((url === '/employees' || url.startsWith('/employees?')) && method === 'GET') {
+            let employees = mockDb.getEmployees();
+
+            // Handle active filter
+            let activeParam = params.active;
+
+            // Check params object first, then URL query string
+            if (activeParam === undefined && url.includes('?')) {
+                const searchParams = new URLSearchParams(url.split('?')[1]);
+                if (searchParams.has('active')) {
+                    activeParam = searchParams.get('active');
+                }
+            }
+
+            // Filter if active param is present
+            if (activeParam !== undefined && activeParam !== null) {
+                const isActive = String(activeParam) === 'true';
+                employees = employees.filter(e => e.is_active === isActive);
+            }
+
+            return mockResponse(employees);
+        }
+
         // ==================== REASONS ====================
         if ((url === '/reasons' || url.startsWith('/ticket-reasons')) && method === 'GET') {
             const reasons = mockDb.getReasons();
