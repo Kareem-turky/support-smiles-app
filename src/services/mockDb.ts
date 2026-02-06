@@ -694,6 +694,23 @@ class MockDatabase {
       // Employee interface has optional fields, but let's be safe.
     };
     this.state.employees.push(newEmployee);
+
+    // START STRIKER FIX: Sync with Users for Assignee Dropdown
+    // Automatically create a corresponding User so they appear in "Assign To" lists
+    // using the SAME ID to mimic a linked system.
+    const newUser: User = {
+      id: newEmployee.id,
+      name: newEmployee.full_name,
+      email: `${newEmployee.code?.toLowerCase().replace('-', '') || 'emp' + Date.now()}@company.com`,
+      password_hash: simpleHash('password123'),
+      role: 'CS', // Default to CS so they appear in ticket assignment
+      is_active: newEmployee.is_active,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    this.state.users.push(newUser);
+    // END STRIKER FIX
+
     return newEmployee;
   }
 }
