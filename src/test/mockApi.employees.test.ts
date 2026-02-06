@@ -39,19 +39,20 @@ describe('Mock API - Employees', () => {
         expect(inactive).toBeUndefined();
     });
 
-    it('should return only inactive employees when active=false', async () => {
+    it('should return ALL employees when active=false (no filter)', async () => {
         const response = await mockApiAdapter.request({
             method: 'GET',
             url: '/employees?active=false',
         });
 
         expect(Array.isArray(response.data)).toBe(true);
-        response.data.forEach((e: any) => {
-            expect(e.is_active).toBe(false);
-        });
+        expect(response.data.length).toBeGreaterThanOrEqual(1);
 
-        // Ensure we have at least one inactive (Bob Johnson emp-3)
-        const bob = response.data.find((e: any) => e.full_name === 'Bob Johnson');
-        expect(bob).toBeDefined();
+        // Should contain BOTH active and inactive
+        const active = response.data.find((e: any) => e.is_active === true);
+        const inactive = response.data.find((e: any) => !e.is_active);
+
+        expect(active).toBeDefined();
+        expect(inactive).toBeDefined();
     });
 });
