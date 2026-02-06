@@ -254,12 +254,14 @@ export const mockApiAdapter = {
         if (url === '/users' && method === 'GET') {
             const currentUser = getCurrentUserFromMock();
 
-            if (currentUser?.role !== 'ADMIN') {
-                throw mockError('Admin access required', 403);
+            if (!currentUser) {
+                throw mockError('Not authenticated', 401);
             }
+            // Allow all authenticated users to fetch users list (for assignees etc)
+            // if (currentUser?.role !== 'ADMIN') { ... } 
 
             const users = mockDb.getUsers().map(u => ({ ...u, password_hash: undefined }));
-            return mockResponse({ data: users });
+            return mockResponse(users); // Return array directly!
         }
 
         if (url.match(/^\/users\/[^/]+$/) && method === 'GET') {
