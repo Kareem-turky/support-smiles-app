@@ -8,7 +8,7 @@
  * When migrating to NestJS, replace calls to mockDb with actual API fetch calls.
  */
 
-import { User, Ticket, TicketMessage, Notification, TicketEvent } from '@/types';
+import { User, Ticket, TicketMessage, Notification, TicketEvent, Employee } from '@/types';
 import { TicketReason } from '@/services/reasons.service';
 
 
@@ -322,6 +322,59 @@ const INITIAL_EVENTS: TicketEvent[] = [
   },
 ];
 
+const INITIAL_EMPLOYEES: Employee[] = [
+  {
+    id: 'emp-1',
+    code: 'EMP001',
+    full_name: 'John Doe',
+    start_date: '2024-01-01',
+    base_salary: 5000,
+    salary_type: 'MONTHLY',
+    department: 'Engineering',
+    is_active: true,
+  },
+  {
+    id: 'emp-2',
+    code: 'EMP002',
+    full_name: 'Jane Smith',
+    start_date: '2024-02-01',
+    base_salary: 6000,
+    salary_type: 'MONTHLY',
+    department: 'Marketing',
+    is_active: true,
+  },
+  {
+    id: 'emp-3',
+    code: 'EMP003',
+    full_name: 'Bob Johnson',
+    start_date: '2024-03-01',
+    base_salary: 4000,
+    salary_type: 'MONTHLY',
+    department: 'Sales',
+    is_active: false,
+  },
+  {
+    id: 'emp-4',
+    code: 'EMP004',
+    full_name: 'Alice Brown',
+    start_date: '2024-04-01',
+    base_salary: 100,
+    salary_type: 'DAILY',
+    department: 'Operations',
+    is_active: true,
+  },
+  {
+    id: 'emp-5',
+    code: 'EMP005',
+    full_name: 'Charlie Davis',
+    start_date: '2024-05-01',
+    base_salary: 4500,
+    salary_type: 'MONTHLY',
+    department: 'HR',
+    is_active: true,
+  },
+];
+
 // ============= In-Memory Database Store =============
 
 interface DatabaseState {
@@ -331,6 +384,7 @@ interface DatabaseState {
   notifications: Notification[];
   events: TicketEvent[];
   reasons: TicketReason[];
+  employees: Employee[];
   currentUser: User | null;
 }
 
@@ -346,6 +400,7 @@ class MockDatabase {
       notifications: [],
       events: [],
       reasons: [],
+      employees: [],
       currentUser: null,
     };
   }
@@ -366,6 +421,7 @@ class MockDatabase {
       notifications: JSON.parse(JSON.stringify(INITIAL_NOTIFICATIONS)),
       events: JSON.parse(JSON.stringify(INITIAL_EVENTS)),
       reasons: JSON.parse(JSON.stringify(INITIAL_REASONS)),
+      employees: JSON.parse(JSON.stringify(INITIAL_EMPLOYEES)),
       currentUser: null,
     };
 
@@ -622,6 +678,12 @@ class MockDatabase {
 
   getReasons(): TicketReason[] {
     return [...this.state.reasons].sort((a, b) => a.sort_order - b.sort_order);
+  }
+
+  // ============= Employees =============
+
+  getEmployees(): Employee[] {
+    return [...this.state.employees].sort((a, b) => a.full_name.localeCompare(b.full_name));
   }
 }
 
