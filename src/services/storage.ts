@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'tms_notifications',
   EVENTS: 'tms_events',
   CURRENT_USER: 'tms_current_user',
+  ACCESS_TOKEN: 'tms_access_token',
 } as const;
 
 export function getStorageItem<T>(key: string): T | null {

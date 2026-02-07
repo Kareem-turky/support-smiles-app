@@ -15,8 +15,19 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+import { useEffect } from "react";
+import { api } from "@/lib/api";
+
+const HealthCheck = () => {
+  useEffect(() => {
+    api.get('/health').catch(err => console.error('Health check failed', err));
+  }, []);
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <HealthCheck />
     <BrowserRouter>
       <AuthProvider>
         <TooltipProvider>

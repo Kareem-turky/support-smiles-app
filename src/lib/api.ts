@@ -12,6 +12,11 @@ if (useMockApi) {
     console.log('[API] Running in REAL MODE - API_BASE_URL=', baseURL);
 }
 
+// Diagnostic: Log all outgoing requests
+const logRequest = (method: string, url: string) => {
+    console.log(`[API Request] ${method.toUpperCase()} ${url}`);
+};
+
 // Create axios instance for real API calls
 const axiosInstance = axios.create({
     baseURL,
@@ -48,6 +53,7 @@ axiosInstance.interceptors.response.use(
 // Unified API interface that works with both mock and real backends
 export const api = {
     async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+        logRequest('GET', url);
         if (useMockApi) {
             return mockApiAdapter.request({ method: 'GET', url, params: config?.params }) as Promise<AxiosResponse<T>>;
         }
@@ -55,6 +61,7 @@ export const api = {
     },
 
     async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+        logRequest('POST', url);
         if (useMockApi) {
             return mockApiAdapter.request({ method: 'POST', url, data }) as Promise<AxiosResponse<T>>;
         }
@@ -62,6 +69,7 @@ export const api = {
     },
 
     async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+        logRequest('PUT', url);
         if (useMockApi) {
             return mockApiAdapter.request({ method: 'PUT', url, data }) as Promise<AxiosResponse<T>>;
         }
@@ -69,6 +77,7 @@ export const api = {
     },
 
     async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+        logRequest('PATCH', url);
         if (useMockApi) {
             return mockApiAdapter.request({ method: 'PATCH', url, data }) as Promise<AxiosResponse<T>>;
         }
@@ -76,6 +85,7 @@ export const api = {
     },
 
     async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+        logRequest('DELETE', url);
         if (useMockApi) {
             return mockApiAdapter.request({ method: 'DELETE', url }) as Promise<AxiosResponse<T>>;
         }
