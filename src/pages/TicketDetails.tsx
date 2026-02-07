@@ -292,7 +292,7 @@ export default function TicketDetails() {
                 </Badge>
               </div>
               <p className="text-muted-foreground mt-1">
-                {ticket.courier_company} • {ISSUE_TYPE_LABELS[ticket.issue_type]}
+                {ticket.courier_company} • {ISSUE_TYPE_LABELS[ticket.issue_type]} {ticket.reason ? `• ${ticket.reason.name}` : ''}
               </p>
             </div>
           </div>

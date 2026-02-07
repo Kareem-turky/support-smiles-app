@@ -2,7 +2,9 @@ import { Controller, Get, Post, Body, Param, Query, UseGuards, Delete, ParseIntP
 import { HRService } from './hr.service';
 import { CreateAttendanceDto, BulkAttendanceDto } from './dto/create-attendance.dto';
 import { CreateLeaveDto } from './dto/create-leave.dto';
-import { CreateDeductionDto } from './dto/create-deduction.dto';
+import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { CreateDepartmentDto } from './dto/create-department.dto';
+import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -12,6 +14,45 @@ import { UserRole } from '@prisma/client';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class HRController {
     constructor(private readonly hrService: HRService) { }
+
+    // --- Departments ---
+    @Get('departments')
+    @Roles(UserRole.HR, UserRole.ADMIN)
+    getDepartments() {
+        return this.hrService.getDepartments();
+    }
+
+    @Post('departments')
+    @Roles(UserRole.HR, UserRole.ADMIN)
+    createDepartment(@Body() dto: CreateDepartmentDto) {
+        return this.hrService.createDepartment(dto);
+    }
+
+    // --- Employees ---
+    @Get('employees')
+    @Roles(UserRole.HR, UserRole.ADMIN, UserRole.ACCOUNTING)
+    getEmployees() {
+        return this.hrService.getEmployees();
+    }
+
+    @Post('employees')
+    @Roles(UserRole.HR, UserRole.ADMIN)
+    createEmployee(@Body() dto: CreateEmployeeDto) {
+        return this.hrService.createEmployee(dto);
+    }
+
+    // --- Adjustments ---
+    @Get('adjustments')
+    @Roles(UserRole.HR, UserRole.ADMIN, UserRole.ACCOUNTING)
+    getAdjustments(@Query('employeeId') employeeId?: string, @Query('from') from?: string, @Query('to') to?: string) {
+        return this.hrService.getAdjustments(employeeId, from, to);
+    }
+
+    @Post('adjustments')
+    @Roles(UserRole.HR, UserRole.ADMIN)
+    createAdjustment(@Body() dto: CreateAdjustmentDto, @Request() req) {
+        return this.hrService.createAdjustment(dto, req.user);
+    }
 
     // --- Months ---
     @Get('months')
@@ -68,24 +109,5 @@ export class HRController {
     @Roles(UserRole.HR, UserRole.ADMIN)
     createLeave(@Body() dto: CreateLeaveDto, @Request() req) {
         return this.hrService.createLeave(dto, req.user);
-    }
-
-    // --- Deductions ---
-    @Get('deductions')
-    @Roles(UserRole.HR, UserRole.ADMIN, UserRole.ACCOUNTING)
-    getDeductions(@Query('year', ParseIntPipe) year: number, @Query('month', ParseIntPipe) month: number, @Query('employeeId') employeeId?: string) {
-        return this.hrService.getDeductions(year, month, employeeId);
-    }
-
-    @Post('deductions')
-    @Roles(UserRole.HR, UserRole.ADMIN)
-    createDeduction(@Body() dto: CreateDeductionDto, @Request() req) {
-        return this.hrService.createDeduction(dto, req.user);
-    }
-
-    @Delete('deductions/:id')
-    @Roles(UserRole.HR, UserRole.ADMIN)
-    deleteDeduction(@Param('id') id: string) {
-        return this.hrService.deleteDeduction(id);
     }
 }

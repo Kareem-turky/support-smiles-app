@@ -15,12 +15,20 @@ import NotFound from "./pages/NotFound";
 import Purchases from "./pages/accounting/Purchases";
 import Expenses from "./pages/accounting/Expenses";
 import Payroll from "./pages/accounting/Payroll";
+import Deposits from "./pages/accounting/Deposits";
+import Transfers from "./pages/accounting/Transfers";
+import Advances from "./pages/accounting/Advances";
+import AttendancePage from "./pages/hr/Attendance";
+import LeavesPage from "./pages/hr/Leaves";
+import Employees from "./pages/hr/Employees";
+import Adjustments from "./pages/hr/Adjustments";
+import Shipping from "./pages/Shipping";
+import Orders from "./pages/Orders";
 import TicketReasons from "./pages/admin/TicketReasons";
-
-const queryClient = new QueryClient();
-
 import { useEffect } from "react";
 import { api } from "@/lib/api";
+
+const queryClient = new QueryClient();
 
 const HealthCheck = () => {
   useEffect(() => {
@@ -91,10 +99,66 @@ const App = () => (
               }
             />
             <Route
+              path="/accounting/deposits"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING']}>
+                  <Deposits />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/accounting/payroll"
               element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING']}>
                   <Payroll />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/transfers"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING']}>
+                  <Transfers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/advances"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING']}>
+                  <Advances />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/employees"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HR']}>
+                  <Employees />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/adjustments"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HR']}>
+                  <Adjustments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING', 'CS']}>
+                  <Orders />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shipping"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING']}>
+                  <Shipping />
                 </ProtectedRoute>
               }
             />

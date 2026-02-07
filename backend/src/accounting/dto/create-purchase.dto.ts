@@ -1,35 +1,35 @@
-import { IsNotEmpty, IsString, IsNumber, IsDateString, IsOptional, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsNumber, ValidateNested, IsOptional, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PurchaseItemDto {
-    @IsNotEmpty()
     @IsString()
+    @IsNotEmpty()
     item_name: string;
 
-    @IsNotEmpty()
     @IsNumber()
+    @IsNotEmpty()
     qty: number;
 
-    @IsNotEmpty()
     @IsNumber()
+    @IsNotEmpty()
     unit_price: number;
 }
 
 export class CreatePurchaseDto {
-    @IsNotEmpty()
     @IsString()
-    vendor_name: string;
-
     @IsNotEmpty()
+    vendor_id: string;
+
     @IsDateString()
+    @IsNotEmpty()
     date: string;
 
-    @IsOptional()
     @IsString()
+    @IsOptional()
     notes?: string;
 
-    @IsOptional()
+    @IsArray()
     @ValidateNested({ each: true })
     @Type(() => PurchaseItemDto)
-    items?: PurchaseItemDto[];
+    items: PurchaseItemDto[];
 }

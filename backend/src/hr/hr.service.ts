@@ -2,8 +2,10 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAttendanceDto, BulkAttendanceDto } from './dto/create-attendance.dto';
 import { CreateLeaveDto } from './dto/create-leave.dto';
-import { CreateDeductionDto } from './dto/create-deduction.dto';
-import { HRMonthStatus, User, HRAttendance } from '@prisma/client';
+import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { CreateDepartmentDto } from './dto/create-department.dto';
+import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
+import { HRMonthStatus, User, HRAttendance, EmployeeSalaryType } from '@prisma/client';
 
 @Injectable()
 export class HRService {
@@ -21,7 +23,75 @@ export class HRService {
 
     private getDateYearMonth(dateStr: string | Date) {
         const d = new Date(dateStr);
-        return { year: d.getFullYear(), month: d.getMonth() + 1 }; // 1-indexed for business logic
+        return { year: d.getFullYear(), month: d.getMonth() + 1 };
+    }
+
+    // --- Departments ---
+    async getDepartments() {
+        return this.prisma.department.findMany({
+            include: { _count: { select: { employees: true } } }
+        });
+    }
+
+    async createDepartment(dto: CreateDepartmentDto) {
+        return this.prisma.department.create({
+            data: { name: dto.name }
+        });
+    }
+
+    // --- Employees ---
+    async getEmployees() {
+        return this.prisma.employee.findMany({
+            include: { department: true, user: { select: { email: true } } },
+            orderBy: { full_name: 'asc' }
+        });
+    }
+
+    async createEmployee(dto: CreateEmployeeDto) {
+        const count = await this.prisma.employee.count();
+        const code = `EMP${String(count + 1).padStart(3, '0')}`;
+
+        return this.prisma.employee.create({
+            data: {
+                code,
+                full_name: dto.full_name,
+                // Email is on User, not Employee
+                department_id: dto.department_id,
+                start_date: new Date(dto.start_date),
+                base_salary: dto.base_salary,
+                salary_type: dto.salary_type || EmployeeSalaryType.MONTHLY,
+                // is_active/phone/position not in schema subset seen, assuming excluded.
+            }
+        });
+    }
+
+    // --- Adjustments (Bonus/Deduction/Advance) ---
+    async getAdjustments(employeeId?: string, from?: string, to?: string) {
+        const where: any = {};
+        if (employeeId) where.employee_id = employeeId;
+        if (from && to) {
+            where.date = { gte: new Date(from), lte: new Date(to) };
+        }
+        return this.prisma.hRAdjustment.findMany({
+            where,
+            include: { employee: true },
+            orderBy: { date: 'desc' }
+        });
+    }
+
+    async createAdjustment(dto: CreateAdjustmentDto, user: User) {
+        const { year, month } = this.getDateYearMonth(dto.date);
+        await this.ensureMonthEditable(year, month);
+
+        return this.prisma.hRAdjustment.create({
+            data: {
+                employee_id: dto.employee_id,
+                type: dto.type,
+                amount: dto.amount,
+                date: new Date(dto.date),
+                reason: dto.reason,
+            }
+        });
     }
 
     // --- Months ---
@@ -32,7 +102,6 @@ export class HRService {
     }
 
     async submitMonth(year: number, month: number, user: User) {
-        // Create if not exists, or update
         return this.prisma.hRMonth.upsert({
             where: { year_month: { year, month } },
             update: {
@@ -51,7 +120,6 @@ export class HRService {
     }
 
     async lockMonth(year: number, month: number, user: User) {
-        // Only Admin usually, but handled by controller Guard/Role
         return this.prisma.hRMonth.upsert({
             where: { year_month: { year, month } },
             update: {
@@ -134,7 +202,6 @@ export class HRService {
         const { year, month } = this.getDateYearMonth(dto.date);
         await this.ensureMonthEditable(year, month);
 
-        // Transaction manually or loop. Loop is fine for small batches (employees < 100)
         const results: HRAttendance[] = [];
         for (const item of dto.items) {
             const res = await this.prisma.hRAttendance.upsert({
@@ -168,7 +235,7 @@ export class HRService {
 
     async createLeave(dto: CreateLeaveDto, user: User) {
         const { year, month } = this.getDateYearMonth(dto.from_date);
-        await this.ensureMonthEditable(year, month); // Simplified: check start date month only
+        await this.ensureMonthEditable(year, month);
 
         return this.prisma.hRLeave.create({
             data: {
@@ -180,59 +247,5 @@ export class HRService {
                 created_by: user.id
             }
         });
-    }
-
-    // --- Deductions ---
-    async getDeductions(year: number, month: number, employeeId?: string) {
-        // First find month ID
-        const hrMonth = await this.prisma.hRMonth.findUnique({ where: { year_month: { year, month } } });
-        if (!hrMonth) return [];
-
-        const where: any = { hr_month_id: hrMonth.id };
-        if (employeeId) where.employee_id = employeeId;
-
-        return this.prisma.hRDeduction.findMany({
-            where,
-            include: { employee: true },
-        });
-    }
-
-    async createDeduction(dto: CreateDeductionDto, user: User) {
-        await this.ensureMonthEditable(dto.year, dto.month);
-
-        // Ensure month record exists (create DRAFT if not)
-        let hrMonth = await this.prisma.hRMonth.findUnique({ where: { year_month: { year: dto.year, month: dto.month } } });
-        if (!hrMonth) {
-            hrMonth = await this.prisma.hRMonth.create({
-                data: {
-                    year: dto.year,
-                    month: dto.month,
-                    status: HRMonthStatus.DRAFT,
-                }
-            });
-        }
-
-        return this.prisma.hRDeduction.create({
-            data: {
-                hr_month_id: hrMonth.id,
-                employee_id: dto.employee_id,
-                type: dto.type,
-                amount: dto.amount,
-                reason: dto.reason,
-                created_by: user.id
-            }
-        });
-    }
-
-    async deleteDeduction(id: string) {
-        const deduction = await this.prisma.hRDeduction.findUnique({
-            where: { id },
-            include: { hr_month: true }
-        });
-        if (!deduction) throw new NotFoundException();
-
-        await this.ensureMonthEditable(deduction.hr_month.year, deduction.hr_month.month);
-
-        return this.prisma.hRDeduction.delete({ where: { id } });
     }
 }

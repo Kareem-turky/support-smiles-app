@@ -45,6 +45,7 @@ import {
   CreditCard,
   Banknote,
   List,
+  ShoppingCart,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -55,7 +56,16 @@ const navItems = [
   { title: 'Users', url: '/users', icon: Users, roles: ['ADMIN'] },
   { title: 'Purchases', url: '/accounting/purchases', icon: DollarSign, roles: ['ADMIN', 'ACCOUNTING'] },
   { title: 'Expenses', url: '/accounting/expenses', icon: CreditCard, roles: ['ADMIN', 'ACCOUNTING'] },
+  { title: 'Deposits', url: '/accounting/deposits', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
   { title: 'Payroll', url: '/accounting/payroll', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
+  { title: 'Transfers', url: '/accounting/transfers', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
+  { title: 'Advances', url: '/accounting/advances', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
+  { title: 'Employees', url: '/hr/employees', icon: Users, roles: ['ADMIN', 'HR'] },
+  { title: 'Adjustments', url: '/hr/adjustments', icon: List, roles: ['ADMIN', 'HR'] },
+  { title: 'Attendance', url: '/hr/attendance', icon: List, roles: ['ADMIN', 'HR'] },
+  { title: 'Leaves', url: '/hr/leaves', icon: List, roles: ['ADMIN', 'HR'] },
+  { title: 'Orders', url: '/orders', icon: ShoppingCart, roles: ['ADMIN', 'ACCOUNTING', 'CS'] },
+  { title: 'Shipping', url: '/shipping', icon: Ticket, roles: ['ADMIN', 'ACCOUNTING'] },
   { title: 'Reasons', url: '/admin/ticket-reasons', icon: List, roles: ['ADMIN'] },
 ];
 

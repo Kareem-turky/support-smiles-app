@@ -5,6 +5,8 @@ import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { CreateClosingDto } from './dto/create-closing.dto';
+import { CreateVendorDto } from './dto/create-vendor.dto';
+import { CreateDepositDto } from './dto/create-deposit.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -44,6 +46,32 @@ export class AccountingController {
     @Roles(UserRole.ACCOUNTING, UserRole.ADMIN)
     payPayroll(@Param('id') id: string, @Request() req) {
         return this.accountingService.payPayroll(id, req.user);
+    }
+
+    // --- Vendors ---
+    @Get('vendors')
+    @Roles(UserRole.ACCOUNTING, UserRole.ADMIN)
+    getVendors() {
+        return this.accountingService.getVendors();
+    }
+
+    @Post('vendors')
+    @Roles(UserRole.ACCOUNTING, UserRole.ADMIN)
+    createVendor(@Body() dto: CreateVendorDto) {
+        return this.accountingService.createVendor(dto);
+    }
+
+    // --- Deposits ---
+    @Get('deposits')
+    @Roles(UserRole.ACCOUNTING, UserRole.ADMIN)
+    getDeposits() {
+        return this.accountingService.getDeposits();
+    }
+
+    @Post('deposits')
+    @Roles(UserRole.ACCOUNTING, UserRole.ADMIN)
+    createDeposit(@Body() dto: CreateDepositDto) {
+        return this.accountingService.createDeposit(dto);
     }
 
     // --- Purchases ---

@@ -1,5 +1,5 @@
 // User roles
-export type UserRole = 'ADMIN' | 'ACCOUNTING' | 'CS';
+export type UserRole = 'ADMIN' | 'ACCOUNTING' | 'CS' | 'HR';
 
 // Ticket enums
 export type IssueType = 'ACCOUNTING' | 'DELIVERY' | 'COD' | 'RETURNS' | 'ADDRESS' | 'DUPLICATE' | 'OTHER';
@@ -16,8 +16,20 @@ export interface User {
   password_hash: string;
   role: UserRole;
   is_active: boolean;
+  department_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+// Ticket Reason model
+export interface TicketReason {
+  id: string;
+  name: string;
+  category: 'ACCOUNTING' | 'CS' | 'SHIPPING' | 'OTHER';
+  sort_order: number;
+  is_active: boolean;
+  default_assign_role?: UserRole;
+  default_priority?: Priority;
 }
 
 // Ticket model
@@ -31,11 +43,14 @@ export interface Ticket {
   description: string;
   created_by: string;
   assigned_to: string | null;
+  reason_id?: string;
+  reason?: TicketReason;
   resolved_at: string | null;
   closed_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  integration_inbox?: { source: string; external_id: string };
 }
 
 // Ticket message model
@@ -123,6 +138,7 @@ export interface CreateTicketDto {
   priority: Priority;
   description: string;
   assigned_to?: string;
+  reason_id?: string;
 }
 
 export interface UpdateTicketDto {
@@ -169,6 +185,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Administrator',
   ACCOUNTING: 'Accounting',
   CS: 'Customer Service',
+  HR: 'Human Resources',
 };
 
 export const PRIORITY_COLORS: Record<Priority, string> = {

@@ -218,6 +218,7 @@ export default function TicketsList() {
               <TableRow>
                 <TableHead>Order #</TableHead>
                 <TableHead>Courier</TableHead>
+                <TableHead>Reason</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
@@ -228,7 +229,7 @@ export default function TicketsList() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
                     </div>
@@ -236,7 +237,7 @@ export default function TicketsList() {
                 </TableRow>
               ) : tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No tickets found
                   </TableCell>
                 </TableRow>
@@ -252,6 +253,9 @@ export default function TicketsList() {
                       </Link>
                     </TableCell>
                     <TableCell>{ticket.courier_company}</TableCell>
+                    <TableCell>
+                      {ticket.reason ? ticket.reason.name : '-'}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">
                         {ISSUE_TYPE_LABELS[ticket.issue_type]}

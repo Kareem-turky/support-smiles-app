@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, Priority, IssueType, TicketStatus, EventType, NotificationType, TicketReasonCategory, EmployeeSalaryType, PayrollStatus } from '@prisma/client';
+import { PrismaClient, UserRole, Priority, IssueType, TicketStatus, EventType, NotificationType, TicketReasonCategory, EmployeeSalaryType, PayrollStatus, AdjustmentType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -46,7 +46,131 @@ async function main() {
 
   console.log('Users created:', { admin: admin.email, accounting: accounting.email, cs: cs.email });
 
-  // Create Reasons
+  // Create Departments
+  const departments = ['Sales', 'Engineering', 'HR', 'Operations'];
+  const depMap: Record<string, string> = {};
+
+  for (const depName of departments) {
+    const dep = await prisma.department.upsert({
+      where: { name: depName },
+      update: {},
+      create: { name: depName },
+    });
+    depMap[depName] = dep.id;
+  }
+  console.log('Departments seeded');
+
+  // Create Employees
+  const emp1 = await prisma.employee.upsert({
+    where: { code: 'EMP001' },
+    update: {},
+    create: {
+      code: 'EMP001',
+      full_name: 'John Doe',
+      start_date: new Date('2024-01-01'),
+      base_salary: 5000,
+      salary_type: EmployeeSalaryType.MONTHLY,
+      department_id: depMap['Engineering'],
+      user_id: admin.id,
+    },
+  });
+
+  const emp2 = await prisma.employee.upsert({
+    where: { code: 'EMP002' },
+    update: {},
+    create: {
+      code: 'EMP002',
+      full_name: 'Jane Smith',
+      start_date: new Date('2024-02-01'),
+      base_salary: 4500,
+      salary_type: EmployeeSalaryType.MONTHLY,
+      department_id: depMap['Sales'],
+      user_id: accounting.id,
+    },
+  });
+  console.log('Employees seeded');
+
+  // HR Adjustments
+  await prisma.hRAdjustment.create({
+    data: {
+      employee_id: emp1.id,
+      type: AdjustmentType.BONUS,
+      amount: 500,
+      date: new Date(),
+      reason: 'Performance Bonus',
+    }
+  });
+  console.log('HR Adjustments seeded');
+
+  // Vendors
+  const vendor1 = await prisma.vendor.upsert({
+    where: { name: 'Office Depot' },
+    update: {},
+    create: { name: 'Office Depot' },
+  });
+
+  const vendor2 = await prisma.vendor.upsert({
+    where: { name: 'AWS' },
+    update: {},
+    create: { name: 'AWS' },
+  });
+  console.log('Vendors seeded');
+
+  // Accounting Purchases
+  await prisma.accountingPurchase.create({
+    data: {
+      vendor_id: vendor1.id,
+      date: new Date('2025-01-25'),
+      total_amount: 150.00,
+      created_by: admin.id,
+      items: {
+        create: [
+          { item_name: 'Paper Ream', qty: 10, unit_price: 5, line_total: 50 },
+          { item_name: 'Ink Cartridge', qty: 2, unit_price: 50, line_total: 100 },
+        ],
+      },
+    },
+  });
+
+  // Vendor Deposits
+  await prisma.vendorDeposit.create({
+    data: {
+      vendor_id: vendor2.id,
+      amount: 1000.00,
+      date: new Date('2025-01-01'),
+      profit_loss: 0,
+    }
+  });
+  console.log('Accounting data seeded');
+
+  // Shipping Companies
+  const fedex = await prisma.shippingCompany.upsert({
+    where: { name: 'FedEx' },
+    update: {},
+    create: { name: 'FedEx' },
+  });
+
+  const dhl = await prisma.shippingCompany.upsert({
+    where: { name: 'DHL' },
+    update: {},
+    create: { name: 'DHL' },
+  });
+  console.log('Shipping companies seeded');
+
+  // Orders
+  await prisma.order.upsert({
+    where: { order_number: 'ORD-2025-0001' },
+    update: {},
+    create: {
+      order_number: 'ORD-2025-0001',
+      customer_name: 'Acme Corp',
+      shipping_company_id: fedex.id,
+      status: 'SHIPPED',
+    },
+  });
+  console.log('Orders seeded');
+
+  // Ticket Reasons
   const reasons = [
     { name: 'Wrong Item Delivered', category: TicketReasonCategory.SHIPPING, sort_order: 10 },
     { name: 'Package Damaged', category: TicketReasonCategory.SHIPPING, sort_order: 20 },
@@ -67,12 +191,10 @@ async function main() {
   }
   console.log('Reasons seeded');
 
-  // Fetch a reason for tickets
+  // Tickets
   const reasonShipping = await prisma.ticketReason.findUnique({ where: { name: 'Wrong Item Delivered' } });
-  const reasonAccounting = await prisma.ticketReason.findUnique({ where: { name: 'COD Amount Mismatch' } });
 
-  // Create Tickets
-  const ticket1 = await prisma.ticket.create({
+  await prisma.ticket.create({
     data: {
       order_number: 'ORD-2025-0001',
       courier_company: 'FedEx',
@@ -86,155 +208,7 @@ async function main() {
       reason_id: reasonShipping?.id,
     },
   });
-
-  const ticket2 = await prisma.ticket.create({
-    data: {
-      order_number: 'ORD-2025-0002',
-      courier_company: 'UPS',
-      issue_type: IssueType.COD,
-      priority: Priority.URGENT,
-      status: TicketStatus.NEW,
-      description: 'COD amount mismatch',
-      created_by: accounting.id,
-      created_at: new Date('2025-01-28T11:00:00Z'),
-      reason_id: reasonAccounting?.id,
-    },
-  });
-
-  console.log('Tickets created:', [ticket1.id, ticket2.id]);
-
-  // Create Employees
-  const emp1 = await prisma.employee.upsert({
-    where: { code: 'EMP001' },
-    update: {},
-    create: {
-      code: 'EMP001',
-      full_name: 'John Doe',
-      start_date: new Date('2024-01-01'),
-      base_salary: 5000,
-      salary_type: EmployeeSalaryType.MONTHLY,
-      department: 'Engineering',
-    },
-  });
-
-  const emp2 = await prisma.employee.upsert({
-    where: { code: 'EMP002' },
-    update: {},
-    create: {
-      code: 'EMP002',
-      full_name: 'Jane Smith',
-      start_date: new Date('2024-02-01'),
-      base_salary: 4500,
-      salary_type: EmployeeSalaryType.MONTHLY,
-      department: 'Marketing',
-    },
-  });
-  console.log('Employees seeded');
-
-  // Create Accounting Purchases
-  await prisma.accountingPurchase.create({
-    data: {
-      vendor_name: 'Tech Solutions Inc',
-      date: new Date('2025-01-25'),
-      total_amount: 1500.00,
-      created_by: admin.id,
-      items: {
-        create: [
-          { item_name: 'Laptop Charger', qty: 5, unit_price: 200, line_total: 1000 },
-          { item_name: 'Monitor Stand', qty: 2, unit_price: 250, line_total: 500 },
-        ],
-      },
-    },
-  });
-  console.log('Purchases seeded');
-
-  // Create Accounting Expenses
-  await prisma.accountingExpense.create({
-    data: {
-      category: 'Office Supplies',
-      date: new Date('2025-01-20'),
-      amount: 150.50,
-      created_by: accounting.id,
-      notes: 'Stationary for the team',
-    },
-  });
-  console.log('Expenses seeded');
-
-  // Create Payroll
-  const payrollRun = await prisma.payrollRun.upsert({
-    where: { year_month: { year: 2025, month: 1 } },
-    update: {},
-    create: {
-      year: 2025,
-      month: 1,
-      status: PayrollStatus.APPROVED,
-      approved_by: admin.id,
-      approved_at: new Date(),
-    },
-  });
-
-  await prisma.payrollItem.upsert({
-    where: { payroll_run_id_employee_id: { payroll_run_id: payrollRun.id, employee_id: emp1.id } },
-    update: {},
-    create: {
-      payroll_run_id: payrollRun.id,
-      employee_id: emp1.id,
-      base_salary: 5000,
-      total_deductions: 200,
-      net_salary: 4800,
-      breakdown_json: { tax: 150, insurance: 50 },
-    },
-  });
-  console.log('Payroll seeded');
-
-  // Create Messages
-  await prisma.ticketMessage.create({
-    data: {
-      ticket_id: ticket1.id,
-      sender_id: accounting.id,
-      message: 'Please check with FedEx immediately.',
-    },
-  });
-
-  await prisma.ticketMessage.create({
-    data: {
-      ticket_id: ticket1.id,
-      sender_id: cs.id,
-      message: 'On it, calling them now.',
-    },
-  });
-
-  // Create Events
-  await prisma.ticketEvent.create({
-    data: {
-      ticket_id: ticket1.id,
-      actor_id: accounting.id,
-      event_type: EventType.TICKET_CREATED,
-      meta: { order_number: 'ORD-2025-0001' },
-    },
-  });
-
-  await prisma.ticketEvent.create({
-    data: {
-      ticket_id: ticket1.id,
-      actor_id: accounting.id,
-      event_type: EventType.TICKET_ASSIGNED,
-      meta: { assigned_to: cs.id },
-    },
-  });
-
-  // Create Notifications
-  await prisma.notification.create({
-    data: {
-      user_id: cs.id,
-      type: NotificationType.TICKET_ASSIGNED,
-      title: 'New Ticket Assigned',
-      body: 'You have been assigned to ticket ORD-2025-0001',
-      link: `/tickets/${ticket1.id}`,
-    },
-  });
-
-  console.log('Database seeded successfully');
+  console.log('Tickets seeded');
 }
 
 main()

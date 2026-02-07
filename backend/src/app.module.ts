@@ -10,9 +10,11 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MessagesModule } from './messages/messages.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { TicketReasonsModule } from './ticket-reasons/ticket-reasons.module';
-import { EmployeesModule } from './employees/employees.module';
 import { HRModule } from './hr/hr.module';
 import { AccountingModule } from './accounting/accounting.module';
+import { ShippingModule } from './shipping/shipping.module';
+import { OrdersModule } from './orders/orders.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -23,12 +25,13 @@ import { AccountingModule } from './accounting/accounting.module';
     TicketsModule,
     NotificationsModule,
     MessagesModule,
-    MessagesModule,
     IntegrationsModule,
     TicketReasonsModule,
-    EmployeesModule,
     HRModule,
     AccountingModule,
+    ShippingModule,
+    OrdersModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

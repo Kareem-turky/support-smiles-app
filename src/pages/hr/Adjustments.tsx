@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { AccountingService, PayrollRun } from '@/services/accounting';
+import { HRService, Adjustment } from '@/services/hr';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-export default function Payroll() {
-    const [data, setData] = useState<PayrollRun[]>([]);
+export default function Adjustments() {
+    const [data, setData] = useState<Adjustment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -22,9 +22,8 @@ export default function Payroll() {
     }, []);
 
     const filteredData = data.filter(item => {
-        const itemDate = new Date(item.year, item.month - 1, 1);
-        if (dateFrom && itemDate < new Date(dateFrom)) return false;
-        if (dateTo && itemDate > new Date(dateTo)) return false;
+        if (dateFrom && new Date(item.date) < new Date(dateFrom)) return false;
+        if (dateTo && new Date(item.date) > new Date(dateTo)) return false;
         return true;
     });
 
@@ -33,13 +32,13 @@ export default function Payroll() {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold">Payroll</h1>
-                <Button><Plus className="mr-2 h-4 w-4" /> New Run</Button>
+                <h1 className="text-3xl font-bold">HR Adjustments</h1>
+                <Button><Plus className="mr-2 h-4 w-4" /> New Adjustment</Button>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Payroll Runs</CardTitle>
+                    <CardTitle>Adjustments History</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex gap-4 mb-4 items-end">
@@ -58,23 +57,25 @@ export default function Payroll() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Period</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Actions</TableHead>
+                                    <TableHead>Employee</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Reason</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredData.map((item) => (
                                     <TableRow key={item.id}>
-                                        <TableCell>{item.month}/{item.year}</TableCell>
+                                        <TableCell>{item.employee?.full_name || 'Unknown'}</TableCell>
                                         <TableCell>
-                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                {item.status}
+                                            <span className={`font-semibold ${item.type === 'BONUS' ? 'text-green-600' : 'text-amber-600'}`}>
+                                                {item.type}
                                             </span>
                                         </TableCell>
-                                        <TableCell>
-                                            <Button variant="outline" size="sm">View</Button>
-                                        </TableCell>
+                                        <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
+                                        <TableCell className="font-mono">${Number(item.amount).toFixed(2)}</TableCell>
+                                        <TableCell>{item.reason}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
