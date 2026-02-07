@@ -42,4 +42,34 @@ export const HRService = {
         return (await api.get<Adjustment[]>('/hr/adjustments', { params })).data;
     },
     createAdjustment: async (data: any) => (await api.post<Adjustment>('/hr/adjustments', data)).data,
+
+    // Attendance
+    getAttendance: async (params?: { from: string; to: string; employeeId?: string }) => {
+        return (await api.get<HRAttendance[]>('/hr/attendance', { params })).data;
+    },
+    upsertAttendance: async (data: any) => (await api.post<HRAttendance>('/hr/attendance', data)).data,
+
+    // Leaves
+    getLeaves: async () => (await api.get<HRLeave[]>('/hr/leaves')).data,
+    createLeave: async (data: any) => (await api.post<HRLeave>('/hr/leaves', data)).data,
 };
+
+export interface HRAttendance {
+    id: string;
+    employee_id: string;
+    employee?: Employee;
+    date: string;
+    status: 'PRESENT' | 'ABSENT' | 'LEAVE';
+    minutes_late: number;
+    notes?: string;
+}
+
+export interface HRLeave {
+    id: string;
+    employee_id: string;
+    employee?: Employee;
+    from_date: string;
+    to_date: string;
+    leave_type: 'ANNUAL' | 'SICK' | 'UNPAID' | 'OTHER';
+    notes?: string;
+}

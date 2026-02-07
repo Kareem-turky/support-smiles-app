@@ -102,6 +102,40 @@ async function main() {
   });
   console.log('HR Adjustments seeded');
 
+  // HR Attendance
+  await prisma.hRAttendance.create({
+    data: {
+      employee_id: emp1.id,
+      date: new Date('2025-01-02'),
+      status: 'PRESENT',
+      minutes_late: 0,
+      created_by: admin.id,
+    }
+  });
+  await prisma.hRAttendance.create({
+    data: {
+      employee_id: emp1.id,
+      date: new Date('2025-01-03'),
+      status: 'PRESENT',
+      minutes_late: 15,
+      created_by: admin.id,
+    }
+  });
+  console.log('HR Attendance seeded');
+
+  // HR Leaves
+  await prisma.hRLeave.create({
+    data: {
+      employee_id: emp2.id,
+      from_date: new Date('2025-01-10'),
+      to_date: new Date('2025-01-12'),
+      leave_type: 'SICK',
+      notes: 'Flu',
+      created_by: admin.id,
+    }
+  });
+  console.log('HR Leaves seeded');
+
   // Vendors
   const vendor1 = await prisma.vendor.upsert({
     where: { name: 'Office Depot' },

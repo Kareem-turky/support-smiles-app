@@ -63,4 +63,14 @@ curl -s -X GET "$BASE_URL/orders" -H "Authorization: Bearer $TOKEN" | head -c 20
 echo "..."
 echo ""
 
+echo "11. HR: Get Attendance"
+curl -s -X GET "$BASE_URL/hr/attendance?from=2024-01-01&to=2026-12-31" -H "Authorization: Bearer $TOKEN" | head -c 200
+echo "..."
+echo ""
+
+echo "12. HR: Get Leaves"
+curl -s -X GET "$BASE_URL/hr/leaves" -H "Authorization: Bearer $TOKEN" | head -c 200
+echo "..."
+echo ""
+
 echo "Done."
