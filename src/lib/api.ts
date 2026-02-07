@@ -8,9 +8,13 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4001';
 
 if (import.meta.env.DEV) {
     if (useMockApi) {
-        console.log('[API] Running in MOCK MODE - no backend required');
+        console.log('%c[API] MOCK MODE ACTIVE', 'background: #222; color: #bada55');
     } else {
-        console.log('[API] Running in REAL MODE - API_BASE_URL=', baseURL);
+        if (!baseURL || baseURL.includes('localhost:4001')) {
+            console.error('[API] CRITICAL: Running in REAL mode but VITE_API_BASE_URL is invalid!', baseURL);
+            alert('CRITICAL API CONFIG ERROR: Check console');
+        }
+        console.log(`%c[API] REAL MODE ACTIVE. BaseURL: ${baseURL}`, 'background: #222; color: #00ff00');
     }
 }
 
