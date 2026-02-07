@@ -12,6 +12,10 @@ import TicketDetails from "./pages/TicketDetails";
 import UsersPage from "./pages/UsersPage";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
+import Purchases from "./pages/accounting/Purchases";
+import Expenses from "./pages/accounting/Expenses";
+import Payroll from "./pages/accounting/Payroll";
+import TicketReasons from "./pages/admin/TicketReasons";
 
 const queryClient = new QueryClient();
 
@@ -20,7 +24,9 @@ import { api } from "@/lib/api";
 
 const HealthCheck = () => {
   useEffect(() => {
-    api.get('/health').catch(err => console.error('Health check failed', err));
+    if (import.meta.env.DEV) {
+      api.get('/health').catch(err => console.error('Health check failed', err));
+    }
   }, []);
   return null;
 };
@@ -65,6 +71,38 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
                   <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/purchases"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING']}>
+                  <Purchases />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/expenses"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING']}>
+                  <Expenses />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/payroll"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACCOUNTING']}>
+                  <Payroll />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ticket-reasons"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <TicketReasons />
                 </ProtectedRoute>
               }
             />

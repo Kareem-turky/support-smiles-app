@@ -41,6 +41,10 @@ import {
   User,
   Menu,
   CheckCheck,
+  DollarSign,
+  CreditCard,
+  Banknote,
+  List,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -49,6 +53,10 @@ const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['ADMIN', 'ACCOUNTING', 'CS'] },
   { title: 'Tickets', url: '/tickets', icon: Ticket, roles: ['ADMIN', 'ACCOUNTING', 'CS'] },
   { title: 'Users', url: '/users', icon: Users, roles: ['ADMIN'] },
+  { title: 'Purchases', url: '/accounting/purchases', icon: DollarSign, roles: ['ADMIN', 'ACCOUNTING'] },
+  { title: 'Expenses', url: '/accounting/expenses', icon: CreditCard, roles: ['ADMIN', 'ACCOUNTING'] },
+  { title: 'Payroll', url: '/accounting/payroll', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
+  { title: 'Reasons', url: '/admin/ticket-reasons', icon: List, roles: ['ADMIN'] },
 ];
 
 function AppSidebarContent() {

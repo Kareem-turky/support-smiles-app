@@ -6,15 +6,19 @@ import { mockApiAdapter } from './mockApiAdapter';
 const useMockApi = import.meta.env.VITE_USE_MOCK_API === 'true';
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4001';
 
-if (useMockApi) {
-    console.log('[API] Running in MOCK MODE - no backend required');
-} else {
-    console.log('[API] Running in REAL MODE - API_BASE_URL=', baseURL);
+if (import.meta.env.DEV) {
+    if (useMockApi) {
+        console.log('[API] Running in MOCK MODE - no backend required');
+    } else {
+        console.log('[API] Running in REAL MODE - API_BASE_URL=', baseURL);
+    }
 }
 
 // Diagnostic: Log all outgoing requests
 const logRequest = (method: string, url: string) => {
-    console.log(`[API Request] ${method.toUpperCase()} ${url}`);
+    if (import.meta.env.DEV) {
+        console.log(`[API Request] ${method.toUpperCase()} ${url}`);
+    }
 };
 
 // Create axios instance for real API calls
