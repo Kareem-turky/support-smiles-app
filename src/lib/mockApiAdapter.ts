@@ -49,6 +49,20 @@ function mockError(message: string, status = 400) {
     return error;
 }
 
+// Global Coverage Store
+declare global {
+    var __MOCK_API_COVERAGE__: string[];
+}
+
+function recordHit(method: string, url: string) {
+    if (!globalThis.__MOCK_API_COVERAGE__) {
+        globalThis.__MOCK_API_COVERAGE__ = [];
+    }
+    // Normalize URL for reporting (remove IDs)
+    const normalizedUrl = url.split('?')[0].replace(/\/[0-9a-f-]{36}/g, '/:id');
+    globalThis.__MOCK_API_COVERAGE__.push(`${method} ${normalizedUrl}`);
+}
+
 // Unhandled route error
 function unhandledRoute(method: string, url: string): never {
     console.error(`[MOCK_API] UNHANDLED: ${method} ${url}`);
@@ -66,6 +80,7 @@ export const mockApiAdapter = {
         const data = config.data;
         const params = config.params || {};
 
+        recordHit(method, url);
         console.log(`[MOCK_API] ${method} ${url}`, data || params || '');
 
         // ==================== AUTH ====================
