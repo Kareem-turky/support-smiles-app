@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { ticketsService } from '@/services/tickets.service';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,11 +40,11 @@ export default function Dashboard() {
     );
   }
 
-  const openTickets = stats ? 
-    (stats.byStatus['NEW'] || 0) + 
-    (stats.byStatus['ASSIGNED'] || 0) + 
-    (stats.byStatus['IN_PROGRESS'] || 0) + 
-    (stats.byStatus['WAITING'] || 0) + 
+  const openTickets = stats ?
+    (stats.byStatus['NEW'] || 0) +
+    (stats.byStatus['ASSIGNED'] || 0) +
+    (stats.byStatus['IN_PROGRESS'] || 0) +
+    (stats.byStatus['WAITING'] || 0) +
     (stats.byStatus['REOPENED'] || 0) : 0;
 
   const urgentCount = stats?.byPriority['URGENT'] || 0;

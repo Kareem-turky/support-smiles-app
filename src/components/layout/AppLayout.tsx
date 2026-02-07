@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { notificationsService } from '@/services/notifications.service';
 import { Notification, ROLE_LABELS } from '@/types';
 import {
@@ -82,7 +82,7 @@ function AppSidebarContent() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location.pathname === item.url || 
+                    isActive={location.pathname === item.url ||
                       (item.url !== '/' && location.pathname.startsWith(item.url))}
                   >
                     <Link to={item.url}>
