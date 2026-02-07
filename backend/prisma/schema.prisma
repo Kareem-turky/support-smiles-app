@@ -1,0 +1,613 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum UserRole {
+  ADMIN
+  ACCOUNTING
+  CS
+  HR
+}
+
+// ... existing enums ...
+
+// HR Models
+
+enum EmployeeSalaryType {
+  MONTHLY
+  DAILY
+}
+
+model Employee {
+  id          String             @id @default(uuid())
+  code        String?            @unique // e.g., EMP001
+  full_name   String
+  start_date  DateTime
+  base_salary Decimal            @db.Decimal(12, 2)
+  salary_type EmployeeSalaryType
+  department  String?
+  is_active   Boolean            @default(true)
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
+
+  // Relations
+  attendance    HRAttendance[]
+  leaves        HRLeave[]
+  deductions    HRDeduction[]
+  payroll_items PayrollItem[]
+
+  @@map("employees")
+}
+
+enum HRMonthStatus {
+  DRAFT
+  SUBMITTED
+  LOCKED
+}
+
+model HRMonth {
+  id                  String        @id @default(uuid())
+  year                Int
+  month               Int
+  status              HRMonthStatus @default(DRAFT)
+  submitted_by        String?
+  submitted_by_user   User?         @relation("MonthSubmitter", fields: [submitted_by], references: [id])
+  submitted_at        DateTime?
+  locked_by           String?
+  locked_by_user      User?         @relation("MonthLocker", fields: [locked_by], references: [id])
+  locked_at           DateTime?
+
+  // Relations
+  deductions HRDeduction[]
+
+  @@unique([year, month])
+  @@map("hr_months")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+}
+
+model HRAttendance {
+  id           String           @id @default(uuid())
+  employee_id  String
+  employee     Employee         @relation(fields: [employee_id], references: [id])
+  date         DateTime         @db.Date
+  status       AttendanceStatus
+  minutes_late Int              @default(0)
+  notes        String?
+  created_by   String
+  creator      User             @relation(fields: [created_by], references: [id])
+
+  @@unique([employee_id, date])
+  @@map("hr_attendance")
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  UNPAID
+  OTHER
+}
+
+model HRLeave {
+  id          String    @id @default(uuid())
+  employee_id String
+  employee    Employee  @relation(fields: [employee_id], references: [id])
+  from_date   DateTime  @db.Date
+  to_date     DateTime  @db.Date
+  leave_type  LeaveType
+  notes       String?
+  created_by  String
+  creator     User      @relation(fields: [created_by], references: [id])
+
+  @@map("hr_leaves")
+}
+
+enum DeductionType {
+  DEDUCTION
+  PENALTY
+  ADVANCE
+  OTHER
+}
+
+model HRDeduction {
+  id          String        @id @default(uuid())
+  hr_month_id String
+  hr_month    HRMonth       @relation(fields: [hr_month_id], references: [id])
+  employee_id String
+  employee    Employee      @relation(fields: [employee_id], references: [id])
+  type        DeductionType
+  amount      Decimal       @db.Decimal(12, 2)
+  reason      String
+  created_by  String
+  creator     User          @relation(fields: [created_by], references: [id])
+
+  @@index([hr_month_id])
+  @@index([employee_id])
+  @@map("hr_deductions")
+}
+
+// Accounting Models
+
+model AccountingPurchase {
+  id           String   @id @default(uuid())
+  vendor_name  String
+  date         DateTime @db.Date
+  total_amount Decimal  @db.Decimal(12, 2)
+  notes        String?
+  created_by   String
+  creator      User     @relation(fields: [created_by], references: [id])
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  items AccountingPurchaseItem[]
+
+  @@map("accounting_purchases")
+}
+
+model AccountingPurchaseItem {
+  id          String             @id @default(uuid())
+  purchase_id String
+  purchase    AccountingPurchase @relation(fields: [purchase_id], references: [id], onDelete: Cascade)
+  item_name   String
+  qty         Decimal            @db.Decimal(10, 2)
+  unit_price  Decimal            @db.Decimal(12, 2)
+  line_total  Decimal            @db.Decimal(12, 2)
+
+  @@map("accounting_purchase_items")
+}
+
+model AccountingExpense {
+  id         String   @id @default(uuid())
+  category   String
+  date       DateTime @db.Date
+  amount     Decimal  @db.Decimal(12, 2)
+  notes      String?
+  created_by String
+  creator    User     @relation(fields: [created_by], references: [id])
+
+  @@map("accounting_expenses")
+}
+
+enum TransferType {
+  PAYROLL
+  SUPPLIER
+  EXPENSE
+  OTHER
+}
+
+enum TransferMethod {
+  BANK
+  CASH
+  OTHER
+}
+
+model AccountingTransfer {
+  id           String         @id @default(uuid())
+  type         TransferType
+  reference_id String? // Link to payroll_run, purchase, etc.
+  amount       Decimal        @db.Decimal(12, 2)
+  method       TransferMethod
+  date         DateTime       @db.Date
+  notes        String?
+  created_by   String
+  creator      User           @relation(fields: [created_by], references: [id])
+
+  @@map("accounting_transfers")
+}
+
+enum ClosingType {
+  COD
+  SHIPPING
+  INVENTORY
+  OTHER
+}
+
+model AccountingClosing {
+  id              String      @id @default(uuid())
+  closing_type    ClosingType
+  period_from     DateTime    @db.Date
+  period_to       DateTime    @db.Date
+  expected_amount Decimal     @db.Decimal(12, 2)
+  actual_amount   Decimal     @db.Decimal(12, 2)
+  delta_amount    Decimal     @db.Decimal(12, 2)
+  notes           String?
+  created_by      String
+  creator         User        @relation(fields: [created_by], references: [id])
+
+  @@map("accounting_closings")
+}
+
+enum PayrollStatus {
+  DRAFT
+  CALCULATED
+  APPROVED
+  PAID
+}
+
+model PayrollRun {
+  id            String        @id @default(uuid())
+  year          Int
+  month         Int
+  status        PayrollStatus @default(DRAFT)
+  calculated_by String?
+  calculated_at DateTime?
+  approved_by   String?
+  approved_at   DateTime?
+  paid_by       String?
+  paid_at       DateTime?
+
+  items PayrollItem[]
+
+  @@unique([year, month])
+  @@map("payroll_runs")
+}
+
+model PayrollItem {
+  id               String     @id @default(uuid())
+  payroll_run_id   String
+  payroll_run      PayrollRun @relation(fields: [payroll_run_id], references: [id], onDelete: Cascade)
+  employee_id      String
+  employee         Employee   @relation(fields: [employee_id], references: [id])
+  base_salary      Decimal    @db.Decimal(12, 2)
+  total_deductions Decimal    @db.Decimal(12, 2)
+  adjustments      Decimal    @default(0) @db.Decimal(12, 2)
+  net_salary       Decimal    @db.Decimal(12, 2)
+  breakdown_json   Json // details of deductions
+
+  @@unique([payroll_run_id, employee_id])
+  @@map("payroll_items")
+}
+
+enum IssueType {
+  ACCOUNTING
+  DELIVERY
+  COD
+  RETURNS
+  ADDRESS
+  DUPLICATE
+  OTHER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  NEW
+  ASSIGNED
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+enum NotificationType {
+  TICKET_ASSIGNED
+  MESSAGE_RECEIVED
+  STATUS_CHANGED
+  TICKET_REASSIGNED
+}
+
+enum EventType {
+  TICKET_CREATED
+  TICKET_ASSIGNED
+  STATUS_CHANGED
+  MESSAGE_SENT
+  TICKET_RESOLVED
+  TICKET_REOPENED
+  TICKET_UPDATED
+}
+
+enum TicketReasonCategory {
+  ACCOUNTING
+  CS
+  SHIPPING
+  OTHER
+}
+
+model TicketReason {
+  id              String               @id @default(uuid())
+  name            String               @unique
+  category        TicketReasonCategory
+  sort_order      Int                  @default(0)
+  default_assign_role UserRole?
+  default_priority    Priority?
+  is_active       Boolean              @default(true)
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @updatedAt
+
+  // Relations
+  tickets         Ticket[]
+
+  @@index([is_active])
+  @@index([sort_order])
+  @@map("ticket_reasons")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password_hash String
+  role          UserRole
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  // Relations
+  created_tickets   Ticket[]        @relation("TicketCreator")
+  assigned_tickets  Ticket[]        @relation("TicketAssignee")
+  messages          TicketMessage[]
+  notifications     Notification[]
+  events            TicketEvent[]
+
+  // HR Relations
+  hr_months_submitted HRMonth[]     @relation("MonthSubmitter")
+  hr_months_locked    HRMonth[]     @relation("MonthLocker")
+  created_attendance  HRAttendance[]
+  created_leaves      HRLeave[]
+  created_deductions  HRDeduction[]
+
+  // Accounting Relations
+  created_purchases   AccountingPurchase[]
+  created_expenses    AccountingExpense[]
+  created_transfers   AccountingTransfer[]
+  created_closings    AccountingClosing[]
+
+  @@map("users")
+}
+
+model Ticket {
+  id              String       @id @default(uuid())
+  order_number    String
+  courier_company String
+  issue_type      IssueType
+  priority        Priority
+  status          TicketStatus @default(NEW)
+  description     String
+  
+  // New Reason Relation
+  reason_id       String?
+  reason          TicketReason? @relation(fields: [reason_id], references: [id])
+  
+  created_by      String
+  creator         User         @relation("TicketCreator", fields: [created_by], references: [id])
+  
+  assigned_to     String?
+  assignee        User?        @relation("TicketAssignee", fields: [assigned_to], references: [id])
+  
+  resolved_at     DateTime?
+  closed_at       DateTime?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  deleted_at      DateTime?    // Soft delete
+
+  // Relations
+  messages        TicketMessage[]
+  events          TicketEvent[]
+  integration_inbox IntegrationInbox?
+
+  @@index([status])
+  @@index([priority])
+  @@index([assigned_to])
+  @@index([created_by])
+  @@index([deleted_at])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id         String   @id @default(uuid())
+  ticket_id  String
+  ticket     Ticket   @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  sender_id  String
+  sender     User     @relation(fields: [sender_id], references: [id])
+  message    String
+  created_at DateTime @default(now())
+
+  @@index([ticket_id])
+  @@map("ticket_messages")
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  user_id    String
+  user       User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  body       String
+  is_read    Boolean          @default(false)
+  link       String
+  created_at DateTime         @default(now())
+
+  @@index([user_id, is_read])
+  @@map("notifications")
+}
+
+model TicketEvent {
+  id         String    @id @default(uuid())
+  ticket_id  String
+  ticket     Ticket    @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  actor_id   String
+  actor      User      @relation(fields: [actor_id], references: [id])
+  event_type EventType
+  meta       Json      @default("{}")
+  created_at DateTime  @default(now())
+
+  @@index([ticket_id])
+  @@map("ticket_events")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@index([expires_at])
+
+  @@map("refresh_tokens")
+}
+
+// Integration Platform Models
+
+model IntegrationClient {
+  id        String   @id @default(uuid())
+  name      String
+  is_active Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  // Relations
+  api_keys       IntegrationApiKey[]
+  inbox_items    IntegrationInbox[]
+  routing_rules  IntegrationRoutingRule[]
+  settings       IntegrationSetting?
+  webhooks       WebhookSubscription[]
+  request_logs   IntegrationRequestLog[]
+
+  @@map("integration_clients")
+}
+
+model IntegrationApiKey {
+  id           String   @id @default(uuid())
+  client_id    String
+  client       IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  key_hash     String   
+  scopes       String[] // e.g. ["issues:write", "tickets:read"]
+  is_active    Boolean  @default(true)
+  last_used_at DateTime?
+  created_at   DateTime @default(now())
+
+  // Relations
+  request_logs IntegrationRequestLog[]
+
+  @@map("integration_api_keys")
+}
+
+model IntegrationInbox {
+  id           String   @id @default(uuid())
+  client_id    String
+  client       IntegrationClient @relation(fields: [client_id], references: [id])
+  source       String  // e.g. "shopify", "erp"
+  external_id  String  // External ID for idempotency
+  ticket_id    String?   @unique // One inbox item per ticket usually
+  ticket       Ticket?   @relation(fields: [ticket_id], references: [id])
+  payload_json Json
+  created_at   DateTime @default(now())
+
+  @@unique([client_id, source, external_id])
+  @@index([created_at])
+  @@map("integration_inbox")
+}
+
+model IntegrationRoutingRule {
+  id                 String   @id @default(uuid())
+  client_id          String
+  client             IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  source             String?   // If null, applies to all from source
+  issue_type         IssueType?
+  priority_override  Priority?
+  assign_role        UserRole?
+  assign_user_id     String?
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+
+  @@map("integration_routing_rules")
+}
+
+model IntegrationSetting {
+  id                      String   @id @default(uuid())
+  client_id               String   @unique
+  client                  IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  default_assign_role     UserRole?
+  default_assign_user_id  String?
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  @@map("integration_settings")
+}
+
+model WebhookSubscription {
+  id           String   @id @default(uuid())
+  client_id    String
+  client       IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  name         String
+  target_url   String
+  secret       String
+  events       EventType[] 
+  is_active    Boolean     @default(true)
+  created_at   DateTime    @default(now())
+
+  // Relations
+  deliveries   WebhookDelivery[]
+
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id              String   @id @default(uuid())
+  subscription_id String
+  subscription    WebhookSubscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+  event_type      EventType
+  payload_json    Json
+  status          WebhookDeliveryStatus @default(PENDING)
+  attempts        Int      @default(0)
+  last_error      String?
+  next_retry_at   DateTime?
+  created_at      DateTime @default(now())
+
+  @@index([status])
+  @@index([next_retry_at])
+  @@map("webhook_deliveries")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model IntegrationRequestLog {
+  id           String   @id @default(uuid())
+  client_id    String?
+  client       IntegrationClient? @relation(fields: [client_id], references: [id])
+  api_key_id   String?
+  api_key      IntegrationApiKey? @relation(fields: [api_key_id], references: [id])
+  endpoint     String
+  method       String
+  status_code  Int
+  latency_ms   Int
+  request_id   String   @unique
+  created_at   DateTime @default(now())
+
+  @@index([client_id])
+  @@index([created_at])
+  @@map("integration_request_logs")
+}
+
+model IntegrationAuditLog {
+  id            String   @id @default(uuid())
+  actor_user_id String?
+  action        String
+  meta_json     Json
+  created_at    DateTime @default(now())
+
+  @@index([created_at])
+  @@map("integration_audit_logs")
+}
+

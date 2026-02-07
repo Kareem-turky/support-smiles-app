@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { ticketsService } from '@/services/tickets.service';
 import { usersService } from '@/services/users.service';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -31,14 +31,14 @@ import {
 } from '@/components/ui/pagination';
 import { Card } from '@/components/ui/card';
 import { Plus, Filter, X } from 'lucide-react';
-import { 
-  Ticket, 
+import {
+  Ticket,
   User,
-  TicketStatus, 
-  Priority, 
+  TicketStatus,
+  Priority,
   IssueType,
-  STATUS_LABELS, 
-  PRIORITY_LABELS, 
+  STATUS_LABELS,
+  PRIORITY_LABELS,
   ISSUE_TYPE_LABELS,
   STATUS_COLORS,
   PRIORITY_COLORS,
@@ -49,7 +49,7 @@ import { CreateTicketDialog } from '@/components/tickets/CreateTicketDialog';
 export default function TicketsList() {
   const { user, hasRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +57,7 @@ export default function TicketsList() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all');
@@ -73,16 +73,16 @@ export default function TicketsList() {
 
   const fetchTickets = useCallback(async (searchQuery?: string) => {
     setIsLoading(true);
-    
+
     const filters: TicketFilters = {};
     if (statusFilter !== 'all') filters.status = [statusFilter];
     if (priorityFilter !== 'all') filters.priority = [priorityFilter];
     if (typeFilter !== 'all') filters.issue_type = [typeFilter];
     if (assigneeFilter !== 'all') filters.assigned_to = assigneeFilter;
     if (searchQuery) filters.search = searchQuery;
-    
+
     const result = await ticketsService.getAll(filters, page, 10);
-    
+
     if (result.success && result.data) {
       setTickets(result.data.data);
       setTotalPages(result.data.totalPages);
@@ -114,7 +114,7 @@ export default function TicketsList() {
     setPage(1);
   };
 
-  const hasActiveFilters = statusFilter !== 'all' || priorityFilter !== 'all' || 
+  const hasActiveFilters = statusFilter !== 'all' || priorityFilter !== 'all' ||
     typeFilter !== 'all' || assigneeFilter !== 'all' || searchParams.get('search');
 
   const getUserName = (userId: string | null) => {
@@ -150,7 +150,7 @@ export default function TicketsList() {
         <Card className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            
+
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as TicketStatus | 'all'); setPage(1); }}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Status" />
@@ -244,8 +244,8 @@ export default function TicketsList() {
                 tickets.map((ticket) => (
                   <TableRow key={ticket.id}>
                     <TableCell>
-                      <Link 
-                        to={`/tickets/${ticket.id}`} 
+                      <Link
+                        to={`/tickets/${ticket.id}`}
                         className="font-medium text-primary hover:underline"
                       >
                         {ticket.order_number}
@@ -283,7 +283,7 @@ export default function TicketsList() {
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious 
+                <PaginationPrevious
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   className={page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                 />
@@ -300,7 +300,7 @@ export default function TicketsList() {
                 </PaginationItem>
               ))}
               <PaginationItem>
-                <PaginationNext 
+                <PaginationNext
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   className={page === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                 />
@@ -310,8 +310,8 @@ export default function TicketsList() {
         )}
       </div>
 
-      <CreateTicketDialog 
-        open={showCreateDialog} 
+      <CreateTicketDialog
+        open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onCreated={handleTicketCreated}
       />
