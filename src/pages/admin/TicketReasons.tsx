@@ -1,6 +1,9 @@
-
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { DataTable } from '@/components/shared/DataTable';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 interface Reason {
     id: string;
@@ -11,25 +14,22 @@ interface Reason {
 export default function TicketReasons() {
     const [data, setData] = useState<Reason[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
+            // In a real app we'd have a service for this
             try {
-                const res = await api.get<Reason[]>('/ticket-reasons'); // Public endpoint usually, or admin
-                setData(res.data || []);
-            } catch (err: any) {
-                // Try admin endpoint if fail
+                // Try admin endpoint first as we are in admin section
                 try {
-                    const res2 = await api.get<Reason[]>('/admin/ticket-reasons');
-                    setData(res2.data || []);
+                    const res = await api.get<Reason[]>('/admin/ticket-reasons');
+                    setData(res.data || []);
                 } catch {
-                    if (err.response?.status === 401) {
-                        setError('Not authenticated.');
-                    } else {
-                        setError('Failed to fetch reasons');
-                    }
+                    // Fallback to public if admin fails (or different path)
+                    const res = await api.get<Reason[]>('/ticket-reasons');
+                    setData(res.data || []);
                 }
+            } catch (err) {
+                console.error(err);
             } finally {
                 setLoading(false);
             }
@@ -37,23 +37,25 @@ export default function TicketReasons() {
         fetchData();
     }, []);
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div className="text-destructive">{error}</div>;
+    const columns = [
+        { header: 'Name', accessorKey: 'name' as any, className: 'font-medium' },
+        { header: 'Category', accessorKey: 'category' as any },
+    ];
 
     return (
-        <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Ticket Reasons</h1>
-            {data.length === 0 ? (
-                <div className="text-muted-foreground">No records found.</div>
-            ) : (
-                <ul className="space-y-2">
-                    {data.map((item) => (
-                        <li key={item.id} className="p-2 border rounded">
-                            <div className="font-medium">{item.name} ({item.category})</div>
-                        </li>
-                    ))}
-                </ul>
-            )}
+        <div className="space-y-6">
+            <PageHeader
+                title="Ticket Reasons"
+                description="Manage reasons for ticket creation."
+                actions={<Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Add Reason</Button>}
+            />
+
+            <DataTable
+                data={data}
+                isLoading={loading}
+                emptyMessage="No ticket reasons found."
+                columns={columns}
+            />
         </div>
     );
 }

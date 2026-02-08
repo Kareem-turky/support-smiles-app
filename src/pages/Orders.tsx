@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { DataTable } from '@/components/shared/DataTable';
+import { FiltersBar } from '@/components/shared/FiltersBar';
 
 interface Order {
     id: string;
@@ -21,16 +23,18 @@ export default function Orders() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [companies, setCompanies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
 
     // Form
     const [customerName, setCustomerName] = useState('');
     const [selectedCompany, setSelectedCompany] = useState('');
-    const [orderNumber, setOrderNumber] = useState(''); // Optional, backend gen usually
+    const [orderNumber, setOrderNumber] = useState('');
 
     const fetchData = async () => {
+        setLoading(true);
         try {
             const [ordersRes, compRes] = await Promise.all([
-                api.get('/orders'),
+                api.get<Order[]>('/orders'),
                 api.get('/shipping/companies')
             ]);
             setOrders(ordersRes.data);
@@ -55,10 +59,9 @@ export default function Orders() {
             await api.post('/orders', {
                 customer_name: customerName,
                 shipping_company_id: selectedCompany,
-                order_number: orderNumber || undefined // Let backend gen if empty
+                order_number: orderNumber || undefined
             });
             toast.success('Order created');
-            // reset
             setCustomerName('');
             setSelectedCompany('');
             setOrderNumber('');
@@ -68,9 +71,25 @@ export default function Orders() {
         }
     };
 
+    const filteredOrders = orders.filter(o =>
+        o.order_number.toLowerCase().includes(search.toLowerCase()) ||
+        o.customer_name.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const columns = [
+        { header: 'Order #', accessorKey: 'order_number' as any, className: 'font-mono font-medium' },
+        { header: 'Customer', accessorKey: 'customer_name' as any },
+        { header: 'Carrier', accessorKey: 'shipping_company.name' as any, cell: (item: Order) => item.shipping_company?.name || '-' },
+        { header: 'Status', accessorKey: 'status' as any },
+        { header: 'Date', cell: (item: Order) => new Date(item.created_at).toLocaleDateString() },
+    ];
+
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Orders</h1>
+            <PageHeader
+                title="Orders"
+                description="Manage customer orders and shipments."
+            />
 
             <Card>
                 <CardHeader>
@@ -104,35 +123,19 @@ export default function Orders() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Recent Orders</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Order #</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Carrier</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Date</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {orders.map((order) => (
-                                <TableRow key={order.id}>
-                                    <TableCell className="font-mono">{order.order_number}</TableCell>
-                                    <TableCell>{order.customer_name}</TableCell>
-                                    <TableCell>{order.shipping_company?.name || '-'}</TableCell>
-                                    <TableCell>{order.status}</TableCell>
-                                    <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <FiltersBar
+                onSearch={setSearch}
+                searchValue={search}
+                searchPlaceholder="Search orders..."
+                onReset={() => setSearch('')}
+            />
+
+            <DataTable
+                data={filteredOrders}
+                isLoading={loading}
+                emptyMessage="No orders found."
+                columns={columns}
+            />
         </div>
     );
 }
