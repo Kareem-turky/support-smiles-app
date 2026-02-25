@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Request, Param, Query } from '@nestjs/common';
 import { GamificationService } from './gamification.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -54,6 +54,18 @@ export class GamificationController {
   @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.WH_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER)
   assignMission(@Param('id') id: string, @Body() dto: AssignMissionDto) {
     return this.gamificationService.assignMission(id, dto.user_ids);
+  }
+
+  @Get('rewards/redemptions')
+  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.WH_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER)
+  getRedemptions() {
+    return this.gamificationService.getRedemptions();
+  }
+
+  @Patch('rewards/redemptions/:id')
+  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.WH_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER)
+  approveRedemption(@Param('id') id: string, @Body('status') status: any) {
+    return this.gamificationService.approveRedemption(id, status);
   }
 
   // Dev endpoint to trigger points

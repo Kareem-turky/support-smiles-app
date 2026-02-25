@@ -234,6 +234,31 @@ export class GamificationService {
     });
   }
 
+  async getRedemptions() {
+    return this.prisma.rewardRedemption.findMany({
+      include: {
+        user: { select: { name: true, role: true } },
+        reward: true
+      },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async approveRedemption(id: string, status: RedemptionStatus) {
+    const redemption = await this.prisma.rewardRedemption.update({
+      where: { id },
+      data: { status }
+    });
+    // If rejected, refund points?
+    if (status === RedemptionStatus.REJECTED) {
+      const reward = await this.prisma.reward.findUnique({ where: { id: redemption.reward_id } });
+      if (reward) {
+        await this.awardPoints(redemption.user_id, reward.cost_points, `Refund for rejected reward: ${reward.name}`);
+      }
+    }
+    return redemption;
+  }
+
   // --- Actions & Events ---
 
   async logEvent(userId: string, type: string, points: number = 0, meta: any = {}) {
