@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canEditTicket = useCallback((ticketCreatorId: string) => {
     if (!state.user) return false;
     if (state.user.role === 'ADMIN') return true;
-    if (state.user.role === 'ACCOUNTING') {
+    if (['ACC_MANAGER', 'ACC_CLERK'].includes(state.user.role)) {
       return state.user.id === ticketCreatorId;
     }
     return false; // CS cannot edit ticket fields
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const canAssignTicket = useCallback(() => {
     if (!state.user) return false;
-    return state.user.role === 'ADMIN' || state.user.role === 'ACCOUNTING';
+    return ['ADMIN', 'ACC_MANAGER', 'CS_MANAGER'].includes(state.user.role);
   }, [state.user]);
 
   const canDeleteTicket = useCallback(() => {

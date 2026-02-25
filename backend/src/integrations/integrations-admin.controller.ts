@@ -38,7 +38,7 @@ export class IntegrationsAdminController {
                 name: dto.name,
                 target_url: dto.url,
                 secret: dto.secret,
-                events: dto.events
+                events: dto.events.join(',')
             }
         });
     }

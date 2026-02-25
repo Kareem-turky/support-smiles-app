@@ -1,32 +1,5 @@
 import { api } from '@/lib/api';
-
-export interface Department {
-    id: string;
-    name: string;
-    _count?: { employees: number };
-}
-
-export interface Employee {
-    id: string;
-    code: string;
-    full_name: string;
-    department_id: string;
-    department?: Department;
-    start_date: string;
-    base_salary: number;
-    salary_type: 'MONTHLY' | 'DAILY';
-    is_active: boolean;
-}
-
-export interface Adjustment {
-    id: string;
-    employee_id: string;
-    employee?: Employee;
-    type: 'BONUS' | 'DEDUCTION' | 'ADVANCE';
-    amount: number;
-    date: string;
-    reason: string;
-}
+import { Department, Employee, Adjustment, HRAttendance, HRLeave } from '@/types';
 
 export const HRService = {
     // Departments
@@ -54,22 +27,3 @@ export const HRService = {
     createLeave: async (data: any) => (await api.post<HRLeave>('/hr/leaves', data)).data,
 };
 
-export interface HRAttendance {
-    id: string;
-    employee_id: string;
-    employee?: Employee;
-    date: string;
-    status: 'PRESENT' | 'ABSENT' | 'LEAVE';
-    minutes_late: number;
-    notes?: string;
-}
-
-export interface HRLeave {
-    id: string;
-    employee_id: string;
-    employee?: Employee;
-    from_date: string;
-    to_date: string;
-    leave_type: 'ANNUAL' | 'SICK' | 'UNPAID' | 'OTHER';
-    notes?: string;
-}

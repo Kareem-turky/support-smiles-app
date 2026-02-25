@@ -1,0 +1,98 @@
+import { useState, useEffect } from 'react';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { DataTable } from '@/components/shared/DataTable';
+import { Button } from '@/components/ui/button';
+import { EntityModal } from '@/components/shared/EntityModal';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
+import { PlusCircle } from 'lucide-react';
+
+export default function Vendors() {
+    const { toast } = useToast();
+    const [vendors, setVendors] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [createLoading, setCreateLoading] = useState(false);
+    const [formData, setFormData] = useState({ name: '', phone: '' });
+
+    const fetchVendors = async () => {
+        try {
+            const res = await api.get('/accounting/vendors');
+            setVendors(res.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchVendors();
+    }, []);
+
+    const handleCreate = async () => {
+        setCreateLoading(true);
+        try {
+            await api.post('/accounting/vendors', formData);
+            toast({ title: 'Success', description: 'Vendor created successfully.' });
+            setIsCreateOpen(false);
+            fetchVendors();
+        } catch (err: any) {
+            toast({ title: 'Error', description: err.message || 'Failed to create vendor', variant: 'destructive' });
+        } finally {
+            setCreateLoading(false);
+        }
+    };
+
+    const columns = [
+        { header: 'ID', accessor: 'id' as const },
+        { header: 'Name', accessor: 'name' as const },
+        { header: 'Phone', accessor: 'phone' as const },
+    ];
+
+    return (
+        <AppLayout>
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold">Vendors</h1>
+                        <p className="text-muted-foreground mt-1">Manage vendor directory.</p>
+                    </div>
+                    <Button onClick={() => setIsCreateOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Vendor
+                    </Button>
+                </div>
+
+                <DataTable columns={columns} data={vendors} isLoading={loading} />
+
+                <EntityModal
+                    open={isCreateOpen}
+                    onOpenChange={setIsCreateOpen}
+                    title="Add New Vendor"
+                    onSubmit={handleCreate}
+                    loading={createLoading}
+                >
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Vendor Name</Label>
+                            <Input
+                                required
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Phone</Label>
+                            <Input
+                                value={formData.phone}
+                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                </EntityModal>
+            </div>
+        </AppLayout>
+    );
+}

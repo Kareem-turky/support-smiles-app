@@ -13,7 +13,7 @@ export class WebhooksService {
             where: {
                 client_id: clientId,
                 is_active: true,
-                events: { has: eventType },
+                events: { contains: eventType },
             },
         });
 
@@ -25,7 +25,7 @@ export class WebhooksService {
                 data: {
                     subscription_id: sub.id,
                     event_type: eventType,
-                    payload_json: payload,
+                    payload_json: JSON.stringify(payload),
                     status: 'PENDING',
                     next_retry_at: new Date(), // Immediate
                 }
@@ -45,7 +45,8 @@ export class WebhooksService {
         if (!delivery) return;
 
         try {
-            const signature = this.signPayload(delivery.payload_json, delivery.subscription.secret);
+            const payloadObj = JSON.parse(delivery.payload_json as string);
+            const signature = this.signPayload(payloadObj, delivery.subscription.secret);
 
             const response = await fetch(delivery.subscription.target_url, {
                 method: 'POST',
@@ -55,7 +56,7 @@ export class WebhooksService {
                     'X-Delivery-Id': delivery.id,
                     'X-Signature': signature,
                 },
-                body: JSON.stringify(delivery.payload_json),
+                body: JSON.stringify(payloadObj),
             });
 
             if (!response.ok) {

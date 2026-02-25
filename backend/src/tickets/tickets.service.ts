@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
 import { TicketReasonsService } from '../ticket-reasons/ticket-reasons.service';
+import { GamificationService } from '../gamification/gamification.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { User, UserRole, TicketStatus, EventType, NotificationType, Priority } from '@prisma/client';
@@ -12,11 +13,13 @@ export class TicketsService {
         private prisma: PrismaService,
         private eventsService: EventsService,
         private reasonsService: TicketReasonsService,
+        private gamificationService: GamificationService,
     ) { }
 
     async create(createTicketDto: CreateTicketDto, user: User) {
-        if (user.role === UserRole.CS) {
-            throw new ForbiddenException('CS users cannot create tickets');
+        // CS Agents cannot create tickets (they process them)
+        if (user.role === UserRole.CS_AGENT) {
+            throw new ForbiddenException('CS Agents cannot create tickets');
         }
 
         // Validate Reason
@@ -42,11 +45,11 @@ export class TicketsService {
             if (!targetRole) {
                 switch (reason.category) {
                     case 'ACCOUNTING':
-                        targetRole = UserRole.ACCOUNTING;
+                        targetRole = UserRole.ACC_MANAGER; // Assign to Manager initially? Or Clerk? Let's say Manager to triage.
                         break;
                     case 'CS':
                     case 'SHIPPING': // Map Shipping to CS per requirement
-                        targetRole = UserRole.CS;
+                        targetRole = UserRole.CS_AGENT; // Assign to Agents
                         break;
                     default:
                         targetRole = null;
@@ -61,6 +64,13 @@ export class TicketsService {
                 });
                 if (assignee) {
                     assignedTo = assignee.id;
+                } else if (targetRole === UserRole.CS_AGENT) {
+                    // Fallback to CS Manager if no agents
+                    const manager = await this.prisma.user.findFirst({
+                        where: { role: UserRole.CS_MANAGER, is_active: true },
+                        orderBy: { created_at: 'asc' }
+                    });
+                    if (manager) assignedTo = manager.id;
                 }
             }
         }
@@ -102,7 +112,8 @@ export class TicketsService {
     async findAll(user: User, filters: any) {
         const where: any = { deleted_at: null };
 
-        if (user.role === UserRole.CS) {
+        // CS Agents only see assigned
+        if (user.role === UserRole.CS_AGENT) {
             where.assigned_to = user.id;
         }
 
@@ -130,7 +141,8 @@ export class TicketsService {
 
         if (!ticket) throw new NotFoundException('Ticket not found');
 
-        if (user.role === UserRole.CS && ticket.assigned_to !== user.id) {
+        // CS Agents only see assigned
+        if (user.role === UserRole.CS_AGENT && ticket.assigned_to !== user.id) {
             throw new ForbiddenException('Access denied');
         }
 
@@ -140,11 +152,15 @@ export class TicketsService {
     async update(id: string, updateTicketDto: UpdateTicketDto, user: User) {
         const ticket = await this.findOne(id, user);
 
-        if (user.role === UserRole.CS) {
-            throw new ForbiddenException('CS users cannot update ticket details');
+        // CS Agents cannot update details (only status/comments)
+        if (user.role === UserRole.CS_AGENT) {
+            throw new ForbiddenException('CS Agents cannot update ticket details');
         }
 
-        if (user.role === UserRole.ACCOUNTING && ticket.created_by !== user.id) {
+        // Accounting Clerk can only update own; Manager can update all?
+        // Let's stick to strict accounting logic for now: Accounting (any) only own.
+        const isAccounting = ([UserRole.ACC_MANAGER, UserRole.ACC_CLERK] as UserRole[]).includes(user.role);
+        if (isAccounting && ticket.created_by !== user.id) {
             // Contract says: "ACCOUNTING: Can ONLY update tickets they created"
             throw new ForbiddenException('Accounting can only update tickets they created');
         }
@@ -156,10 +172,11 @@ export class TicketsService {
     }
 
     async assign(id: string, assigneeId: string, user: User) {
-        const ticket = await this.findOne(id, user); // Checks view permission first, but assignment limited to Admin/Accounting
+        const ticket = await this.findOne(id, user); // Checks view permission first
 
-        if (user.role === UserRole.CS) {
-            throw new ForbiddenException('CS users cannot assign tickets');
+        // CS Agents cannot assign
+        if (user.role === UserRole.CS_AGENT) {
+            throw new ForbiddenException('CS Agents cannot assign tickets');
         }
 
         const updatedTicket = await this.prisma.ticket.update({
@@ -175,7 +192,7 @@ export class TicketsService {
         await this.prisma.notification.create({
             data: {
                 user_id: assigneeId,
-                type: NotificationType.TICKET_ASSIGNED, // Or REASSIGNED if already assigned? Contract uses ASSIGNED mostly.
+                type: NotificationType.TICKET_ASSIGNED,
                 title: 'Ticket Assigned',
                 body: `You have been assigned to ticket ${updatedTicket.order_number}`,
                 link: `/tickets/${ticket.id}`,
@@ -202,12 +219,12 @@ export class TicketsService {
         const ticket = await this.prisma.ticket.findUnique({ where: { id } });
         if (!ticket) throw new NotFoundException();
 
-        if (user.role === UserRole.CS) {
+        if (user.role === UserRole.CS_AGENT) {
             if (ticket.assigned_to !== user.id) throw new ForbiddenException();
             const allowed = [TicketStatus.IN_PROGRESS, TicketStatus.WAITING, TicketStatus.RESOLVED];
             // CS can only set to allowed statuses.
             if (!(allowed as TicketStatus[]).includes(status)) {
-                throw new ForbiddenException('Invalid status transition for CS');
+                throw new ForbiddenException('Invalid status transition for CS Agent');
             }
         }
 
@@ -236,6 +253,11 @@ export class TicketsService {
                     link: `/tickets/${id}`
                 }
             });
+        }
+
+        if (status === TicketStatus.RESOLVED && ticket.status !== TicketStatus.RESOLVED) {
+            await this.gamificationService.awardPoints(user.id, 50, `Resolved Ticket: ${ticket.order_number}`);
+            await this.gamificationService.updateMissionProgress(user.id, 'RESOLVED_TICKETS', 1);
         }
 
         return updated;

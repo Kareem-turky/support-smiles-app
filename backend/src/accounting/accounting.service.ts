@@ -7,7 +7,7 @@ import { CreateDepositDto } from './dto/create-deposit.dto';
 import { CalculatePayrollDto } from './dto/calculate-payroll.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { CreateClosingDto } from './dto/create-closing.dto';
-import { HRMonthStatus, PayrollStatus, User, TransferType } from '@prisma/client';
+import { HRMonthStatus, PayrollStatus, User } from '@prisma/client';
 
 @Injectable()
 export class AccountingService {
@@ -23,7 +23,8 @@ export class AccountingService {
     async createVendor(dto: CreateVendorDto) {
         return this.prisma.vendor.create({
             data: {
-                name: dto.vendor_name
+                name: dto.vendor_name,
+                phone: dto.phone
             }
         });
     }
@@ -165,7 +166,7 @@ export class AccountingService {
                 total_deductions: totalDeductions,
                 adjustments: totalBonuses,
                 net_salary: netSalary,
-                breakdown_json: empAdjustments.map(d => ({ type: d.type, amount: d.amount, reason: d.reason })),
+                breakdown_json: JSON.stringify(empAdjustments.map(d => ({ type: d.type, amount: d.amount, reason: d.reason }))),
             };
         });
 
@@ -281,5 +282,29 @@ export class AccountingService {
             include: { creator: { select: { name: true } } },
             orderBy: { period_to: 'desc' }
         });
+    }
+
+    // --- Stats ---
+    async getStats() {
+        const deposits = await this.prisma.vendorDeposit.aggregate({ _sum: { amount: true } });
+        const expenses = await this.prisma.accountingExpense.aggregate({ _sum: { amount: true } });
+        const purchases = await this.prisma.accountingPurchase.aggregate({ _sum: { total_amount: true } });
+
+        const totalIncome = Number(deposits._sum.amount || 0);
+        const totalExpenses = Number(expenses._sum.amount || 0) + Number(purchases._sum.total_amount || 0);
+        const netProfit = totalIncome - totalExpenses;
+
+        const recentTransactions = [
+            ...(await this.prisma.vendorDeposit.findMany({ take: 5, orderBy: { date: 'desc' }, include: { vendor: true } })).map(d => ({ type: 'DEPOSIT', amount: Number(d.amount), date: d.date, description: `Deposit from ${d.vendor.name}` })),
+            ...(await this.prisma.accountingExpense.findMany({ take: 5, orderBy: { date: 'desc' } })).map(e => ({ type: 'EXPENSE', amount: Number(e.amount), date: e.date, description: e.category })),
+            ...(await this.prisma.accountingPurchase.findMany({ take: 5, orderBy: { date: 'desc' }, include: { vendor: true } })).map(p => ({ type: 'PURCHASE', amount: Number(p.total_amount), date: p.date, description: `Purchase from ${p.vendor.name}` })),
+        ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10);
+
+        return {
+            totalIncome,
+            totalExpenses,
+            netProfit,
+            recentTransactions
+        };
     }
 }

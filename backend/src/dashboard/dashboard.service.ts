@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GamificationService } from '../gamification/gamification.service';
 import { AdjustmentType } from '@prisma/client';
 
 @Injectable()
 export class DashboardService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private readonly gamificationService: GamificationService
+    ) { }
 
     async getSummary(from?: string, to?: string) {
         const startDate = from ? new Date(from) : new Date('2000-01-01');
@@ -19,7 +23,7 @@ export class DashboardService {
             lte: endDate,
         };
 
-        // 1. Aggregations
+        // 1. Aggregations (Financials)
         const deposits = await this.prisma.vendorDeposit.aggregate({
             where: { date: dateFilter },
             _sum: { amount: true },
@@ -38,9 +42,7 @@ export class DashboardService {
         });
         const totalExpenses = Number(expenses._sum.amount || 0);
 
-        // Payroll: Sum net_salary of items in PAID runs within date range
-        // Note: Schema has paid_at in PayrollRun.
-        // We need to filter PayrollRun by paid_at, then sum items.net_salary
+        // Payroll
         const payrollRuns = await this.prisma.payrollRun.findMany({
             where: {
                 status: 'PAID',
@@ -60,7 +62,7 @@ export class DashboardService {
         });
         const totalTransfers = Number(transfers._sum.amount || 0);
 
-        // HR Adjustments (Bonuses, etc)
+        // HR Adjustments
         const adjustments = await this.prisma.hRAdjustment.groupBy({
             by: ['type'],
             where: { date: dateFilter },
@@ -76,13 +78,9 @@ export class DashboardService {
             if (adj.type === AdjustmentType.DEDUCTION) totalDeductions += val;
         });
 
-        // Net Calculation
-        // Net = Deposits - (Purchases + Expenses + Payroll + Transfers + Bonuses) 
-        // Deductions are usually withheld from payroll, so if we use net_salary, we don't add deductions back unless specific logic required.
-        const totalOperationalCosts = totalPurchases + totalExpenses + totalPayroll + totalTransfers + totalBonuses;
         const netProfit = totalDeposits - (totalPurchases + totalExpenses + totalPayroll + totalTransfers + (totalBonuses - totalDeductions));
 
-        // 2. Recent Lists (Last 5)
+        // 2. Recent Lists
         const recentPurchases = await this.prisma.accountingPurchase.findMany({
             where: { date: dateFilter },
             orderBy: { date: 'desc' },
@@ -103,12 +101,16 @@ export class DashboardService {
             include: { vendor: true }
         });
 
-        // 3. KPI Counts
+        // 3. KPI / Action Counts
         const counts = {
             tickets_open: await this.prisma.ticket.count({ where: { status: { not: 'CLOSED' } } }),
             orders_pending: await this.prisma.order.count({ where: { status: 'PENDING' } }),
             employees_active: await this.prisma.employee.count({ where: { is_active: true } }),
+            pending_leaves: await this.prisma.hRLeave.count({ where: { status: 'PENDING' } }),
         };
+
+        // 4. Gamification
+        const leaderboard = await this.gamificationService.getLeaderboard();
 
         return {
             period: { from: startDate, to: endDate },
@@ -127,6 +129,9 @@ export class DashboardService {
                 purchases: recentPurchases,
                 expenses: recentExpenses,
                 deposits: recentDeposits,
+            },
+            gamification: {
+                leaderboard: leaderboard.slice(0, 3)
             }
         };
     }

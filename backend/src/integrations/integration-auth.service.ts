@@ -52,7 +52,7 @@ export class IntegrationAuthService {
             data: {
                 client_id: clientId,
                 key_hash: hash,
-                scopes,
+                scopes: scopes.join(','),
             },
         });
 

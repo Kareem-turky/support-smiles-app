@@ -15,6 +15,9 @@ import { AccountingModule } from './accounting/accounting.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { OrdersModule } from './orders/orders.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { KpiModule } from './kpi/kpi.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { DevModule } from './dev/dev.module';
 
 @Module({
   imports: [
@@ -32,6 +35,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ShippingModule,
     OrdersModule,
     DashboardModule,
+    KpiModule,
+    GamificationModule,
+    DevModule,
   ],
   controllers: [AppController],
   providers: [AppService],

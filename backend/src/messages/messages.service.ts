@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
-import { User, EventType, NotificationType } from '@prisma/client';
+import { User, UserRole, EventType, NotificationType } from '@prisma/client';
 
 @Injectable()
 export class MessagesService {
@@ -16,7 +16,8 @@ export class MessagesService {
         if (!ticket) throw new NotFoundException('Ticket not found');
 
         // RBAC: CS can only view if assigned
-        if (user.role === 'CS' && ticket.assigned_to !== user.id) {
+        // @ts-ignore
+        if (user.role === 'CS_AGENT' && ticket.assigned_to !== user.id) {
             throw new ForbiddenException('Access denied');
         }
 
@@ -31,7 +32,8 @@ export class MessagesService {
         if (!constTicket) throw new NotFoundException('Ticket not found');
 
         // RBAC check
-        if (user.role === 'CS' && constTicket.assigned_to !== user.id) {
+        // @ts-ignore
+        if (user.role === 'CS_AGENT' && constTicket.assigned_to !== user.id) {
             throw new ForbiddenException('Access denied');
         }
 

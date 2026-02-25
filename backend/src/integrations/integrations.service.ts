@@ -87,7 +87,7 @@ export class IntegrationsService {
                         source: dto.source,
                         external_id: dto.external_id,
                         ticket_id: ticket.id,
-                        payload_json: dto as any,
+                        payload_json: JSON.stringify(dto),
                     },
                 });
 
@@ -97,7 +97,7 @@ export class IntegrationsService {
                         ticket_id: ticket.id,
                         actor_id: creatorId,
                         event_type: 'TICKET_CREATED',
-                        meta: { source: dto.source, external_id: dto.external_id },
+                        meta: JSON.stringify({ source: dto.source, external_id: dto.external_id }),
                     },
                 });
 
@@ -108,7 +108,7 @@ export class IntegrationsService {
                             ticket_id: ticket.id,
                             actor_id: creatorId,
                             event_type: 'TICKET_ASSIGNED',
-                            meta: { assigned_to: assignedTo, reason: 'Auto-routing by Reason' },
+                            meta: JSON.stringify({ assigned_to: assignedTo, reason: 'Auto-routing by Reason' }),
                         },
                     });
                 }

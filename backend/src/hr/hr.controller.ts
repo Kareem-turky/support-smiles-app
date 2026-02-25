@@ -17,52 +17,52 @@ export class HRController {
 
     // --- Departments ---
     @Get('departments')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN)
     getDepartments() {
         return this.hrService.getDepartments();
     }
 
     @Post('departments')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
     createDepartment(@Body() dto: CreateDepartmentDto) {
         return this.hrService.createDepartment(dto);
     }
 
     // --- Employees ---
     @Get('employees')
-    @Roles(UserRole.HR, UserRole.ADMIN, UserRole.ACCOUNTING)
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN, UserRole.ACC_MANAGER, UserRole.ACC_CLERK)
     getEmployees() {
         return this.hrService.getEmployees();
     }
 
     @Post('employees')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
     createEmployee(@Body() dto: CreateEmployeeDto) {
         return this.hrService.createEmployee(dto);
     }
 
     // --- Adjustments ---
     @Get('adjustments')
-    @Roles(UserRole.HR, UserRole.ADMIN, UserRole.ACCOUNTING)
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN, UserRole.ACC_MANAGER)
     getAdjustments(@Query('employeeId') employeeId?: string, @Query('from') from?: string, @Query('to') to?: string) {
         return this.hrService.getAdjustments(employeeId, from, to);
     }
 
     @Post('adjustments')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
     createAdjustment(@Body() dto: CreateAdjustmentDto, @Request() req) {
         return this.hrService.createAdjustment(dto, req.user);
     }
 
     // --- Months ---
     @Get('months')
-    @Roles(UserRole.HR, UserRole.ADMIN, UserRole.ACCOUNTING)
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN, UserRole.ACC_MANAGER)
     getMonths() {
         return this.hrService.getMonths();
     }
 
     @Post('months/:year/:month/submit')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
     submitMonth(@Param('year', ParseIntPipe) year: number, @Param('month', ParseIntPipe) month: number, @Request() req) {
         return this.hrService.submitMonth(year, month, req.user);
     }
@@ -81,32 +81,32 @@ export class HRController {
 
     // --- Attendance ---
     @Get('attendance')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN)
     getAttendance(@Query('from') from: string, @Query('to') to: string, @Query('employeeId') employeeId?: string) {
         return this.hrService.getAttendance(from, to, employeeId);
     }
 
     @Post('attendance')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN)
     upsertAttendance(@Body() dto: CreateAttendanceDto, @Request() req) {
         return this.hrService.upsertAttendance(dto, req.user);
     }
 
     @Post('attendance/bulk')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
     bulkUpsertAttendance(@Body() dto: BulkAttendanceDto, @Request() req) {
         return this.hrService.bulkUpsertAttendance(dto, req.user);
     }
 
     // --- Leaves ---
     @Get('leaves')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN)
     getLeaves() {
         return this.hrService.getLeaves();
     }
 
     @Post('leaves')
-    @Roles(UserRole.HR, UserRole.ADMIN)
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN)
     createLeave(@Body() dto: CreateLeaveDto, @Request() req) {
         return this.hrService.createLeave(dto, req.user);
     }

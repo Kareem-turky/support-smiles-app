@@ -5,17 +5,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { Loader2 } from 'lucide-react';
+import { EntityModal } from '@/components/shared/EntityModal';
 import { toast } from 'sonner';
+import { Combobox } from '@/components/ui/combobox';
 
 export default function AttendancePage() {
     const [data, setData] = useState<HRAttendance[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal
     const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     // Filters
     const [fromDate, setFromDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -51,16 +54,22 @@ export default function AttendancePage() {
         fetchData();
     }, [fromDate, toDate]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
+        if (!formData.employee_id) {
+            toast.error('Select employee');
+            return;
+        }
+        setSaving(true);
         try {
             await HRService.upsertAttendance(formData);
-            toast.success('Attendance saving...');
+            toast.success('Attendance saved');
             setOpen(false);
             fetchData();
         } catch (err) {
             console.error(err);
             toast.error('Failed to save attendance');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -68,74 +77,7 @@ export default function AttendancePage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold">Attendance</h1>
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button>Mark Attendance</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Mark Attendance</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <Label>Employee</Label>
-                                <Select
-                                    value={formData.employee_id}
-                                    onValueChange={(val) => setFormData({ ...formData, employee_id: val })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Employee" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {employees.map(emp => (
-                                            <SelectItem key={emp.id} value={emp.id}>{emp.full_name} ({emp.code})</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label>Date</Label>
-                                <Input
-                                    type="date"
-                                    value={formData.date}
-                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <Label>Status</Label>
-                                <Select
-                                    value={formData.status}
-                                    onValueChange={(val) => setFormData({ ...formData, status: val })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="PRESENT">Present</SelectItem>
-                                        <SelectItem value="ABSENT">Absent</SelectItem>
-                                        <SelectItem value="LEAVE">Leave</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label>Minutes Late</Label>
-                                <Input
-                                    type="number"
-                                    value={formData.minutes_late}
-                                    onChange={(e) => setFormData({ ...formData, minutes_late: parseInt(e.target.value) })}
-                                />
-                            </div>
-                            <div>
-                                <Label>Notes</Label>
-                                <Input
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                />
-                            </div>
-                            <Button type="submit" className="w-full">Save</Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <Button onClick={() => setOpen(true)}>Mark Attendance</Button>
             </div>
 
             <Card>
@@ -171,13 +113,7 @@ export default function AttendancePage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8">
-                                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                                        </TableCell>
-                                    </TableRow>
-                                ) : data.length === 0 ? (
+                                {data.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                             No attendance records found for this period.
@@ -193,8 +129,8 @@ export default function AttendancePage() {
                                             </TableCell>
                                             <TableCell>
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.status === 'PRESENT' ? 'bg-green-100 text-green-800' :
-                                                        item.status === 'ABSENT' ? 'bg-red-100 text-red-800' :
-                                                            'bg-yellow-100 text-yellow-800'
+                                                    item.status === 'ABSENT' ? 'bg-red-100 text-red-800' :
+                                                        'bg-yellow-100 text-yellow-800'
                                                     }`}>
                                                     {item.status}
                                                 </span>
@@ -209,6 +145,64 @@ export default function AttendancePage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <EntityModal
+                open={open}
+                onOpenChange={setOpen}
+                title="Mark Attendance"
+                loading={saving}
+                onSubmit={handleSubmit as any}
+            >
+                <div>
+                    <Label className="mb-2 block">Employee</Label>
+                    <Combobox
+                        options={employees.map(emp => ({ label: `${emp.full_name} (${emp.code})`, value: emp.id }))}
+                        value={formData.employee_id}
+                        onChange={(val) => setFormData({ ...formData, employee_id: val })}
+                        placeholder="Select Employee"
+                        searchPlaceholder="Search employees..."
+                    />
+                </div>
+                <div>
+                    <Label className="mb-2 block">Date</Label>
+                    <Input
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    />
+                </div>
+                <div>
+                    <Label className="mb-2 block">Status</Label>
+                    <Select
+                        value={formData.status}
+                        onValueChange={(val) => setFormData({ ...formData, status: val })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="PRESENT">Present</SelectItem>
+                            <SelectItem value="ABSENT">Absent</SelectItem>
+                            <SelectItem value="LEAVE">Leave</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label className="mb-2 block">Minutes Late</Label>
+                    <Input
+                        type="number"
+                        value={formData.minutes_late}
+                        onChange={(e) => setFormData({ ...formData, minutes_late: parseInt(e.target.value) })}
+                    />
+                </div>
+                <div>
+                    <Label className="mb-2 block">Notes</Label>
+                    <Input
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    />
+                </div>
+            </EntityModal>
         </div>
     );
 }

@@ -12,7 +12,7 @@ export class ShippingController {
     constructor(private readonly shippingService: ShippingService) { }
 
     @Post('companies')
-    @Roles(UserRole.ADMIN, UserRole.ACCOUNTING)
+    @Roles(UserRole.ADMIN, UserRole.WH_MANAGER)
     create(@Body() dto: CreateShippingCompanyDto) {
         return this.shippingService.create(dto);
     }

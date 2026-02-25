@@ -1,15 +1,19 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GamificationService } from '../gamification/gamification.service';
 import { CreateAttendanceDto, BulkAttendanceDto } from './dto/create-attendance.dto';
 import { CreateLeaveDto } from './dto/create-leave.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
-import { HRMonthStatus, User, HRAttendance, EmployeeSalaryType } from '@prisma/client';
+import { HRMonthStatus, User, HRAttendance, EmployeeSalaryType, AttendanceStatus } from '@prisma/client';
 
 @Injectable()
 export class HRService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private gamificationService: GamificationService,
+    ) { }
 
     // --- Helpers ---
     private async ensureMonthEditable(year: number, month: number) {
@@ -180,7 +184,7 @@ export class HRService {
         const { year, month } = this.getDateYearMonth(dto.date);
         await this.ensureMonthEditable(year, month);
 
-        return this.prisma.hRAttendance.upsert({
+        const attendance = await this.prisma.hRAttendance.upsert({
             where: { employee_id_date: { employee_id: dto.employee_id, date: new Date(dto.date) } },
             update: {
                 status: dto.status,
@@ -194,8 +198,16 @@ export class HRService {
                 minutes_late: dto.minutes_late ?? 0,
                 notes: dto.notes,
                 created_by: user.id
-            }
+            },
+            include: { employee: true }
         });
+
+        if (dto.status === AttendanceStatus.PRESENT && (dto.minutes_late || 0) === 0 && attendance.employee.user_id) {
+            await this.gamificationService.awardPoints(attendance.employee.user_id, 10, 'On-Time Attendance');
+            await this.gamificationService.updateMissionProgress(attendance.employee.user_id, 'ON_TIME_ATTENDANCE', 1);
+        }
+
+        return attendance;
     }
 
     async bulkUpsertAttendance(dto: BulkAttendanceDto, user: User) {

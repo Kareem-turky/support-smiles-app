@@ -133,7 +133,7 @@ export const mockApiAdapter = {
             }
 
             // CS agents can only see their assigned tickets
-            if (currentUser?.role === 'CS') {
+            if (currentUser?.role === 'CS_AGENT') {
                 tickets = tickets.filter(t => t.assigned_to === currentUser.id);
             }
 
@@ -149,7 +149,7 @@ export const mockApiAdapter = {
                 throw mockError('Ticket not found', 404);
             }
 
-            if (currentUser?.role === 'CS' && ticket.assigned_to !== currentUser.id) {
+            if (currentUser?.role === 'CS_AGENT' && ticket.assigned_to !== currentUser.id) {
                 throw mockError('Access denied', 403);
             }
 
@@ -159,7 +159,7 @@ export const mockApiAdapter = {
         if (url === '/tickets' && method === 'POST') {
             const currentUser = getCurrentUserFromMock();
 
-            if (!currentUser || currentUser.role === 'CS') {
+            if (!currentUser || currentUser.role === 'CS_AGENT') {
                 throw mockError('Access denied', 403);
             }
 
@@ -185,7 +185,7 @@ export const mockApiAdapter = {
                 throw mockError('Ticket not found', 404);
             }
 
-            if (currentUser?.role === 'CS') {
+            if (currentUser?.role === 'CS_AGENT') {
                 if (ticket.assigned_to !== currentUser.id) {
                     throw mockError('Access denied', 403);
                 }
@@ -245,7 +245,7 @@ export const mockApiAdapter = {
                 throw mockError('Ticket not found', 404);
             }
 
-            if (currentUser?.role === 'CS') {
+            if (currentUser?.role === 'CS_AGENT') {
                 throw mockError('CS cannot edit ticket fields', 403);
             }
 
@@ -414,6 +414,89 @@ export const mockApiAdapter = {
                 : reasons;
 
             return mockResponse(filtered);
+        }
+
+        // ==================== GAMIFICATION ====================
+        if (url === '/gamification/my-progress' && method === 'GET') {
+            return mockResponse({
+                data: {
+                    points: 1250,
+                    level: 5,
+                    next_level_points: 2000,
+                    badges: [],
+                    streaks: [{ key: 'daily', current_count: 3, best_count: 7 }],
+                    history: [
+                        { id: '1', reason: 'Ticket Resolved', amount: 50, created_at: new Date().toISOString() }
+                    ]
+                }
+            });
+        }
+
+        if (url === '/gamification/leaderboard' && method === 'GET') {
+            const users = mockDb.getUsers();
+            const leaderboard = users.map(u => ({
+                user_id: u.id,
+                user: u.name,
+                role: u.role,
+                department: (u as any).department?.name || 'Operations',
+                points: Math.floor(Math.random() * 5000)
+            })).sort((a, b) => b.points - a.points);
+            return mockResponse(leaderboard);
+        }
+
+        if (url === '/gamification/missions/my' && method === 'GET') {
+            const missions = mockDb.getMissions().map(m => ({
+                ...m,
+                assignments: [{ status: 'ACTIVE', progress_value: 2 }]
+            }));
+            return mockResponse(missions);
+        }
+
+        if (url === '/gamification/rewards' && method === 'GET') {
+            const rewards = mockDb.getRewards();
+            return mockResponse(rewards);
+        }
+
+        if (url === '/gamification/rewards/redeem' && method === 'POST') {
+            const currentUser = getCurrentUserFromMock();
+            if (!currentUser) throw mockError('Not authenticated', 401);
+            const redemption = mockDb.createRedemption(currentUser.id, data.reward_id);
+            return mockResponse({ data: redemption }, 201);
+        }
+
+        if (url === '/gamification/missions' && method === 'GET') {
+            const missions = mockDb.getMissions();
+            return mockResponse(missions);
+        }
+
+        if (url === '/gamification/missions' && method === 'POST') {
+            const mission = mockDb.createMission(data);
+            return mockResponse({ data: mission }, 201);
+        }
+
+        if (url === '/gamification/rewards/redemptions' && method === 'GET') {
+            const redemptions = mockDb.getRedemptions();
+            return mockResponse(redemptions);
+        }
+
+        if (url.match(/^\/gamification\/rewards\/redemptions\/[^/]+$/) && method === 'PATCH') {
+            const id = url.split('/')[4];
+            const updated = mockDb.updateRedemption(id, data.status);
+            return mockResponse({ data: updated });
+        }
+
+        if (url === '/gamification/actions/start-shift' && method === 'POST') {
+            return mockResponse({ success: true, message: 'Shift started' });
+        }
+
+        if (url === '/gamification/actions/end-shift' && method === 'POST') {
+            return mockResponse({ success: true, message: 'Shift ended' });
+        }
+
+        // ==================== HR DISCOVERY ====================
+        if (url === '/hr/departments' && method === 'GET') {
+            const depts = (mockDb as any).state.departments || [];
+            return mockResponse(depts);
         }
 
         // Unhandled route

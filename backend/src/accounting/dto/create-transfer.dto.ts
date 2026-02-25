@@ -1,10 +1,10 @@
 import { IsNotEmpty, IsEnum, IsNumber, IsDateString, IsOptional, IsString } from 'class-validator';
-import { TransferType, TransferMethod } from '@prisma/client';
+import { TransferMethod } from '@prisma/client';
 
 export class CreateTransferDto {
     @IsNotEmpty()
-    @IsEnum(TransferType)
-    type: TransferType;
+    @IsString()
+    type: string;
 
     @IsOptional()
     @IsString()

@@ -4,9 +4,10 @@ import { TicketsController } from './tickets.controller';
 import { EventsService } from '../events/events.service';
 import { TicketReasonsModule } from '../ticket-reasons/ticket-reasons.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { GamificationModule } from '../gamification/gamification.module';
 
 @Module({
-    imports: [PrismaModule, TicketReasonsModule],
+    imports: [PrismaModule, TicketReasonsModule, GamificationModule],
     controllers: [TicketsController],
     providers: [TicketsService, EventsService],
 })

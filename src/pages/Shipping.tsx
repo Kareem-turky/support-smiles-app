@@ -1,31 +1,28 @@
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { ShippingService, ShippingCompany } from '@/services/shipping';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2 } from 'lucide-react';
-import { useAuth } from '@/contexts/useAuth';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EntityModal } from '@/components/shared/EntityModal';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-
-interface ShippingCompany {
-    id: string;
-    name: string;
-    is_active: boolean;
-}
 
 export default function Shipping() {
     const [data, setData] = useState<ShippingCompany[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal
+    const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [newName, setNewName] = useState('');
-    const { user } = useAuth(); // Assume only Admin/Accounting can edit
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await api.get<ShippingCompany[]>('/shipping/companies');
-            setData(res.data);
+            const res = await ShippingService.getCompanies();
+            setData(res);
         } catch (err) {
             console.error(err);
         } finally {
@@ -37,25 +34,44 @@ export default function Shipping() {
         fetchData();
     }, []);
 
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCreate = async () => {
+        if (!newName.trim()) {
+            toast.error('Company name required');
+            return;
+        }
+        setSaving(true);
         try {
-            await api.post('/shipping/companies', { name: newName });
-            setNewName('');
+            await ShippingService.createCompany(newName);
             toast.success('Shipping company added');
+            setOpen(false);
+            setNewName('');
             fetchData();
         } catch (err) {
             console.error(err);
             toast.error('Failed to add company');
+        } finally {
+            setSaving(false);
         }
     };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure?')) return;
+        try {
+            await ShippingService.deleteCompany(id);
+            toast.success('Company deleted');
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to delete company');
+        }
+    }
 
     const columns = [
         { header: 'Name', accessorKey: 'name' as any, className: 'font-medium' },
         { header: 'Status', cell: (item: ShippingCompany) => item.is_active ? 'Active' : 'Inactive' },
         {
             header: 'Actions', cell: (item: ShippingCompany) => (
-                <Button variant="ghost" size="icon" disabled><Trash2 className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             )
         },
     ];
@@ -65,24 +81,12 @@ export default function Shipping() {
             <PageHeader
                 title="Shipping Companies"
                 description="Manage courier and shipping partners."
+                actions={
+                    <Button onClick={() => setOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Company
+                    </Button>
+                }
             />
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Add Company</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleCreate} className="flex gap-4">
-                        <Input
-                            value={newName}
-                            onChange={e => setNewName(e.target.value)}
-                            placeholder="Company Name (e.g. Aramex)"
-                            className="max-w-md"
-                        />
-                        <Button type="submit"><Plus className="mr-2 h-4 w-4" /> Add</Button>
-                    </form>
-                </CardContent>
-            </Card>
 
             <DataTable
                 data={data}
@@ -90,6 +94,24 @@ export default function Shipping() {
                 emptyMessage="No shipping companies found."
                 columns={columns}
             />
+
+            <EntityModal
+                open={open}
+                onOpenChange={setOpen}
+                title="Add Shipping Company"
+                loading={saving}
+                onSubmit={handleCreate as any}
+            >
+                <div>
+                    <Label className="mb-2 block">Company Name</Label>
+                    <Input
+                        value={newName}
+                        onChange={e => setNewName(e.target.value)}
+                        placeholder="e.g. Aramex"
+                        required
+                    />
+                </div>
+            </EntityModal>
         </div>
     );
 }

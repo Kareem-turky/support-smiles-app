@@ -3,8 +3,11 @@ import { AccountingService, PayrollRun } from '@/services/accounting';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Plus, Calculator } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { EntityModal } from '@/components/shared/EntityModal';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 export default function Payroll() {
     const [data, setData] = useState<PayrollRun[]>([]);
@@ -14,12 +17,41 @@ export default function Payroll() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
 
+    // modal
+    const [open, setOpen] = useState(false);
+    const [calculating, setCalculating] = useState(false);
+    const [period, setPeriod] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 });
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const res = await AccountingService.getPayrollRuns();
+            setData(res);
+        } catch (err: any) {
+            setError(err.message || 'Failed to fetch payroll runs');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            // ... fetch logic
-        };
         fetchData();
     }, []);
+
+    const handleCalculate = async () => {
+        setCalculating(true);
+        try {
+            await AccountingService.calculatePayroll(period.year, period.month);
+            toast.success('Payroll calculated successfully');
+            setOpen(false);
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || 'Failed to calculate payroll');
+        } finally {
+            setCalculating(false);
+        }
+    };
 
     const filteredData = data.filter(item => {
         const itemDate = new Date(item.year, item.month - 1, 1);
@@ -28,13 +60,13 @@ export default function Payroll() {
         return true;
     });
 
-    // ... loading
-
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold">Payroll</h1>
-                <Button><Plus className="mr-2 h-4 w-4" /> New Run</Button>
+                <Button onClick={() => setOpen(true)}>
+                    <Calculator className="mr-2 h-4 w-4" /> Calculate Payroll
+                </Button>
             </div>
 
             <Card>
@@ -82,6 +114,38 @@ export default function Payroll() {
                     )}
                 </CardContent>
             </Card>
+
+            <EntityModal
+                open={open}
+                onOpenChange={setOpen}
+                title="Calculate Payroll"
+                description="This will calculate payroll for all active employees for the selected period."
+                loading={calculating}
+                onSubmit={handleCalculate as any}
+                submitLabel="Calculate"
+                width="sm:max-w-[400px]"
+            >
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label className="mb-2 block">Year</Label>
+                        <Input
+                            type="number"
+                            value={period.year}
+                            onChange={e => setPeriod({ ...period, year: parseInt(e.target.value) })}
+                        />
+                    </div>
+                    <div>
+                        <Label className="mb-2 block">Month</Label>
+                        <Input
+                            type="number"
+                            min={1}
+                            max={12}
+                            value={period.month}
+                            onChange={e => setPeriod({ ...period, month: parseInt(e.target.value) })}
+                        />
+                    </div>
+                </div>
+            </EntityModal>
         </div>
     );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import { notificationsService } from '@/services/notifications.service';
 import { Notification, ROLE_LABELS } from '@/types';
@@ -13,7 +13,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
@@ -28,7 +27,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Ticket,
@@ -46,27 +44,129 @@ import {
   Banknote,
   List,
   ShoppingCart,
+  TrendingUp,
+  Trophy,
+  Target,
+  Award,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['ADMIN', 'ACCOUNTING', 'CS'] },
-  { title: 'Tickets', url: '/tickets', icon: Ticket, roles: ['ADMIN', 'ACCOUNTING', 'CS'] },
-  { title: 'Users', url: '/users', icon: Users, roles: ['ADMIN'] },
-  { title: 'Purchases', url: '/accounting/purchases', icon: DollarSign, roles: ['ADMIN', 'ACCOUNTING'] },
-  { title: 'Expenses', url: '/accounting/expenses', icon: CreditCard, roles: ['ADMIN', 'ACCOUNTING'] },
-  { title: 'Deposits', url: '/accounting/deposits', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
-  { title: 'Payroll', url: '/accounting/payroll', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
-  { title: 'Transfers', url: '/accounting/transfers', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
-  { title: 'Advances', url: '/accounting/advances', icon: Banknote, roles: ['ADMIN', 'ACCOUNTING'] },
-  { title: 'Employees', url: '/hr/employees', icon: Users, roles: ['ADMIN', 'HR'] },
-  { title: 'Adjustments', url: '/hr/adjustments', icon: List, roles: ['ADMIN', 'HR'] },
-  { title: 'Attendance', url: '/hr/attendance', icon: List, roles: ['ADMIN', 'HR'] },
-  { title: 'Leaves', url: '/hr/leaves', icon: List, roles: ['ADMIN', 'HR'] },
-  { title: 'Orders', url: '/orders', icon: ShoppingCart, roles: ['ADMIN', 'ACCOUNTING', 'CS'] },
-  { title: 'Shipping', url: '/shipping', icon: Ticket, roles: ['ADMIN', 'ACCOUNTING'] },
-  { title: 'Reasons', url: '/admin/ticket-reasons', icon: List, roles: ['ADMIN'] },
+  {
+    title: 'Dashboard',
+    url: '/',
+    icon: LayoutDashboard,
+    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_CLERK', 'HR_MANAGER', 'HR_ASSISTANT', 'WH_MANAGER']
+  },
+  {
+    title: 'Tickets',
+    url: '/tickets',
+    icon: Ticket,
+    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT']
+  },
+  {
+    title: 'Users',
+    url: '/users',
+    icon: Users,
+    roles: ['ADMIN']
+  },
+  {
+    title: 'Purchases',
+    url: '/accounting/purchases',
+    icon: DollarSign,
+    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
+  },
+  {
+    title: 'Vendors',
+    url: '/accounting/vendors',
+    icon: Users,
+    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
+  },
+  {
+    title: 'Expenses',
+    url: '/accounting/expenses',
+    icon: CreditCard,
+    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
+  },
+  {
+    title: 'Deposits',
+    url: '/accounting/deposits',
+    icon: Banknote,
+    roles: ['ADMIN', 'ACC_MANAGER']
+  },
+  {
+    title: 'Payroll',
+    url: '/accounting/payroll',
+    icon: Banknote,
+    roles: ['ADMIN', 'ACC_MANAGER']
+  },
+  {
+    title: 'Transfers',
+    url: '/accounting/transfers',
+    icon: Banknote,
+    roles: ['ADMIN', 'ACC_MANAGER']
+  },
+  {
+    title: 'Advances',
+    url: '/accounting/advances',
+    icon: Banknote,
+    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
+  },
+  {
+    title: 'Employees',
+    url: '/hr/employees',
+    icon: Users,
+    roles: ['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']
+  },
+  {
+    title: 'Adjustments',
+    url: '/hr/adjustments',
+    icon: List,
+    roles: ['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']
+  },
+  {
+    title: 'Attendance',
+    url: '/hr/attendance',
+    icon: List,
+    roles: ['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']
+  },
+  {
+    title: 'Leaves',
+    url: '/hr/leaves',
+    icon: List,
+    roles: ['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']
+  },
+  {
+    title: 'Shipping',
+    url: '/shipping',
+    icon: Ticket,
+    roles: ['ADMIN', 'WH_MANAGER']
+  },
+  {
+    title: 'Reasons',
+    url: '/admin/ticket-reasons',
+    icon: List,
+    roles: ['ADMIN']
+  },
+  {
+    title: 'My KPIs',
+    url: '/kpi',
+    icon: Target,
+    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_CLERK', 'HR_MANAGER', 'HR_ASSISTANT', 'WH_MANAGER', 'WH_AGENT']
+  },
+  {
+    title: 'Team KPIs',
+    url: '/team-kpi',
+    icon: TrendingUp,
+    roles: ['ADMIN', 'CS_MANAGER', 'ACC_MANAGER', 'HR_MANAGER', 'WH_MANAGER']
+  },
+  {
+    title: 'Gamification',
+    url: '/gamification',
+    icon: Trophy,
+    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_CLERK', 'HR_MANAGER', 'HR_ASSISTANT', 'WH_MANAGER', 'WH_AGENT']
+  },
 ];
 
 function AppSidebarContent() {
@@ -249,6 +349,10 @@ function TopBar({ onSearch }: { onSearch?: (query: string) => void }) {
         <Menu className="h-5 w-5" />
       </SidebarTrigger>
 
+      <div className={cn("px-2 py-0.5 rounded text-xs font-bold border", import.meta.env.VITE_USE_MOCK_API === 'true' ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-green-100 text-green-800 border-green-200")}>
+        {import.meta.env.VITE_USE_MOCK_API === 'true' ? 'MOCK' : 'REAL'}
+      </div>
+
       <form onSubmit={handleSearch} className="flex-1 max-w-md">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -300,7 +404,7 @@ function TopBar({ onSearch }: { onSearch?: (query: string) => void }) {
 }
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onSearch?: (query: string) => void;
 }
 
@@ -314,7 +418,7 @@ export function AppLayout({ children, onSearch }: AppLayoutProps) {
         <div className="flex-1 flex flex-col">
           <TopBar onSearch={onSearch} />
           <main className="flex-1 overflow-auto p-6">
-            {children}
+            {children || <Outlet />}
           </main>
         </div>
       </div>

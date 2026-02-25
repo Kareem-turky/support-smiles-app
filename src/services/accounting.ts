@@ -62,23 +62,23 @@ export interface PayrollRun {
 export const AccountingService = {
     // Vendors
     getVendors: async () => (await api.get<Vendor[]>('/accounting/vendors')).data,
-    createVendor: async (name: string) => (await api.post<Vendor>('/accounting/vendors', { name })).data,
+    createVendor: async (data: { name: string; phone?: string }) => (await api.post<Vendor>('/accounting/vendors', { vendor_name: data.name, phone: data.phone })).data,
 
     // Deposits
     getDeposits: async () => (await api.get<Deposit[]>('/accounting/deposits')).data,
-    createDeposit: async (data: any) => (await api.post<Deposit>('/accounting/deposits', data)).data,
+    createDeposit: async (data: Omit<Deposit, 'id'>) => (await api.post<Deposit>('/accounting/deposits', data)).data,
 
     // Purchases
     getPurchases: async () => (await api.get<Purchase[]>('/accounting/purchases')).data,
-    createPurchase: async (data: any) => (await api.post<Purchase>('/accounting/purchases', data)).data,
+    createPurchase: async (data: Omit<Purchase, 'id'>) => (await api.post<Purchase>('/accounting/purchases', data)).data,
 
     // Expenses
     getExpenses: async () => (await api.get<Expense[]>('/accounting/expenses')).data,
-    createExpense: async (data: any) => (await api.post<Expense>('/accounting/expenses', data)).data,
+    createExpense: async (data: Omit<Expense, 'id'>) => (await api.post<Expense>('/accounting/expenses', data)).data,
 
     // Transfers
     getTransfers: async () => (await api.get<Transfer[]>('/accounting/transfers')).data,
-    createTransfer: async (data: any) => (await api.post<Transfer>('/accounting/transfers', data)).data,
+    createTransfer: async (data: Omit<Transfer, 'id'>) => (await api.post<Transfer>('/accounting/transfers', data)).data,
 
     // Payroll
     getPayrollRuns: async () => (await api.get<PayrollRun[]>('/accounting/payroll')).data,

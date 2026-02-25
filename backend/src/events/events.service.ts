@@ -17,7 +17,7 @@ export class EventsService {
                 ticket_id: ticketId,
                 actor_id: actorId,
                 event_type: eventType,
-                meta,
+                meta: JSON.stringify(meta),
             },
         });
     }

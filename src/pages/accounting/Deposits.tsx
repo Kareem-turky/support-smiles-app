@@ -1,25 +1,101 @@
 import { useEffect, useState } from 'react';
-import { AccountingService, Deposit } from '@/services/accounting';
+import { AccountingService, Deposit, Vendor } from '@/services/accounting';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { EntityModal } from '@/components/shared/EntityModal';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { Combobox } from '@/components/ui/combobox';
 
 export default function Deposits() {
     const [data, setData] = useState<Deposit[]>([]);
+    const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
 
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
 
+    // Modal
+    const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [formData, setFormData] = useState({
+        vendor_id: '',
+        date: new Date().toISOString().split('T')[0],
+        amount: 0,
+        notes: ''
+    });
+
+    // Vendor Creation State
+    const [vendorModalOpen, setVendorModalOpen] = useState(false);
+    const [newVendorName, setNewVendorName] = useState('');
+    const [newVendorPhone, setNewVendorPhone] = useState('');
+    const [creatingVendor, setCreatingVendor] = useState(false);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [deposits, vendorList] = await Promise.all([
+                AccountingService.getDeposits(),
+                AccountingService.getVendors()
+            ]);
+            setData(deposits);
+            setVendors(vendorList);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            // ... fetch logic
-        };
         fetchData();
     }, []);
+
+    const handleCreate = async () => {
+        if (!formData.vendor_id || formData.amount <= 0) {
+            toast.error('Please select vendor and enter valid amount');
+            return;
+        }
+        setSaving(true);
+        try {
+            await AccountingService.createDeposit(formData);
+            toast.success('Deposit created');
+            setOpen(false);
+            setFormData({
+                vendor_id: '',
+                date: new Date().toISOString().split('T')[0],
+                amount: 0,
+                notes: ''
+            });
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to create deposit');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCreateVendor = async (name: string) => {
+        setCreatingVendor(true);
+        try {
+            const vendor = await AccountingService.createVendor({ name, phone: newVendorPhone });
+            setVendors([...vendors, vendor]);
+            setFormData({ ...formData, vendor_id: vendor.id });
+            toast.success(`Vendor "${name}" created`);
+            setVendorModalOpen(false);
+            setNewVendorName('');
+            setNewVendorPhone('');
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to create vendor');
+        } finally {
+            setCreatingVendor(false);
+        }
+    };
 
     const filteredData = data.filter(item => {
         if (dateFrom && new Date(item.date) < new Date(dateFrom)) return false;
@@ -27,13 +103,13 @@ export default function Deposits() {
         return true;
     });
 
-    // ... loading
-
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold">Vendor Deposits</h1>
-                <Button><Plus className="mr-2 h-4 w-4" /> New Deposit</Button>
+                <Button onClick={() => setOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> New Deposit
+                </Button>
             </div>
 
             <Card>
@@ -79,6 +155,82 @@ export default function Deposits() {
                     )}
                 </CardContent>
             </Card>
+
+            <EntityModal
+                open={vendorModalOpen}
+                onOpenChange={setVendorModalOpen}
+                title="Create New Vendor"
+                loading={creatingVendor}
+                onSubmit={async (e) => { e.preventDefault(); await handleCreateVendor(newVendorName); }}
+                submitLabel="Create Vendor"
+                width="sm:max-w-[400px]"
+            >
+                <div>
+                    <Label className="mb-2 block">Vendor Name</Label>
+                    <Input
+                        value={newVendorName}
+                        onChange={(e) => setNewVendorName(e.target.value)}
+                        placeholder="Enter vendor name"
+                        autoFocus
+                        className="mb-4"
+                    />
+                    <Label className="mb-2 block">Phone (Optional)</Label>
+                    <Input
+                        value={newVendorPhone}
+                        onChange={(e) => setNewVendorPhone(e.target.value)}
+                        placeholder="Enter phone number"
+                    />
+                </div>
+            </EntityModal>
+
+            <EntityModal
+                open={open}
+                onOpenChange={setOpen}
+                title="New Vendor Deposit"
+                loading={saving}
+                onSubmit={handleCreate as any}
+            >
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label className="mb-2 block">Vendor *</Label>
+                        <Combobox
+                            options={vendors.map(v => ({ label: v.name, value: v.id }))}
+                            value={formData.vendor_id}
+                            onChange={(val) => setFormData({ ...formData, vendor_id: val })}
+                            placeholder="Select Vendor"
+                            searchPlaceholder="Search vendors..."
+                            onCreate={(inputValue) => {
+                                setNewVendorName(inputValue);
+                                setVendorModalOpen(true);
+                            }}
+                            createLabel="Add Vendor"
+                        />
+                    </div>
+                    <div>
+                        <Label className="mb-2 block">Date</Label>
+                        <Input
+                            type="date"
+                            value={formData.date}
+                            onChange={e => setFormData({ ...formData, date: e.target.value })}
+                        />
+                    </div>
+                </div>
+                <div>
+                    <Label className="mb-2 block">Amount</Label>
+                    <Input
+                        type="number"
+                        value={formData.amount}
+                        onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })}
+                    />
+                </div>
+                <div>
+                    <Label className="mb-2 block">Notes</Label>
+                    <Input
+                        value={formData.notes}
+                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                    />
+                </div>
+            </EntityModal>
         </div>
     );
 }

@@ -5,17 +5,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
-import { Loader2 } from 'lucide-react';
+import { EntityModal } from '@/components/shared/EntityModal';
 import { toast } from 'sonner';
+import { Combobox } from '@/components/ui/combobox';
 
 export default function LeavesPage() {
     const [data, setData] = useState<HRLeave[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal
     const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     // Form
     const [formData, setFormData] = useState({
@@ -47,8 +50,12 @@ export default function LeavesPage() {
         fetchData();
     }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
+        if (!formData.employee_id) {
+            toast.error('Select employee');
+            return;
+        }
+        setSaving(true);
         try {
             await HRService.createLeave(formData);
             toast.success('Leave saved');
@@ -57,6 +64,8 @@ export default function LeavesPage() {
         } catch (err) {
             console.error(err);
             toast.error('Failed to save leave');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -64,77 +73,7 @@ export default function LeavesPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold">Leaves</h1>
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button>Request Leave</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Request Leave</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <Label>Employee</Label>
-                                <Select
-                                    value={formData.employee_id}
-                                    onValueChange={(val) => setFormData({ ...formData, employee_id: val })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Employee" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {employees.map(emp => (
-                                            <SelectItem key={emp.id} value={emp.id}>{emp.full_name} ({emp.code})</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label>From Date</Label>
-                                    <Input
-                                        type="date"
-                                        value={formData.from_date}
-                                        onChange={(e) => setFormData({ ...formData, from_date: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <Label>To Date</Label>
-                                    <Input
-                                        type="date"
-                                        value={formData.to_date}
-                                        onChange={(e) => setFormData({ ...formData, to_date: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <Label>Type</Label>
-                                <Select
-                                    value={formData.leave_type}
-                                    onValueChange={(val) => setFormData({ ...formData, leave_type: val })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="ANNUAL">Annual</SelectItem>
-                                        <SelectItem value="SICK">Sick</SelectItem>
-                                        <SelectItem value="UNPAID">Unpaid</SelectItem>
-                                        <SelectItem value="OTHER">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label>Notes</Label>
-                                <Input
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                />
-                            </div>
-                            <Button type="submit" className="w-full">Save</Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <Button onClick={() => setOpen(true)}>Request Leave</Button>
             </div>
 
             <Card>
@@ -154,13 +93,7 @@ export default function LeavesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8">
-                                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                                        </TableCell>
-                                    </TableRow>
-                                ) : data.length === 0 ? (
+                                {data.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                             No leave records found.
@@ -189,6 +122,67 @@ export default function LeavesPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <EntityModal
+                open={open}
+                onOpenChange={setOpen}
+                title="Request Leave"
+                loading={saving}
+                onSubmit={handleSubmit as any}
+            >
+                <div>
+                    <Label className="mb-2 block">Employee</Label>
+                    <Combobox
+                        options={employees.map(emp => ({ label: `${emp.full_name} (${emp.code})`, value: emp.id }))}
+                        value={formData.employee_id}
+                        onChange={(val) => setFormData({ ...formData, employee_id: val })}
+                        placeholder="Select Employee"
+                        searchPlaceholder="Search employees..."
+                    />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label className="mb-2 block">From Date</Label>
+                        <Input
+                            type="date"
+                            value={formData.from_date}
+                            onChange={(e) => setFormData({ ...formData, from_date: e.target.value })}
+                        />
+                    </div>
+                    <div>
+                        <Label className="mb-2 block">To Date</Label>
+                        <Input
+                            type="date"
+                            value={formData.to_date}
+                            onChange={(e) => setFormData({ ...formData, to_date: e.target.value })}
+                        />
+                    </div>
+                </div>
+                <div>
+                    <Label className="mb-2 block">Type</Label>
+                    <Select
+                        value={formData.leave_type}
+                        onValueChange={(val) => setFormData({ ...formData, leave_type: val })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ANNUAL">Annual</SelectItem>
+                            <SelectItem value="SICK">Sick</SelectItem>
+                            <SelectItem value="UNPAID">Unpaid</SelectItem>
+                            <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label className="mb-2 block">Notes</Label>
+                    <Input
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    />
+                </div>
+            </EntityModal>
         </div>
     );
 }

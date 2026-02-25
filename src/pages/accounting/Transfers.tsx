@@ -4,8 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import { EntityModal } from '@/components/shared/EntityModal';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
+import { toast } from 'sonner';
 
 export default function Transfers() {
     const [data, setData] = useState<Transfer[]>([]);
@@ -14,12 +19,20 @@ export default function Transfers() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
 
+    // Modal
+    const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [formData, setFormData] = useState({
+        type: 'OTHER',
+        method: 'BANK',
+        amount: 0,
+        date: new Date().toISOString().split('T')[0],
+        notes: ''
+    });
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Note: need to add filtering support to AccountingService & Backend if not exists
-            // For now assuming getAll returns all and we client filter or backend accepts params
-            // Start simple: fetch all
             const result = await AccountingService.getTransfers();
             setData(result);
         } catch (err: any) {
@@ -33,6 +46,32 @@ export default function Transfers() {
         fetchData();
     }, []);
 
+    const handleCreate = async () => {
+        if (formData.amount <= 0) {
+            toast.error('Enter valid amount');
+            return;
+        }
+        setSaving(true);
+        try {
+            await AccountingService.createTransfer(formData);
+            toast.success('Transfer created');
+            setOpen(false);
+            setFormData({
+                type: 'OTHER',
+                method: 'BANK',
+                amount: 0,
+                date: new Date().toISOString().split('T')[0],
+                notes: ''
+            });
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to create transfer');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const filteredData = data.filter(item => {
         if (dateFrom && new Date(item.date) < new Date(dateFrom)) return false;
         if (dateTo && new Date(item.date) > new Date(dateTo)) return false;
@@ -45,7 +84,9 @@ export default function Transfers() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold">Transfers</h1>
-                <Button><Plus className="mr-2 h-4 w-4" /> New Transfer</Button>
+                <Button onClick={() => setOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> New Transfer
+                </Button>
             </div>
 
             <Card>
@@ -97,6 +138,75 @@ export default function Transfers() {
                     )}
                 </CardContent>
             </Card>
+
+            <EntityModal
+                open={open}
+                onOpenChange={setOpen}
+                title="New Transfer"
+                loading={saving}
+                onSubmit={handleCreate as any}
+            >
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label className="mb-2 block">Type</Label>
+                        <Combobox
+                            options={[
+                                { label: 'Payroll', value: 'PAYROLL' },
+                                { label: 'Supplier', value: 'SUPPLIER' },
+                                { label: 'Expense', value: 'EXPENSE' },
+                                { label: 'Other', value: 'OTHER' }
+                            ]}
+                            value={formData.type}
+                            onChange={val => setFormData({ ...formData, type: val as any })}
+                            placeholder="Select Type"
+                            searchPlaceholder="Search types..."
+                            onCreate={(val) => setFormData({ ...formData, type: val as any })}
+                            createLabel="Use Custom Type"
+                        />
+                    </div>
+                    <div>
+                        <Label className="mb-2 block">Method</Label>
+                        <Select
+                            value={formData.method}
+                            onValueChange={val => setFormData({ ...formData, method: val })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="BANK">Bank</SelectItem>
+                                <SelectItem value="CASH">Cash</SelectItem>
+                                <SelectItem value="OTHER">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label className="mb-2 block">Amount</Label>
+                        <Input
+                            type="number"
+                            value={formData.amount}
+                            onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })}
+                        />
+                    </div>
+                    <div>
+                        <Label className="mb-2 block">Date</Label>
+                        <Input
+                            type="date"
+                            value={formData.date}
+                            onChange={e => setFormData({ ...formData, date: e.target.value })}
+                        />
+                    </div>
+                </div>
+                <div>
+                    <Label className="mb-2 block">Notes</Label>
+                    <Input
+                        value={formData.notes}
+                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                    />
+                </div>
+            </EntityModal>
         </div>
     );
 }

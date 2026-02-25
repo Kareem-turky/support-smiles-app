@@ -129,7 +129,7 @@ export default function TicketsList() {
   };
 
   return (
-    <AppLayout onSearch={handleSearch}>
+    <>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -319,6 +319,6 @@ export default function TicketsList() {
         onOpenChange={setShowCreateDialog}
         onCreated={handleTicketCreated}
       />
-    </AppLayout>
+    </>
   );
 }
