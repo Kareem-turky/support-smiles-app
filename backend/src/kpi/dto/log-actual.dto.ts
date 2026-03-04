@@ -2,7 +2,12 @@ import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class LogActualDto {
     @IsString()
-    employeeId: string;
+    @IsOptional()
+    employeeId?: string;
+
+    @IsString()
+    @IsOptional()
+    employee_code?: string;
 
     @IsString()
     metric: string;

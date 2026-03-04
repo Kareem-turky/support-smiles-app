@@ -97,7 +97,6 @@ async function main() {
       { user_id: admin.user.id, metric_name: 'Team CSAT', actual_value: 92, score: 92, period_key: periodKey },
     ],
   });
-
   // 5.5. KPI Scores (Historical/Daily Rollups)
   const today = new Date();
   await prisma.kPIScore.createMany({

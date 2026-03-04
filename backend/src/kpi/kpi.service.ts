@@ -353,9 +353,14 @@ export class KpiService {
   }
 
   async createTarget(dto: any, managerId: string, managerUser: any) {
-    const { employeeId, date, metric, targetValue, weight } = dto;
+    const { employeeId, employee_code, date, metric, targetValue, weight } = dto;
 
-    const targetEmployee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    let targetEmployee;
+    if (employeeId) {
+      targetEmployee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    } else if (employee_code) {
+      targetEmployee = await this.prisma.employee.findUnique({ where: { code: employee_code } });
+    }
     if (!targetEmployee) throw new NotFoundException('Target employee not found');
 
     if (managerUser.role !== UserRole.ADMIN) {
@@ -406,9 +411,14 @@ export class KpiService {
   }
 
   async logActual(dto: any, creatorUser: any) {
-    const { employeeId, metric, date, actualValue } = dto;
+    const { employeeId, employee_code, metric, date, actualValue } = dto;
 
-    const targetEmployee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    let targetEmployee;
+    if (employeeId) {
+      targetEmployee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    } else if (employee_code) {
+      targetEmployee = await this.prisma.employee.findUnique({ where: { code: employee_code } });
+    }
     if (!targetEmployee || !targetEmployee.user_id) throw new NotFoundException('Target employee/user not found');
 
     if (creatorUser.role !== UserRole.ADMIN) {
