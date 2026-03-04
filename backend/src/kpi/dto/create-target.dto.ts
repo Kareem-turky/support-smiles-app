@@ -1,24 +1,20 @@
-import { IsString, IsNumber, IsOptional, IsEnum } from 'class-validator';
-import { UserRole } from '@prisma/client';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateTargetDto {
-    @IsEnum(UserRole)
-    @IsOptional()
-    role?: UserRole;
+    @IsString()
+    employeeId: string;
 
     @IsString()
-    @IsOptional()
-    userId?: string;
-
-    @IsString()
-    metricName: string;
+    metric: string;
 
     @IsNumber()
     targetValue: number;
 
+    @IsOptional()
     @IsString()
-    period: string;
+    date?: string;
 
+    @IsOptional()
     @IsNumber()
-    weight: number;
+    weight?: number;
 }

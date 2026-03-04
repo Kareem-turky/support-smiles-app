@@ -118,6 +118,8 @@ model Department {
   name        String     @unique
   employees   Employee[]
   missions    Mission[]
+  kpi_targets KPITarget[]
+  orders      Order[]
 
   @@map("departments")
 }
@@ -150,6 +152,8 @@ model Employee {
   payroll_items PayrollItem[]
   issues        EmployeeIssue[]
   kpi_scores    KPIScore[]
+  kpi_targets   KPITarget[]
+  assigned_orders Order[] @relation("OrderAssignee")
 
   @@map("employees")
 }
@@ -428,11 +432,13 @@ model User {
   created_transfers   AccountingTransfer[]
   created_closings    AccountingClosing[]
 
+  // KPI Relations
+  assigned_kpi_targets KPITarget[] @relation("TargetAssigner")
+
   // Employee Relation
   employee            Employee?
 
   // KPI Relations
-  kpi_targets         KPITarget[]
   kpi_actuals         KPIActual[]
   created_issues      EmployeeIssue[] @relation("IssueCreator")
 
@@ -445,6 +451,9 @@ model User {
   reward_redemptions  RewardRedemption[]
   created_missions    Mission[]           @relation("MissionCreator")
 
+  // Order Relations
+  created_orders      Order[]             @relation("OrderCreator")
+  assigned_orders     Order[]             @relation("OrderAssigner")
   @@map("users")
 }
 
@@ -690,11 +699,22 @@ model ShippingCompany {
 model Order {
   id                  String           @id @default(uuid())
   order_number        String           @unique
-  customer_name       String
+  customer_name       String?
   shipping_company_id String?
   shipping_company    ShippingCompany? @relation(fields: [shipping_company_id], references: [id])
   status              String           @default("PENDING")
+  amount              Decimal?
+  notes               String?
+  department_id       String
+  department          Department       @relation(fields: [department_id], references: [id])
+  assigned_employee_id String?
+  assigned_employee    Employee?       @relation("OrderAssignee", fields: [assigned_employee_id], references: [id])
+  created_by_user_id  String?
+  created_by          User?            @relation("OrderCreator", fields: [created_by_user_id], references: [id])
+  assigned_by_user_id String?
+  assigned_by         User?            @relation("OrderAssigner", fields: [assigned_by_user_id], references: [id])
   created_at          DateTime         @default(now())
+  updated_at          DateTime         @updatedAt
 
   @@map("orders")
 }
@@ -714,16 +734,19 @@ model IntegrationAuditLog {
 // KPI System Models
 
 model KPITarget {
-  id          String   @id @default(uuid())
-  role        UserRole?
-  user_id     String?  // Optional specific user target
-  user        User?    @relation(fields: [user_id], references: [id])
-  metric_name String   // e.g. "Ticket Volume", "Avg Response Time"
-  target_value Decimal 
-  period      String   // e.g. "MONTHLY"
-  weight      Decimal   // Percentage 0-100
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id            String      @id @default(uuid())
+  employee_id   String
+  employee      Employee    @relation(fields: [employee_id], references: [id])
+  manager_id    String
+  manager       User        @relation("TargetAssigner", fields: [manager_id], references: [id])
+  department_id String
+  department    Department  @relation(fields: [department_id], references: [id])
+  date          DateTime
+  metric_name   String      // e.g. "Ticket Volume", "Avg Response Time"
+  target_value  Decimal 
+  weight        Decimal     // Percentage 0-100
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
 
   @@map("kpi_targets")
 }

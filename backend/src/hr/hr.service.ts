@@ -44,11 +44,25 @@ export class HRService {
     }
 
     // --- Employees ---
-    async getEmployees() {
-        return this.prisma.employee.findMany({
-            include: { department: true, user: { select: { email: true } } },
+    async getEmployees(user?: any) {
+        let whereClause = {};
+        if (user && user.role !== 'ADMIN') {
+            const managerEmployee = await this.prisma.employee.findUnique({ where: { user_id: user.id } });
+            if (managerEmployee) {
+                whereClause = { department_id: managerEmployee.department_id };
+            }
+        }
+
+        const employees = await this.prisma.employee.findMany({
+            where: whereClause,
+            include: { department: true, user: { select: { email: true, role: true } } },
             orderBy: { full_name: 'asc' }
         });
+
+        return employees.map(emp => ({
+            ...emp,
+            role: emp.user?.role
+        }));
     }
 
     async createEmployee(dto: CreateEmployeeDto) {

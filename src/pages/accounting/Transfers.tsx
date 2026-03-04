@@ -11,18 +11,26 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/useAuth';
+
+const defaultTypes = [
+    { label: 'Payroll', value: 'PAYROLL' },
+    { label: 'Supplier', value: 'SUPPLIER' },
+    { label: 'Expense', value: 'EXPENSE' },
+    { label: 'Other', value: 'OTHER' }
+];
 
 export default function Transfers() {
     const [data, setData] = useState<Transfer[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [transferTypes, setTransferTypes] = useState(defaultTypes);
 
-    // Modal
-    const [open, setOpen] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<Omit<Transfer, 'id'>>({
         type: 'OTHER',
         method: 'BANK',
         amount: 0,
@@ -150,18 +158,15 @@ export default function Transfers() {
                     <div>
                         <Label className="mb-2 block">Type</Label>
                         <Combobox
-                            options={[
-                                { label: 'Payroll', value: 'PAYROLL' },
-                                { label: 'Supplier', value: 'SUPPLIER' },
-                                { label: 'Expense', value: 'EXPENSE' },
-                                { label: 'Other', value: 'OTHER' }
-                            ]}
+                            options={transferTypes}
                             value={formData.type}
                             onChange={val => setFormData({ ...formData, type: val as any })}
-                            placeholder="Select Type"
-                            searchPlaceholder="Search types..."
-                            onCreate={(val) => setFormData({ ...formData, type: val as any })}
-                            createLabel="Use Custom Type"
+                            onCreate={val => {
+                                setTransferTypes(prev => [...prev, { label: val, value: val }]);
+                                setFormData({ ...formData, type: val as any });
+                            }}
+                            createLabel="Custom Type"
+                            placeholder="Select or Type"
                         />
                     </div>
                     <div>

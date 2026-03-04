@@ -66,6 +66,12 @@ const navItems = [
     roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT']
   },
   {
+    title: 'Orders',
+    url: '/orders',
+    icon: ShoppingCart,
+    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'WH_MANAGER', 'WH_AGENT', 'ACC_MANAGER', 'HR_MANAGER']
+  },
+  {
     title: 'Users',
     url: '/users',
     icon: Users,

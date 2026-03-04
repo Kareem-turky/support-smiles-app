@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import TicketsList from "./pages/TicketsList";
 import TicketDetails from "./pages/TicketDetails";
+import Orders from "./pages/Orders";
 import UsersPage from "./pages/UsersPage";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/tickets" element={<TicketsList />} />
               <Route path="/tickets/:id" element={<TicketDetails />} />
+              <Route path="/orders" element={<Orders />} />
 
               <Route path="/users" element={
                 <ProtectedRoute allowedRoles={['ADMIN']}><UsersPage /></ProtectedRoute>

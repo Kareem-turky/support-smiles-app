@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Query } from '@nestjs/common';
 import { KpiService } from './kpi.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { CreateTargetDto } from './dto/create-target.dto';
@@ -32,17 +32,27 @@ export class KpiController {
     return this.kpiService.logIssue(createIssueDto, req.user.id);
   }
 
+  @Get('targets/team')
+  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
+  getTeamTargets(@Request() req, @Query('date') date: string) {
+    return this.kpiService.getTeamTargets(req.user, date);
+  }
+
+  @Get('targets/my')
+  getMyTargets(@Request() req, @Query('date') date: string) {
+    return this.kpiService.getMyTargets(req.user.id, date);
+  }
+
   @Post('targets')
   // @ts-ignore
   @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
-  createTarget(@Body() createTargetDto: CreateTargetDto) {
-    return this.kpiService.createTarget(createTargetDto);
+  createTarget(@Body() createTargetDto: CreateTargetDto, @Request() req) {
+    return this.kpiService.createTarget(createTargetDto, req.user.id, req.user);
   }
 
   @Post('actuals')
   logActual(@Body() logActualDto: LogActualDto, @Request() req) {
-    // If Admin/Manager, can log for anyone. If Agent, maybe only for themselves? (Handled in service or assumed trusted for now)
-    return this.kpiService.logActual(logActualDto, req.user.id);
+    return this.kpiService.logActual(logActualDto, req.user);
   }
 
   @Post('calculate-daily')

@@ -1,13 +1,13 @@
-import { IsString, IsNotEmpty, IsDateString, IsNumber, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNumber } from 'class-validator';
 
-export class CreateOrderDto {
+export class UpdateOrderDto {
     @IsString()
     @IsOptional()
-    customer_name?: string;
+    status?: string;
 
     @IsString()
-    @IsNotEmpty()
-    department_id: string;
+    @IsOptional()
+    department_id?: string;
 
     @IsString()
     @IsOptional()
@@ -24,4 +24,8 @@ export class CreateOrderDto {
     @IsString()
     @IsOptional()
     notes?: string;
+
+    @IsString()
+    @IsOptional()
+    customer_name?: string;
 }

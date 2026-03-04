@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { User, UserRole, AttendanceStatus } from '@prisma/client';
@@ -17,11 +17,18 @@ export class KpiService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    // 1. Get Targets for Role
-    // @ts-ignore
-    const targets = await this.prisma.kPITarget.findMany({
-      where: { role: user.role },
+    if (!user.employee) return { period: new Date().toISOString().slice(0, 7), user_role: user.role, metrics: [], issues: [], total_base_score: 0, total_deductions: 0, final_score: 0 };
+
+    // 1. Get Targets for Employee
+    const targetsList = await this.prisma.kPITarget.findMany({
+      where: { employee_id: user.employee.id },
+      orderBy: { date: 'desc' }
     });
+    const latestTargetsMap = new Map();
+    for (const t of targetsList) {
+      if (!latestTargetsMap.has(t.metric_name)) latestTargetsMap.set(t.metric_name, t);
+    }
+    const targets = Array.from(latestTargetsMap.values());
 
     // 2. Get Actuals for Current Month (e.g., "2025-02")
     const periodKey = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -151,10 +158,15 @@ export class KpiService {
     if (!role) return;
 
     // 1. Get Targets
-    // @ts-ignore
-    const targets = await this.prisma.kPITarget.findMany({
-      where: { role },
+    const targetsList = await this.prisma.kPITarget.findMany({
+      where: { employee_id: employeeId },
+      orderBy: { date: 'desc' }
     });
+    const latestTargetsMap = new Map();
+    for (const t of targetsList) {
+      if (!latestTargetsMap.has(t.metric_name)) latestTargetsMap.set(t.metric_name, t);
+    }
+    const targets = Array.from(latestTargetsMap.values());
 
     // 2. Get Actuals for the day
     const dayStart = new Date(date);
@@ -208,18 +220,28 @@ export class KpiService {
           });
 
           if (!existingIssue && deductionAmount > 0) {
-            await this.prisma.employeeIssue.create({
-              data: {
-                employee_id: employeeId,
-                type: 'PRODUCTIVITY_DEDUCTION',
-                description: `Productivity Deficit: ${Math.round(deficitRatio * 100)}% (${deficitHours.toFixed(1)}h)`,
-                date: new Date(),
-                severity: 'MEDIUM',
-                deduction_points: deductionAmount, // Storing money as points for now, or need schema adjustment? 
-                // Schema says deduction_points Decimal. Let's use it for money deduction value.
-                created_by: employee.user_id!, // Self-system logged
-              }
-            });
+            await this.prisma.$transaction([
+              this.prisma.employeeIssue.create({
+                data: {
+                  employee_id: employeeId,
+                  type: 'PRODUCTIVITY_DEDUCTION',
+                  description: `Productivity Deficit: ${Math.round(deficitRatio * 100)}% (${deficitHours.toFixed(1)}h)`,
+                  date: new Date(),
+                  severity: 'MEDIUM',
+                  deduction_points: deductionAmount,
+                  created_by: employee.user_id!,
+                }
+              }),
+              this.prisma.hRAdjustment.create({
+                data: {
+                  employee_id: employeeId,
+                  type: 'DEDUCTION',
+                  amount: deductionAmount,
+                  date: new Date(),
+                  reason: `Productivity Deficit: ${Math.round(deficitRatio * 100)}% (${deficitHours.toFixed(1)}h)`
+                }
+              })
+            ]);
           }
         }
       }
@@ -330,31 +352,81 @@ export class KpiService {
     });
   }
 
-  async createTarget(dto: any) {
-    const { role, userId, metricName, targetValue, period, weight } = dto;
+  async createTarget(dto: any, managerId: string, managerUser: any) {
+    const { employeeId, date, metric, targetValue, weight } = dto;
 
-    // @ts-ignore
+    const targetEmployee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!targetEmployee) throw new NotFoundException('Target employee not found');
+
+    if (managerUser.role !== UserRole.ADMIN) {
+      const managerEmployee = await this.prisma.employee.findUnique({ where: { email: managerUser.email } });
+      if (!managerEmployee) throw new NotFoundException('Manager employee record not found');
+
+      if (managerEmployee.department_id !== targetEmployee.department_id) {
+        throw new ForbiddenException('Managers can only assign targets to their own department members.');
+      }
+    }
+
     return this.prisma.kPITarget.create({
       data: {
-        role,
-        user_id: userId,
-        metric_name: metricName,
+        employee_id: employeeId,
+        manager_id: managerId,
+        department_id: targetEmployee.department_id,
+        date: new Date(date || new Date()),
+        metric_name: metric,
         target_value: targetValue,
-        period,
-        weight,
+        weight: weight || 100,
       }
     });
   }
 
-  async logActual(dto: any, creatorId: string) {
-    const { userId, metricName, periodKey, actualValue } = dto;
+  async getTeamTargets(user: any, dateStr?: string) {
+    if (user.role === UserRole.ADMIN) {
+      return this.prisma.kPITarget.findMany({ orderBy: { date: 'desc' }, include: { employee: true } });
+    }
+
+    const managerEmployee = await this.prisma.employee.findUnique({ where: { email: user.email } });
+    if (!managerEmployee) throw new NotFoundException('Manager not found');
+
+    return this.prisma.kPITarget.findMany({
+      where: { department_id: managerEmployee.department_id },
+      orderBy: { date: 'desc' },
+      include: { employee: true }
+    });
+  }
+
+  async getMyTargets(userId: string, dateStr?: string) {
+    const employee = await this.prisma.employee.findUnique({ where: { user_id: userId } });
+    if (!employee) return [];
+
+    return this.prisma.kPITarget.findMany({
+      where: { employee_id: employee.id },
+      orderBy: { date: 'desc' }
+    });
+  }
+
+  async logActual(dto: any, creatorUser: any) {
+    const { employeeId, metric, date, actualValue } = dto;
+
+    const targetEmployee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!targetEmployee || !targetEmployee.user_id) throw new NotFoundException('Target employee/user not found');
+
+    if (creatorUser.role !== UserRole.ADMIN) {
+      const managerEmployee = await this.prisma.employee.findUnique({ where: { email: creatorUser.email } });
+      if (!managerEmployee) throw new NotFoundException('Manager record not found');
+      if (managerEmployee.department_id !== targetEmployee.department_id) {
+        throw new ForbiddenException('Managers can only log actuals for their own department members.');
+      }
+    }
+
+    const periodKey = date ? new Date(date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
 
     // @ts-ignore
     return this.prisma.kPIActual.upsert({
       where: {
         user_id_metric_name_period_key: {
-          user_id: userId,
-          metric_name: metricName,
+          user_id: targetEmployee.user_id,
+          metric_name: metric,
           period_key: periodKey
         }
       },
@@ -362,8 +434,8 @@ export class KpiService {
         actual_value: actualValue,
       },
       create: {
-        user_id: userId,
-        metric_name: metricName,
+        user_id: targetEmployee.user_id,
+        metric_name: metric,
         period_key: periodKey,
         actual_value: actualValue,
       }

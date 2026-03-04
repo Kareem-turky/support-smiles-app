@@ -55,7 +55,7 @@ async function main() {
       },
     });
 
-    return { user, emp };
+    return { user, emp, dept };
   };
 
   // 3. Seed Users
@@ -74,14 +74,14 @@ async function main() {
   // 4. KPI Targets
   const targets = [
     // CS Roles
-    { role: UserRole.CS_MANAGER, metric_name: 'Team CSAT', target_value: 95, weight: 40, period: 'MONTHLY' },
-    { role: UserRole.CS_AGENT, metric_name: 'Tickets Resolved', target_value: 100, weight: 50, period: 'MONTHLY' },
+    { employee_id: csManager.emp.id, manager_id: admin.user.id, department_id: csManager.dept.id, date: new Date(), metric_name: 'Team CSAT', target_value: 95, weight: 40 },
+    { employee_id: agent1.emp.id, manager_id: csManager.user.id, department_id: agent1.dept.id, date: new Date(), metric_name: 'Tickets Resolved', target_value: 100, weight: 50 },
     // WH Roles
-    { role: UserRole.WH_MANAGER, metric_name: 'Inventory Accuracy', target_value: 99, weight: 40, period: 'MONTHLY' },
-    { role: UserRole.WH_AGENT, metric_name: 'Daily Orders', target_value: 50, weight: 60, period: 'DAILY' },
+    { employee_id: whManager.emp.id, manager_id: admin.user.id, department_id: whManager.dept.id, date: new Date(), metric_name: 'Inventory Accuracy', target_value: 99, weight: 40 },
+    { employee_id: worker1.emp.id, manager_id: whManager.user.id, department_id: worker1.dept.id, date: new Date(), metric_name: 'Daily Orders', target_value: 50, weight: 60 },
     // HR/ACC
-    { role: UserRole.HR_MANAGER, metric_name: 'Employee Retention', target_value: 95, weight: 30, period: 'MONTHLY' },
-    { role: UserRole.ACC_MANAGER, metric_name: 'Billing Accuracy', target_value: 100, weight: 50, period: 'MONTHLY' },
+    { employee_id: hrManager.emp.id, manager_id: admin.user.id, department_id: hrManager.dept.id, date: new Date(), metric_name: 'Employee Retention', target_value: 95, weight: 30 },
+    { employee_id: accManager.emp.id, manager_id: admin.user.id, department_id: accManager.dept.id, date: new Date(), metric_name: 'Billing Accuracy', target_value: 100, weight: 50 },
   ];
 
   for (const t of targets) {

@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ManagerDashboard } from '@/components/dashboard/ManagerDashboard';
 import { useAuth } from '@/contexts/useAuth';
 import { EntityModal } from '@/components/shared/EntityModal';
 import { KPIService } from '@/services/kpi.service';
+import { HRService } from '@/services/hr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Target, AlertTriangle } from 'lucide-react';
+import { Employee } from '@/types';
 
 export default function TeamKPIs() {
     const { user } = useAuth();
@@ -22,9 +25,29 @@ export default function TeamKPIs() {
     const [loading, setLoading] = useState(false);
 
     // Form states
-    const [targetForm, setTargetForm] = useState({ role: '', metricName: '', targetValue: '', period: 'DAILY', weight: '10' });
-    const [actualForm, setActualForm] = useState({ userId: '', metricName: '', actualValue: '' });
+    const [targetForm, setTargetForm] = useState({ employeeId: '', metric: '', targetValue: '', date: '', weight: '10' });
+    const [actualForm, setActualForm] = useState({ employeeId: '', metric: '', actualValue: '', date: '' });
     const [issueForm, setIssueForm] = useState({ employeeId: '', type: 'PRODUCTIVITY', description: '', severity: 'LOW', deductionPoints: '0' });
+
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [employeesLoading, setEmployeesLoading] = useState(false);
+
+    useEffect(() => {
+        if (targetOpened || actualOpened || issueOpened) {
+            if (employees.length === 0 && !employeesLoading) {
+                setEmployeesLoading(true);
+                HRService.getEmployees()
+                    .then(res => setEmployees(res))
+                    .catch(err => console.error("Failed to fetch employees", err))
+                    .finally(() => setEmployeesLoading(false));
+            }
+        }
+    }, [targetOpened, actualOpened, issueOpened]);
+
+    const employeeOptions = employees.map(emp => ({
+        value: emp.id,
+        label: `${emp.full_name || 'No Name'} (${emp.department?.name || 'No Dept'}) - ${emp.role || 'No Role'}`
+    }));
 
     const reloadDashboard = () => {
         // Need to trigger re-render of ManagerDashboard, using a key trick
@@ -33,13 +56,17 @@ export default function TeamKPIs() {
     const [refreshKey, setRefreshKey] = useState(0);
 
     const handleCreateTarget = async (e: React.FormEvent) => {
+        if (!targetForm.employeeId) {
+            toast({ title: 'Validation Error', description: 'Please select an employee.', variant: 'destructive' });
+            return;
+        }
         setLoading(true);
         try {
             await KPIService.createTarget({
-                role: targetForm.role || undefined,
-                metricName: targetForm.metricName,
+                employeeId: targetForm.employeeId,
+                metric: targetForm.metric,
                 targetValue: Number(targetForm.targetValue),
-                period: targetForm.period,
+                date: targetForm.date || new Date().toISOString(),
                 weight: Number(targetForm.weight)
             });
             toast({ title: 'Success', description: 'Target created.' });
@@ -53,12 +80,16 @@ export default function TeamKPIs() {
     };
 
     const handleLogActual = async (e: React.FormEvent) => {
+        if (!actualForm.employeeId) {
+            toast({ title: 'Validation Error', description: 'Please select an employee.', variant: 'destructive' });
+            return;
+        }
         setLoading(true);
         try {
             await KPIService.logActual({
-                userId: actualForm.userId,
-                metricName: actualForm.metricName,
-                periodKey: new Date().toISOString().split('T')[0],
+                employeeId: actualForm.employeeId,
+                metric: actualForm.metric,
+                date: actualForm.date || new Date().toISOString(),
                 actualValue: Number(actualForm.actualValue)
             });
             toast({ title: 'Success', description: 'Actual logged.' });
@@ -114,12 +145,20 @@ export default function TeamKPIs() {
                 <EntityModal open={targetOpened} onOpenChange={setTargetOpened} title="Create KPI Target" onSubmit={handleCreateTarget} loading={loading}>
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Role (Optional)</Label>
-                            <Input value={targetForm.role} onChange={e => setTargetForm({ ...targetForm, role: e.target.value })} placeholder="e.g. CS_AGENT" />
+                            <Label>Employee</Label>
+                            {employeesLoading ? <div className="h-10 animate-pulse bg-muted rounded-md" /> : (
+                                <Combobox
+                                    options={employeeOptions}
+                                    value={targetForm.employeeId}
+                                    onChange={(val) => setTargetForm({ ...targetForm, employeeId: val })}
+                                    placeholder="Select Employee..."
+                                    searchPlaceholder="Search employee name/code/role..."
+                                />
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label>Metric Name</Label>
-                            <Input required value={targetForm.metricName} onChange={e => setTargetForm({ ...targetForm, metricName: e.target.value })} placeholder="Daily Tickets" />
+                            <Input required value={targetForm.metric} onChange={e => setTargetForm({ ...targetForm, metric: e.target.value })} placeholder="Daily Tickets" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -138,12 +177,20 @@ export default function TeamKPIs() {
                 <EntityModal open={actualOpened} onOpenChange={setActualOpened} title="Log KPI Actual" onSubmit={handleLogActual} loading={loading}>
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label>User ID</Label>
-                            <Input required value={actualForm.userId} onChange={e => setActualForm({ ...actualForm, userId: e.target.value })} />
+                            <Label>Employee</Label>
+                            {employeesLoading ? <div className="h-10 animate-pulse bg-muted rounded-md" /> : (
+                                <Combobox
+                                    options={employeeOptions}
+                                    value={actualForm.employeeId}
+                                    onChange={(val) => setActualForm({ ...actualForm, employeeId: val })}
+                                    placeholder="Select Employee..."
+                                    searchPlaceholder="Search employee name/code/role..."
+                                />
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label>Metric Name</Label>
-                            <Input required value={actualForm.metricName} onChange={e => setActualForm({ ...actualForm, metricName: e.target.value })} />
+                            <Input required value={actualForm.metric} onChange={e => setActualForm({ ...actualForm, metric: e.target.value })} placeholder="Daily Tickets" />
                         </div>
                         <div className="space-y-2">
                             <Label>Actual Value Achieved</Label>
@@ -156,8 +203,16 @@ export default function TeamKPIs() {
                 <EntityModal open={issueOpened} onOpenChange={setIssueOpened} title="Log Quality Issue" onSubmit={handleAddIssue} loading={loading} submitLabel="Log Issue">
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Employee ID</Label>
-                            <Input required value={issueForm.employeeId} onChange={e => setIssueForm({ ...issueForm, employeeId: e.target.value })} />
+                            <Label>Employee</Label>
+                            {employeesLoading ? <div className="h-10 animate-pulse bg-muted rounded-md" /> : (
+                                <Combobox
+                                    options={employeeOptions}
+                                    value={issueForm.employeeId}
+                                    onChange={(val) => setIssueForm({ ...issueForm, employeeId: val })}
+                                    placeholder="Select Employee..."
+                                    searchPlaceholder="Search employee name/code/role..."
+                                />
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label>Type</Label>

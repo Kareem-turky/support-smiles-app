@@ -57,6 +57,8 @@ export interface Employee {
   base_salary: number;
   salary_type: 'MONTHLY' | 'DAILY';
   is_active: boolean;
+  role?: string;
+  department_name?: string;
 }
 
 export interface Adjustment {
@@ -139,6 +141,27 @@ export interface Notification {
   body: string;
   is_read: boolean;
   link: string;
+  created_at: string;
+}
+
+export interface ShippingCompany {
+  id: string;
+  name: string;
+}
+
+export interface Order {
+  id: string;
+  order_number: string;
+  customer_name?: string;
+  status: string;
+  amount?: number;
+  notes?: string;
+  department_id: string;
+  department?: Department;
+  assigned_employee_id?: string;
+  assigned_employee?: Employee;
+  shipping_company_id?: string;
+  shipping_company?: ShippingCompany;
   created_at: string;
 }
 

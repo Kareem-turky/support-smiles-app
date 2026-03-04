@@ -47,9 +47,9 @@ export interface TeamStats {
 export const KPIService = {
     getMyStats: async () => (await api.get<KPIMetrics>('/kpi/my-stats')).data,
     getTeamStats: async () => (await api.get<TeamStats>('/kpi/team-stats')).data,
-    createTarget: async (data: { role?: string, userId?: string, metricName: string, targetValue: number, period: string, weight: number }) =>
+    createTarget: async (data: { employeeId: string, metric: string, targetValue: number, date?: string, weight?: number }) =>
         (await api.post('/kpi/targets', data)).data,
-    logActual: async (data: { userId: string, metricName: string, periodKey: string, actualValue: number }) =>
+    logActual: async (data: { employeeId: string, metric: string, periodKey?: string, actualValue: number, date?: string }) =>
         (await api.post('/kpi/actuals', data)).data,
     logIssue: async (data: { employeeId: string, type: string, description: string, severity: string, deductionPoints: number, date: string }) =>
         (await api.post('/kpi/issues', data)).data,

@@ -30,9 +30,9 @@ export class HRController {
 
     // --- Employees ---
     @Get('employees')
-    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN, UserRole.ACC_MANAGER, UserRole.ACC_CLERK)
-    getEmployees() {
-        return this.hrService.getEmployees();
+    @Roles(UserRole.HR_MANAGER, UserRole.HR_ASSISTANT, UserRole.ADMIN, UserRole.ACC_MANAGER, UserRole.ACC_CLERK, UserRole.CS_MANAGER, UserRole.WH_MANAGER)
+    getEmployees(@Request() req: any) {
+        return this.hrService.getEmployees(req.user);
     }
 
     @Post('employees')
