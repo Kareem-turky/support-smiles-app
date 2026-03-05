@@ -22,6 +22,7 @@ import Deposits from "./pages/accounting/Deposits";
 import Transfers from "./pages/accounting/Transfers";
 import Advances from "./pages/accounting/Advances";
 import Vendors from "./pages/accounting/Vendors";
+import ReviewDeductions from "./pages/accounting/ReviewDeductions";
 import AttendancePage from "./pages/hr/Attendance";
 import LeavesPage from "./pages/hr/Leaves";
 import Employees from "./pages/hr/Employees";
@@ -78,6 +79,9 @@ const App = () => (
               } />
               <Route path="/accounting/expenses" element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']}><Expenses /></ProtectedRoute>
+              } />
+              <Route path="/accounting/review-deductions" element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER']}><ReviewDeductions /></ProtectedRoute>
               } />
               <Route path="/accounting/deposits" element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER']}><Deposits /></ProtectedRoute>

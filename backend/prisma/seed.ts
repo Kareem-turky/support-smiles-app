@@ -89,29 +89,33 @@ async function main() {
   }
 
   // 5. KPI Actuals (Current Month)
-  const periodKey = new Date().toISOString().slice(0, 7);
+  const periodKey = new Date().toISOString().slice(0, 10);
   await prisma.kPIActual.createMany({
     data: [
-      { user_id: agent1.user.id, metric_name: 'Tickets Resolved', actual_value: 85, score: 85, period_key: periodKey },
-      { user_id: worker1.user.id, metric_name: 'Daily Orders', actual_value: 45, score: 90, period_key: periodKey },
-      { user_id: admin.user.id, metric_name: 'Team CSAT', actual_value: 92, score: 92, period_key: periodKey },
+      { employee_id: agent1.emp.id, metric_name: 'Tickets Resolved', actual_value: 85, score: 85, period_key: periodKey },
+      { employee_id: worker1.emp.id, metric_name: 'Daily Orders', actual_value: 45, score: 90, period_key: periodKey },
+      { employee_id: admin.emp.id, metric_name: 'Team CSAT', actual_value: 92, score: 92, period_key: periodKey },
     ],
   });
+
   // 5.5. KPI Scores (Historical/Daily Rollups)
   const today = new Date();
+  const pastDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const pastPeriodKey = pastDay.toISOString().slice(0, 10);
+
   await prisma.kPIScore.createMany({
     data: [
-      { employee_id: admin.emp.id, date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), total_score: 95, efficiency_score: 95, quality_score: 95, behavior_score: 100, punctuality_score: 100 },
-      { employee_id: agent1.emp.id, date: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), total_score: 88, efficiency_score: 90, quality_score: 85, behavior_score: 90, punctuality_score: 100 },
+      { employee_id: admin.emp.id, department_id: admin.dept.id, date: pastDay, period_key: pastPeriodKey, total_score: 95, efficiency_score: 95, quality_score: 95, behavior_score: 100, punctuality_score: 100 },
+      { employee_id: agent1.emp.id, department_id: agent1.dept.id, date: pastDay, period_key: pastPeriodKey, total_score: 88, efficiency_score: 90, quality_score: 85, behavior_score: 90, punctuality_score: 100 },
     ]
   });
 
   // 6. Employee Issues
   await prisma.employeeIssue.createMany({
     data: [
-      { employee_id: agent1.emp.id, type: 'QUALITY_DEDUCTION', description: 'Major error in ticket #123', severity: 'HIGH', deduction_points: 10, created_by: admin.user.id, date: new Date() },
-      { employee_id: worker2.emp.id, type: 'PRODUCTIVITY_DEDUCTION', description: 'Failed to meet daily quota', severity: 'MEDIUM', deduction_points: 5, created_by: whManager.user.id, date: new Date() },
-      { employee_id: agent2.emp.id, type: 'BEHAVIOR_DEDUCTION', description: 'Late for shift', severity: 'LOW', deduction_points: 2, created_by: csManager.user.id, date: new Date() },
+      { employee_id: agent1.emp.id, department_id: agent1.dept.id, type: 'QUALITY_DEDUCTION', description: 'Major error in ticket #123', severity: 'HIGH', deduction_points: 10, created_by: admin.user.id, reported_by_user_id: admin.user.id, date: new Date() },
+      { employee_id: worker2.emp.id, department_id: worker2.dept.id, type: 'PRODUCTIVITY_DEDUCTION', description: 'Failed to meet daily quota', severity: 'MEDIUM', deduction_points: 5, created_by: whManager.user.id, reported_by_user_id: whManager.user.id, date: new Date() },
+      { employee_id: agent2.emp.id, department_id: agent2.dept.id, type: 'BEHAVIOR_DEDUCTION', description: 'Late for shift', severity: 'LOW', deduction_points: 2, created_by: csManager.user.id, reported_by_user_id: csManager.user.id, date: new Date() },
     ],
   });
 

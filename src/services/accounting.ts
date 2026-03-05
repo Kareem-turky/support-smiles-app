@@ -59,6 +59,20 @@ export interface PayrollRun {
     items?: any[];
 }
 
+export interface ReviewDeduction {
+    id: string;
+    employee_id: string;
+    employee?: { full_name: string };
+    department_id: string;
+    department?: { name: string };
+    period_key: string;
+    reason_key: string;
+    details_json: string;
+    suggested_amount: string | number;
+    status: 'REVIEW_NEEDED' | 'APPROVED' | 'REJECTED';
+    created_at: string;
+}
+
 export const AccountingService = {
     // Vendors
     getVendors: async () => (await api.get<Vendor[]>('/accounting/vendors')).data,
@@ -85,4 +99,9 @@ export const AccountingService = {
     calculatePayroll: async (year: number, month: number) => (await api.post<PayrollRun>('/accounting/payroll/calculate', { year, month })).data,
     approvePayroll: async (id: string) => (await api.post<PayrollRun>(`/accounting/payroll/${id}/approve`)).data,
     payPayroll: async (id: string) => (await api.post<PayrollRun>(`/accounting/payroll/${id}/pay`)).data,
+
+    // Review Deductions
+    getReviewDeductions: async () => (await api.get<ReviewDeduction[]>('/accounting/review-deductions')).data,
+    approveReviewDeduction: async (id: string) => (await api.patch<ReviewDeduction>(`/accounting/review-deductions/${id}/approve`)).data,
+    rejectReviewDeduction: async (id: string) => (await api.patch<ReviewDeduction>(`/accounting/review-deductions/${id}/reject`)).data,
 };

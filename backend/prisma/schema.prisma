@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 enum UserRole {
   ADMIN
   CS_MANAGER
@@ -38,19 +37,18 @@ enum HRMonthStatus {
 }
 
 model HRMonth {
-  id                  String        @id @default(uuid())
-  year                Int
-  month               Int
-  status              HRMonthStatus @default(DRAFT)
-  submitted_by        String?
-  submitted_by_user   User?         @relation("MonthSubmitter", fields: [submitted_by], references: [id])
-  submitted_at        DateTime?
-  locked_by           String?
-  locked_by_user      User?         @relation("MonthLocker", fields: [locked_by], references: [id])
-  locked_at           DateTime?
+  id                String        @id @default(uuid())
+  year              Int
+  month             Int
+  status            HRMonthStatus @default(DRAFT)
+  submitted_by      String?
+  submitted_by_user User?         @relation("MonthSubmitter", fields: [submitted_by], references: [id])
+  submitted_at      DateTime?
+  locked_by         String?
+  locked_by_user    User?         @relation("MonthLocker", fields: [locked_by], references: [id])
+  locked_at         DateTime?
 
   // Relations
-
 
   @@unique([year, month])
   @@map("hr_months")
@@ -66,7 +64,7 @@ model HRAttendance {
   id           String           @id @default(uuid())
   employee_id  String
   employee     Employee         @relation(fields: [employee_id], references: [id])
-  date         DateTime         
+  date         DateTime
   status       AttendanceStatus
   minutes_late Int              @default(0)
   notes        String?
@@ -91,16 +89,16 @@ enum LeaveStatus {
 }
 
 model HRLeave {
-  id          String    @id @default(uuid())
+  id          String      @id @default(uuid())
   employee_id String
-  employee    Employee  @relation(fields: [employee_id], references: [id])
-  from_date   DateTime  
-  to_date     DateTime  
+  employee    Employee    @relation(fields: [employee_id], references: [id])
+  from_date   DateTime
+  to_date     DateTime
   leave_type  LeaveType
   status      LeaveStatus @default(PENDING)
   notes       String?
   created_by  String
-  creator     User      @relation(fields: [created_by], references: [id])
+  creator     User        @relation(fields: [created_by], references: [id])
 
   @@map("hr_leaves")
 }
@@ -112,14 +110,16 @@ enum DeductionType {
   OTHER
 }
 
-
 model Department {
-  id          String     @id @default(uuid())
-  name        String     @unique
-  employees   Employee[]
-  missions    Mission[]
-  kpi_targets KPITarget[]
-  orders      Order[]
+  id                String            @id @default(uuid())
+  name              String            @unique
+  employees         Employee[]
+  missions          Mission[]
+  kpi_targets       KPITarget[]
+  kpi_scores        KPIScore[]
+  review_deductions ReviewDeduction[]
+  employee_issues   EmployeeIssue[]
+  orders            Order[]
 
   @@map("departments")
 }
@@ -133,7 +133,7 @@ model Employee {
   user          User?              @relation(fields: [user_id], references: [id])
   start_date    DateTime
   end_date      DateTime?
-  base_salary   Decimal            
+  base_salary   Decimal
   salary_type   EmployeeSalaryType
   manager_id    String?
   manager       Employee?          @relation("ManagerSubordinates", fields: [manager_id], references: [id])
@@ -145,15 +145,17 @@ model Employee {
   updated_at    DateTime           @updatedAt
 
   // Relations
-  attendance    HRAttendance[]
-  leaves        HRLeave[]
+  attendance HRAttendance[]
+  leaves     HRLeave[]
 
-  adjustments   HRAdjustment[]
-  payroll_items PayrollItem[]
-  issues        EmployeeIssue[]
-  kpi_scores    KPIScore[]
-  kpi_targets   KPITarget[]
-  assigned_orders Order[] @relation("OrderAssignee")
+  adjustments       HRAdjustment[]
+  payroll_items     PayrollItem[]
+  issues            EmployeeIssue[]
+  kpi_scores        KPIScore[]
+  kpi_targets       KPITarget[]
+  review_deductions ReviewDeduction[]
+  assigned_orders   Order[]           @relation("OrderAssignee")
+  kpiactuals        KPIActual[]
 
   @@map("employees")
 }
@@ -169,13 +171,45 @@ model HRAdjustment {
   employee_id String
   employee    Employee       @relation(fields: [employee_id], references: [id])
   type        AdjustmentType
-  amount      Decimal        
-  date        DateTime       
+  amount      Decimal
+  date        DateTime
   reason      String
   created_at  DateTime       @default(now())
 
+  review_deduction ReviewDeduction?
+
   @@index([employee_id])
   @@map("hr_adjustments")
+}
+
+enum ReviewDeductionStatus {
+  REVIEW_NEEDED
+  APPROVED
+  REJECTED
+}
+
+model ReviewDeduction {
+  id                  String                @id @default(uuid())
+  employee_id         String
+  employee            Employee              @relation(fields: [employee_id], references: [id])
+  department_id       String
+  department          Department            @relation(fields: [department_id], references: [id])
+  period_key          String
+  reason_key          String
+  details_json        String                @default("{}")
+  suggested_amount    Decimal
+  status              ReviewDeductionStatus @default(REVIEW_NEEDED)
+  created_by_system   Boolean               @default(true)
+  reviewed_by_user_id String?
+  reviewer            User?                 @relation("DeductionReviewer", fields: [reviewed_by_user_id], references: [id])
+  reviewed_at         DateTime?
+  review_note         String?
+  hr_adjustment_id    String?               @unique
+  hr_adjustment       HRAdjustment?         @relation(fields: [hr_adjustment_id], references: [id])
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  @@map("review_deductions")
 }
 
 model Vendor {
@@ -192,8 +226,8 @@ model AccountingPurchase {
   id           String   @id @default(uuid())
   vendor_id    String
   vendor       Vendor   @relation(fields: [vendor_id], references: [id])
-  date         DateTime 
-  total_amount Decimal  
+  date         DateTime
+  total_amount Decimal
   notes        String?
   created_by   String
   creator      User     @relation(fields: [created_by], references: [id])
@@ -206,14 +240,14 @@ model AccountingPurchase {
 }
 
 model VendorDeposit {
-  id           String   @id @default(uuid())
-  vendor_id    String
-  vendor       Vendor   @relation(fields: [vendor_id], references: [id])
-  amount       Decimal  
-  date         DateTime 
-  profit_loss  Decimal? 
-  notes        String?
-  created_at   DateTime @default(now())
+  id          String   @id @default(uuid())
+  vendor_id   String
+  vendor      Vendor   @relation(fields: [vendor_id], references: [id])
+  amount      Decimal
+  date        DateTime
+  profit_loss Decimal?
+  notes       String?
+  created_at  DateTime @default(now())
 
   @@map("vendor_deposits")
 }
@@ -227,9 +261,9 @@ model AccountingPurchaseItem {
   purchase_id String
   purchase    AccountingPurchase @relation(fields: [purchase_id], references: [id], onDelete: Cascade)
   item_name   String
-  qty         Decimal            
-  unit_price  Decimal            
-  line_total  Decimal            
+  qty         Decimal
+  unit_price  Decimal
+  line_total  Decimal
 
   @@map("accounting_purchase_items")
 }
@@ -237,16 +271,14 @@ model AccountingPurchaseItem {
 model AccountingExpense {
   id         String   @id @default(uuid())
   category   String
-  date       DateTime 
-  amount     Decimal  
+  date       DateTime
+  amount     Decimal
   notes      String?
   created_by String
   creator    User     @relation(fields: [created_by], references: [id])
 
   @@map("accounting_expenses")
 }
-
-
 
 enum TransferMethod {
   BANK
@@ -258,9 +290,9 @@ model AccountingTransfer {
   id           String         @id @default(uuid())
   type         String
   reference_id String? // Link to payroll_run, purchase, etc.
-  amount       Decimal        
+  amount       Decimal
   method       TransferMethod
-  date         DateTime       
+  date         DateTime
   notes        String?
   created_by   String
   creator      User           @relation(fields: [created_by], references: [id])
@@ -278,11 +310,11 @@ enum ClosingType {
 model AccountingClosing {
   id              String      @id @default(uuid())
   closing_type    ClosingType
-  period_from     DateTime    
-  period_to       DateTime    
-  expected_amount Decimal     
-  actual_amount   Decimal     
-  delta_amount    Decimal     
+  period_from     DateTime
+  period_to       DateTime
+  expected_amount Decimal
+  actual_amount   Decimal
+  delta_amount    Decimal
   notes           String?
   created_by      String
   creator         User        @relation(fields: [created_by], references: [id])
@@ -321,10 +353,10 @@ model PayrollItem {
   payroll_run      PayrollRun @relation(fields: [payroll_run_id], references: [id], onDelete: Cascade)
   employee_id      String
   employee         Employee   @relation(fields: [employee_id], references: [id])
-  base_salary      Decimal    
-  total_deductions Decimal    
-  adjustments      Decimal    @default(0) 
-  net_salary       Decimal    
+  base_salary      Decimal
+  total_deductions Decimal
+  adjustments      Decimal    @default(0)
+  net_salary       Decimal
   breakdown_json   String // details of deductions
 
   @@unique([payroll_run_id, employee_id])
@@ -383,18 +415,18 @@ enum TicketReasonCategory {
 }
 
 model TicketReason {
-  id              String               @id @default(uuid())
-  name            String               @unique
-  category        TicketReasonCategory
-  sort_order      Int                  @default(0)
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  category            TicketReasonCategory
+  sort_order          Int                  @default(0)
   default_assign_role UserRole?
   default_priority    Priority?
-  is_active       Boolean              @default(true)
-  created_at      DateTime             @default(now())
-  updated_at      DateTime             @updatedAt
+  is_active           Boolean              @default(true)
+  created_at          DateTime             @default(now())
+  updated_at          DateTime             @updatedAt
 
   // Relations
-  tickets         Ticket[]
+  tickets Ticket[]
 
   @@index([is_active])
   @@index([sort_order])
@@ -402,45 +434,43 @@ model TicketReason {
 }
 
 model User {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String
-  email         String    @unique
+  email         String   @unique
   password_hash String
   role          UserRole
-  is_active     Boolean   @default(true)
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
   // Relations
-  created_tickets   Ticket[]        @relation("TicketCreator")
-  assigned_tickets  Ticket[]        @relation("TicketAssignee")
-  messages          TicketMessage[]
-  notifications     Notification[]
-  events            TicketEvent[]
+  created_tickets  Ticket[]        @relation("TicketCreator")
+  assigned_tickets Ticket[]        @relation("TicketAssignee")
+  messages         TicketMessage[]
+  notifications    Notification[]
+  events           TicketEvent[]
 
   // HR Relations
-  hr_months_submitted HRMonth[]     @relation("MonthSubmitter")
-  hr_months_locked    HRMonth[]     @relation("MonthLocker")
+  hr_months_submitted HRMonth[]      @relation("MonthSubmitter")
+  hr_months_locked    HRMonth[]      @relation("MonthLocker")
   created_attendance  HRAttendance[]
   created_leaves      HRLeave[]
 
-
-
   // Accounting Relations
-  created_purchases   AccountingPurchase[]
-  created_expenses    AccountingExpense[]
-  created_transfers   AccountingTransfer[]
-  created_closings    AccountingClosing[]
+  created_purchases AccountingPurchase[]
+  created_expenses  AccountingExpense[]
+  created_transfers AccountingTransfer[]
+  created_closings  AccountingClosing[]
 
   // KPI Relations
   assigned_kpi_targets KPITarget[] @relation("TargetAssigner")
 
   // Employee Relation
-  employee            Employee?
+  employee Employee?
 
   // KPI Relations
-  kpi_actuals         KPIActual[]
-  created_issues      EmployeeIssue[] @relation("IssueCreator")
+  kpi_actuals    KPIActual[]
+  created_issues EmployeeIssue[] @relation("IssueCreator")
 
   // Gamification Relations
   badges              UserBadge[]
@@ -448,12 +478,15 @@ model User {
   gamification_events GamificationEvent[]
   mission_assignments MissionAssignment[]
   streaks             Streak[]
+  reviewed_deductions ReviewDeduction[]   @relation("DeductionReviewer")
+  reported_issues     EmployeeIssue[]     @relation("IssueReporter")
   reward_redemptions  RewardRedemption[]
   created_missions    Mission[]           @relation("MissionCreator")
 
   // Order Relations
-  created_orders      Order[]             @relation("OrderCreator")
-  assigned_orders     Order[]             @relation("OrderAssigner")
+  created_orders  Order[] @relation("OrderCreator")
+  assigned_orders Order[] @relation("OrderAssigner")
+
   @@map("users")
 }
 
@@ -465,26 +498,26 @@ model Ticket {
   priority        Priority
   status          TicketStatus @default(NEW)
   description     String
-  
+
   // New Reason Relation
-  reason_id       String?
-  reason          TicketReason? @relation(fields: [reason_id], references: [id])
-  
-  created_by      String
-  creator         User         @relation("TicketCreator", fields: [created_by], references: [id])
-  
-  assigned_to     String?
-  assignee        User?        @relation("TicketAssignee", fields: [assigned_to], references: [id])
-  
-  resolved_at     DateTime?
-  closed_at       DateTime?
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
-  deleted_at      DateTime?    // Soft delete
+  reason_id String?
+  reason    TicketReason? @relation(fields: [reason_id], references: [id])
+
+  created_by String
+  creator    User   @relation("TicketCreator", fields: [created_by], references: [id])
+
+  assigned_to String?
+  assignee    User?   @relation("TicketAssignee", fields: [assigned_to], references: [id])
+
+  resolved_at DateTime?
+  closed_at   DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime? // Soft delete
 
   // Relations
-  messages        TicketMessage[]
-  events          TicketEvent[]
+  messages          TicketMessage[]
+  events            TicketEvent[]
   integration_inbox IntegrationInbox?
 
   @@index([status])
@@ -530,7 +563,7 @@ model TicketEvent {
   actor_id   String
   actor      User      @relation(fields: [actor_id], references: [id])
   event_type EventType
-  meta       String      @default("{}")
+  meta       String    @default("{}")
   created_at DateTime  @default(now())
 
   @@index([ticket_id])
@@ -546,38 +579,37 @@ model RefreshToken {
 
   @@index([user_id])
   @@index([expires_at])
-
   @@map("refresh_tokens")
 }
 
 // Integration Platform Models
 
 model IntegrationClient {
-  id        String   @id @default(uuid())
-  name      String
-  is_active Boolean  @default(true)
+  id         String   @id @default(uuid())
+  name       String
+  is_active  Boolean  @default(true)
   created_at DateTime @default(now())
 
   // Relations
-  api_keys       IntegrationApiKey[]
-  inbox_items    IntegrationInbox[]
-  routing_rules  IntegrationRoutingRule[]
-  settings       IntegrationSetting?
-  webhooks       WebhookSubscription[]
-  request_logs   IntegrationRequestLog[]
+  api_keys      IntegrationApiKey[]
+  inbox_items   IntegrationInbox[]
+  routing_rules IntegrationRoutingRule[]
+  settings      IntegrationSetting?
+  webhooks      WebhookSubscription[]
+  request_logs  IntegrationRequestLog[]
 
   @@map("integration_clients")
 }
 
 model IntegrationApiKey {
-  id           String   @id @default(uuid())
+  id           String            @id @default(uuid())
   client_id    String
   client       IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  key_hash     String   
+  key_hash     String
   scopes       String // e.g. ["issues:write", "tickets:read"]
-  is_active    Boolean  @default(true)
+  is_active    Boolean           @default(true)
   last_used_at DateTime?
-  created_at   DateTime @default(now())
+  created_at   DateTime          @default(now())
 
   // Relations
   request_logs IntegrationRequestLog[]
@@ -586,15 +618,15 @@ model IntegrationApiKey {
 }
 
 model IntegrationInbox {
-  id           String   @id @default(uuid())
+  id           String            @id @default(uuid())
   client_id    String
   client       IntegrationClient @relation(fields: [client_id], references: [id])
-  source       String  // e.g. "shopify", "erp"
-  external_id  String  // External ID for idempotency
-  ticket_id    String?   @unique // One inbox item per ticket usually
-  ticket       Ticket?   @relation(fields: [ticket_id], references: [id])
+  source       String // e.g. "shopify", "erp"
+  external_id  String // External ID for idempotency
+  ticket_id    String?           @unique // One inbox item per ticket usually
+  ticket       Ticket?           @relation(fields: [ticket_id], references: [id])
   payload_json String
-  created_at   DateTime @default(now())
+  created_at   DateTime          @default(now())
 
   @@unique([client_id, source, external_id])
   @@index([created_at])
@@ -602,60 +634,60 @@ model IntegrationInbox {
 }
 
 model IntegrationRoutingRule {
-  id                 String   @id @default(uuid())
-  client_id          String
-  client             IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  source             String?   // If null, applies to all from source
-  issue_type         IssueType?
-  priority_override  Priority?
-  assign_role        UserRole?
-  assign_user_id     String?
-  is_active          Boolean  @default(true)
-  created_at         DateTime @default(now())
+  id                String            @id @default(uuid())
+  client_id         String
+  client            IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  source            String? // If null, applies to all from source
+  issue_type        IssueType?
+  priority_override Priority?
+  assign_role       UserRole?
+  assign_user_id    String?
+  is_active         Boolean           @default(true)
+  created_at        DateTime          @default(now())
 
   @@map("integration_routing_rules")
 }
 
 model IntegrationSetting {
-  id                      String   @id @default(uuid())
-  client_id               String   @unique
-  client                  IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  default_assign_role     UserRole?
-  default_assign_user_id  String?
-  created_at              DateTime @default(now())
-  updated_at              DateTime @updatedAt
+  id                     String            @id @default(uuid())
+  client_id              String            @unique
+  client                 IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  default_assign_role    UserRole?
+  default_assign_user_id String?
+  created_at             DateTime          @default(now())
+  updated_at             DateTime          @updatedAt
 
   @@map("integration_settings")
 }
 
 model WebhookSubscription {
-  id           String   @id @default(uuid())
-  client_id    String
-  client       IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  name         String
-  target_url   String
-  secret       String
-  events       String 
-  is_active    Boolean     @default(true)
-  created_at   DateTime    @default(now())
+  id         String            @id @default(uuid())
+  client_id  String
+  client     IntegrationClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  name       String
+  target_url String
+  secret     String
+  events     String
+  is_active  Boolean           @default(true)
+  created_at DateTime          @default(now())
 
   // Relations
-  deliveries   WebhookDelivery[]
+  deliveries WebhookDelivery[]
 
   @@map("webhook_subscriptions")
 }
 
 model WebhookDelivery {
-  id              String   @id @default(uuid())
+  id              String                @id @default(uuid())
   subscription_id String
-  subscription    WebhookSubscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+  subscription    WebhookSubscription   @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
   event_type      EventType
   payload_json    String
   status          WebhookDeliveryStatus @default(PENDING)
-  attempts        Int      @default(0)
+  attempts        Int                   @default(0)
   last_error      String?
   next_retry_at   DateTime?
-  created_at      DateTime @default(now())
+  created_at      DateTime              @default(now())
 
   @@index([status])
   @@index([next_retry_at])
@@ -669,52 +701,51 @@ enum WebhookDeliveryStatus {
 }
 
 model IntegrationRequestLog {
-  id           String   @id @default(uuid())
-  client_id    String?
-  client       IntegrationClient? @relation(fields: [client_id], references: [id])
-  api_key_id   String?
-  api_key      IntegrationApiKey? @relation(fields: [api_key_id], references: [id])
-  endpoint     String
-  method       String
-  status_code  Int
-  latency_ms   Int
-  request_id   String   @unique
-  created_at   DateTime @default(now())
+  id          String             @id @default(uuid())
+  client_id   String?
+  client      IntegrationClient? @relation(fields: [client_id], references: [id])
+  api_key_id  String?
+  api_key     IntegrationApiKey? @relation(fields: [api_key_id], references: [id])
+  endpoint    String
+  method      String
+  status_code Int
+  latency_ms  Int
+  request_id  String             @unique
+  created_at  DateTime           @default(now())
 
   @@index([client_id])
   @@index([created_at])
   @@map("integration_request_logs")
 }
 
-
 model ShippingCompany {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  is_active Boolean  @default(true)
+  id        String  @id @default(uuid())
+  name      String  @unique
+  is_active Boolean @default(true)
   orders    Order[]
 
   @@map("shipping_companies")
 }
 
 model Order {
-  id                  String           @id @default(uuid())
-  order_number        String           @unique
-  customer_name       String?
-  shipping_company_id String?
-  shipping_company    ShippingCompany? @relation(fields: [shipping_company_id], references: [id])
-  status              String           @default("PENDING")
-  amount              Decimal?
-  notes               String?
-  department_id       String
-  department          Department       @relation(fields: [department_id], references: [id])
+  id                   String           @id @default(uuid())
+  order_number         String           @unique
+  customer_name        String?
+  shipping_company_id  String?
+  shipping_company     ShippingCompany? @relation(fields: [shipping_company_id], references: [id])
+  status               String           @default("PENDING")
+  amount               Decimal?
+  notes                String?
+  department_id        String
+  department           Department       @relation(fields: [department_id], references: [id])
   assigned_employee_id String?
-  assigned_employee    Employee?       @relation("OrderAssignee", fields: [assigned_employee_id], references: [id])
-  created_by_user_id  String?
-  created_by          User?            @relation("OrderCreator", fields: [created_by_user_id], references: [id])
-  assigned_by_user_id String?
-  assigned_by         User?            @relation("OrderAssigner", fields: [assigned_by_user_id], references: [id])
-  created_at          DateTime         @default(now())
-  updated_at          DateTime         @updatedAt
+  assigned_employee    Employee?        @relation("OrderAssignee", fields: [assigned_employee_id], references: [id])
+  created_by_user_id   String?
+  created_by           User?            @relation("OrderCreator", fields: [created_by_user_id], references: [id])
+  assigned_by_user_id  String?
+  assigned_by          User?            @relation("OrderAssigner", fields: [assigned_by_user_id], references: [id])
+  created_at           DateTime         @default(now())
+  updated_at           DateTime         @updatedAt
 
   @@map("orders")
 }
@@ -730,111 +761,129 @@ model IntegrationAuditLog {
   @@map("integration_audit_logs")
 }
 
-
 // KPI System Models
 
+enum KPIFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 model KPITarget {
-  id            String      @id @default(uuid())
-  employee_id   String
-  employee      Employee    @relation(fields: [employee_id], references: [id])
-  manager_id    String
-  manager       User        @relation("TargetAssigner", fields: [manager_id], references: [id])
-  department_id String
-  department    Department  @relation(fields: [department_id], references: [id])
-  date          DateTime
-  metric_name   String      // e.g. "Ticket Volume", "Avg Response Time"
-  target_value  Decimal 
-  weight        Decimal     // Percentage 0-100
-  created_at    DateTime    @default(now())
-  updated_at    DateTime    @updatedAt
+  id               String       @id @default(uuid())
+  employee_id      String
+  employee         Employee     @relation(fields: [employee_id], references: [id])
+  manager_id       String
+  manager          User         @relation("TargetAssigner", fields: [manager_id], references: [id])
+  department_id    String
+  department       Department   @relation(fields: [department_id], references: [id])
+  date             DateTime
+  metric_name      String // e.g. "Ticket Volume", "Avg Response Time"
+  target_value     Decimal
+  weight           Decimal // Percentage 0-100
+  frequency        KPIFrequency @default(DAILY)
+  period_key       String       @default("") // e.g. "2025-01-01"
+  hourly_plan_json String?
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
 
   @@map("kpi_targets")
 }
 
 model KPIActual {
-  id          String   @id @default(uuid())
-  user_id     String
-  user        User     @relation(fields: [user_id], references: [id])
-  metric_name String
-  period_key  String   // e.g. "2025-01"
-  actual_value Decimal 
-  score       Decimal?  // Calculated score for this metric
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id           String   @id @default(uuid())
+  employee_id  String
+  employee     Employee @relation(fields: [employee_id], references: [id])
+  metric_name  String
+  period_key   String // e.g. "2025-01-01"
+  actual_value Decimal
+  score        Decimal? // Calculated score for this metric
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  user         User?    @relation(fields: [userId], references: [id])
+  userId       String?
 
-  @@unique([user_id, metric_name, period_key])
+  @@unique([employee_id, metric_name, period_key])
   @@map("kpi_actuals")
 }
 
 model EmployeeIssue {
-  id          String   @id @default(uuid())
-  employee_id String
-  employee    Employee @relation(fields: [employee_id], references: [id])
-  type        String   // "Complaint", "Late Delivery", etc.
-  description String?
-  date        DateTime 
-  severity    String   // "LOW", "MEDIUM", "HIGH", "CRITICAL"
-  deduction_points Decimal @default(0) 
-  created_by  String
-  creator     User     @relation("IssueCreator", fields: [created_by], references: [id])
-  created_at  DateTime @default(now())
+  id                  String     @id @default(uuid())
+  employee_id         String
+  employee            Employee   @relation(fields: [employee_id], references: [id])
+  department_id       String     @default("")
+  department          Department @relation(fields: [department_id], references: [id])
+  type                String // "Complaint", "Late Delivery", etc.
+  category_key        String     @default("OTHER")
+  description         String?
+  date                DateTime
+  severity            String // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  deduction_points    Decimal    @default(0)
+  created_by          String
+  creator             User       @relation("IssueCreator", fields: [created_by], references: [id])
+  reported_by_user_id String?
+  reported_by         User?      @relation("IssueReporter", fields: [reported_by_user_id], references: [id])
+  created_at          DateTime   @default(now())
 
   @@map("employee_issues")
 }
 
 model KPIScore {
-  id               String   @id @default(uuid())
-  employee_id      String
-  employee         Employee @relation(fields: [employee_id], references: [id])
-  date             DateTime
-  efficiency_score Decimal  @default(0) // Productivity
-  quality_score    Decimal  @default(0) // Issues
-  behavior_score   Decimal  @default(0) // Manager Rating
-  punctuality_score Decimal @default(0) // Attendance
-  total_score      Decimal  @default(0)
-  points_awarded   Int      @default(0)
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  id                String     @id @default(uuid())
+  employee_id       String
+  employee          Employee   @relation(fields: [employee_id], references: [id])
+  department_id     String     @default("")
+  department        Department @relation(fields: [department_id], references: [id])
+  date              DateTime
+  period_key        String     @default("")
+  efficiency_score  Decimal    @default(0) // Productivity
+  quality_score     Decimal    @default(0) // Issues
+  behavior_score    Decimal    @default(0) // Manager Rating
+  punctuality_score Decimal    @default(0) // Attendance
+  total_score       Decimal    @default(0)
+  points_awarded    Int        @default(0)
+  created_at        DateTime   @default(now())
+  updated_at        DateTime   @updatedAt
 
-  @@unique([employee_id, date])
+  @@unique([employee_id, period_key])
   @@map("kpi_scores")
 }
 
 // Gamification Models
 
 model GamificationBadge {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String
-  icon        String   // e.g. "trophy", "star"
-  condition_type String // "TICKET_COUNT", "LOGIN_STREAK"
+  id              String   @id @default(uuid())
+  name            String   @unique
+  description     String
+  icon            String // e.g. "trophy", "star"
+  condition_type  String // "TICKET_COUNT", "LOGIN_STREAK"
   condition_value Int
-  xp_bonus    Int      @default(0)
-  created_at  DateTime @default(now())
-  
-  users       UserBadge[]
+  xp_bonus        Int      @default(0)
+  created_at      DateTime @default(now())
+
+  users UserBadge[]
 
   @@map("gamification_badges")
 }
 
 model UserBadge {
-  id        String   @id @default(uuid())
+  id        String            @id @default(uuid())
   user_id   String
-  user      User     @relation(fields: [user_id], references: [id])
+  user      User              @relation(fields: [user_id], references: [id])
   badge_id  String
   badge     GamificationBadge @relation(fields: [badge_id], references: [id])
-  earned_at DateTime @default(now())
+  earned_at DateTime          @default(now())
 
   @@unique([user_id, badge_id])
   @@map("user_badges")
 }
 
 model GamificationPoint {
-  id        String   @id @default(uuid())
-  user_id   String
-  user      User     @relation(fields: [user_id], references: [id])
-  amount    Int
-  reason    String   // "Ticket Resolved", "Daily Login"
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  amount     Int
+  reason     String // "Ticket Resolved", "Daily Login"
   created_at DateTime @default(now())
 
   @@index([user_id])
@@ -842,12 +891,12 @@ model GamificationPoint {
 }
 
 model GamificationEvent {
-  id        String   @id @default(uuid())
-  user_id   String
-  user      User     @relation(fields: [user_id], references: [id])
-  type      String   // e.g. "SHIFT_START", "DAILY_SUBMISSION", "TICKET_RESOLVED"
-  points    Int      @default(0)
-  meta_json String?  @default("{}")
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  type       String // e.g. "SHIFT_START", "DAILY_SUBMISSION", "TICKET_RESOLVED"
+  points     Int      @default(0)
+  meta_json  String?  @default("{}")
   created_at DateTime @default(now())
 
   @@index([user_id])
@@ -868,15 +917,15 @@ model Mission {
   department    Department?      @relation(fields: [department_id], references: [id])
   points        Int
   target_value  Decimal
-  metric_key    String          // e.g. "RESOLVED_TICKETS", "PROCESSED_ORDERS"
+  metric_key    String // e.g. "RESOLVED_TICKETS", "PROCESSED_ORDERS"
   frequency     MissionFrequency @default(DAILY)
   start_date    DateTime?
   end_date      DateTime?
   created_by    String
   creator       User             @relation("MissionCreator", fields: [created_by], references: [id])
   created_at    DateTime         @default(now())
-  
-  assignments   MissionAssignment[]
+
+  assignments MissionAssignment[]
 
   @@map("missions")
 }
@@ -888,27 +937,27 @@ enum MissionStatus {
 }
 
 model MissionAssignment {
-  id              String        @id @default(uuid())
-  mission_id      String
-  mission         Mission       @relation(fields: [mission_id], references: [id], onDelete: Cascade)
-  user_id         String
-  user            User          @relation(fields: [user_id], references: [id])
-  status          MissionStatus @default(ACTIVE)
-  progress_value  Decimal       @default(0)
-  completed_at    DateTime?
-  updated_at      DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  mission_id     String
+  mission        Mission       @relation(fields: [mission_id], references: [id], onDelete: Cascade)
+  user_id        String
+  user           User          @relation(fields: [user_id], references: [id])
+  status         MissionStatus @default(ACTIVE)
+  progress_value Decimal       @default(0)
+  completed_at   DateTime?
+  updated_at     DateTime      @updatedAt
 
   @@unique([mission_id, user_id])
   @@map("mission_assignments")
 }
 
 model Streak {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   user_id       String
-  user          User     @relation(fields: [user_id], references: [id])
-  key           String   // e.g. "DAILY_LOGIN", "SHIFT_STREAK"
-  current_count Int      @default(0)
-  best_count    Int      @default(0)
+  user          User      @relation(fields: [user_id], references: [id])
+  key           String // e.g. "DAILY_LOGIN", "SHIFT_STREAK"
+  current_count Int       @default(0)
+  best_count    Int       @default(0)
   last_hit_date DateTime?
 
   @@unique([user_id, key])
@@ -916,14 +965,14 @@ model Streak {
 }
 
 model Reward {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   description String?
   cost_points Int
   role_scope  UserRole?
-  active      Boolean  @default(true)
-  created_at  DateTime @default(now())
-  
+  active      Boolean   @default(true)
+  created_at  DateTime  @default(now())
+
   redemptions RewardRedemption[]
 
   @@map("rewards")

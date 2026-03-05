@@ -353,6 +353,7 @@ export interface GamificationProgress {
   points: number;
   level: number;
   next_level_points: number;
+  streak_days?: number;
   badges: Badge[];
   streaks: Streak[];
   history: Activity[];
@@ -361,6 +362,8 @@ export interface GamificationProgress {
 export interface LeaderboardEntry {
   user_id: string;
   user: string;
+  name: string;
+  rank?: number;
   role: string;
   department?: string;
   points: number;

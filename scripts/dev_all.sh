@@ -1,31 +1,39 @@
 #!/bin/bash
-# scripts/dev_all.sh
 
-# Function to kill child processes on exit
-cleanup() {
-    echo "Stopping all services..."
-    kill $(jobs -p) 2>/dev/null
-    exit
-}
+# dev_all.sh - Start Backend and Frontend concurrently, ensuring ports are free
 
-trap cleanup SIGINT SIGTERM
+echo "Checking port 3000 (Backend)..."
+PID=$(lsof -t -i:3000) || true
+if [ ! -z "$PID" ]; then
+    echo "Killing occupying process on 3000: $PID"
+    kill -9 $PID
+fi
 
-echo "Starting Support Smiles in FULL DEV MODE..."
-
-# Start Backend
-echo "1. Starting Backend (Port 3000)..."
+echo "Starting Backend..."
 cd backend
 npm run start:dev &
 BACKEND_PID=$!
 cd ..
 
-# Wait for backend to be somewhat ready
-sleep 5
+echo "Waiting for Backend (/health)..."
+for i in {1..30}; do
+    if curl -s http://localhost:3000/health | grep -q 'ok'; then
+        echo "Backend is HEALTHY."
+        break
+    fi
+    sleep 2
+done
 
-# Start Frontend
-echo "2. Starting Frontend..."
+echo "Starting Frontend..."
 npm run dev &
 FRONTEND_PID=$!
 
-# Wait for both
-wait $BACKEND_PID $FRONTEND_PID
+echo "---"
+echo "Backend running (PID: $BACKEND_PID)"
+echo "Frontend running (PID: $FRONTEND_PID)"
+echo "Press Ctrl+C to stop both."
+echo "---"
+
+# Wait for Ctrl+C
+trap "echo 'Terminating servers...'; kill $BACKEND_PID $FRONTEND_PID; exit" INT TERM
+wait

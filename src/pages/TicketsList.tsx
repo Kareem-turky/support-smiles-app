@@ -138,7 +138,7 @@ export default function TicketsList() {
               {total} ticket{total !== 1 ? 's' : ''} found
             </p>
           </div>
-          {hasRole(['ADMIN', 'ACCOUNTING']) && (
+          {hasRole(['ADMIN', 'ACCOUNTING', 'CS_MANAGER', 'CS_AGENT']) && (
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="mr-2 h-4 w-4" />
               New Ticket

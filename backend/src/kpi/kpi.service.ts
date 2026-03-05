@@ -34,7 +34,7 @@ export class KpiService {
     const periodKey = new Date().toISOString().slice(0, 7); // YYYY-MM
     // @ts-ignore
     const actuals = await this.prisma.kPIActual.findMany({
-      where: { user_id: userId, period_key: periodKey },
+      where: { employee_id: user.employee.id, period_key: periodKey },
     });
 
     // 3. Get Issues
@@ -77,6 +77,32 @@ export class KpiService {
     const totalDeductions = issues.reduce((sum, i) => sum + Number(i.deduction_points), 0);
     const finalScore = Math.max(0, totalBaseScore - totalDeductions);
 
+    // Fetch Last 30 Days Score Trend
+    const recentScores = await this.prisma.kPIScore.findMany({
+      where: {
+        employee_id: user.employee.id,
+        date: { gte: new Date(new Date().setDate(new Date().getDate() - 30)) }
+      },
+      orderBy: { date: 'asc' }
+    });
+
+    const scoreTrend = recentScores.map(rs => ({
+      date: rs.period_key, // YYYY-MM-DD
+      score: Number(rs.total_score)
+    }));
+
+    // Fetch Gamification Badges
+    const badges = await this.prisma.userBadge.findMany({
+      where: { user_id: userId },
+      include: { badge: true }
+    });
+
+    const gamificationBadges = badges.map(b => ({
+      name: b.badge.name,
+      icon: b.badge.icon,
+      earned_at: b.earned_at
+    }));
+
     return {
       period: periodKey,
       user_role: user.role,
@@ -85,6 +111,8 @@ export class KpiService {
       total_base_score: Math.round(totalBaseScore * 100) / 100,
       total_deductions: Math.round(totalDeductions * 100) / 100,
       final_score: Math.round(finalScore * 100) / 100,
+      scoreTrend,
+      gamificationBadges,
     };
   }
 
@@ -155,7 +183,6 @@ export class KpiService {
     if (!employee) throw new NotFoundException('Employee not found');
 
     const role = employee.user?.role;
-    if (!role) return;
 
     // 1. Get Targets
     const targetsList = await this.prisma.kPITarget.findMany({
@@ -168,19 +195,18 @@ export class KpiService {
     }
     const targets = Array.from(latestTargetsMap.values());
 
+    // Period Key for daily actuals
+    const periodKey = new Date(date).toISOString().split('T')[0];
+
     // 2. Get Actuals for the day
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
 
-    // Period Key for daily actuals? Or we just summon them by date range if schema supported it.
-    // Current schema uses 'period_key' string. Let's assume daily actuals key is "YYYY-MM-DD".
-    const periodKey = dayStart.toISOString().split('T')[0];
-
     // @ts-ignore
     const actuals = await this.prisma.kPIActual.findMany({
-      where: { user_id: employee.user_id, period_key: periodKey }
+      where: { employee_id: employeeId, period_key: periodKey }
     });
 
     // 3. Calculate Component Scores
@@ -189,60 +215,71 @@ export class KpiService {
     let qualityScore = 100;
 
     // -- Warehouse Logic: Productivity Deficit --
-    if (role === UserRole.WH_MANAGER || role === 'WH_WORKER' as any) { // 'WH_WORKER' not in enum but handled generically
-      const orderTarget = targets.find(t => t.metric_name === 'Daily Orders');
-      const orderActual = actuals.find(a => a.metric_name === 'Daily Orders');
+    const orderTarget = targets.find(t => t.metric_name === 'Daily Orders');
+    const orderActual = actuals.find(a => a.metric_name === 'Daily Orders');
 
-      if (orderTarget && orderActual) {
-        const targetVal = Number(orderTarget.target_value);
-        const actualVal = Number(orderActual.actual_value);
+    if (orderTarget && orderActual) {
+      const targetVal = Number(orderTarget.target_value);
+      const actualVal = Number(orderActual.actual_value);
 
-        // Efficiency %
-        efficiencyScore = Math.min((actualVal / targetVal) * 100, 120);
+      // Efficiency %
+      efficiencyScore = Math.min((actualVal / targetVal) * 100, 120);
 
-        // Deficit Logic
-        if (actualVal < targetVal) {
-          const deficitRatio = (targetVal - actualVal) / targetVal;
-          // Hourly Rate = base_salary / (30 * 9)
-          const hourlyRate = Number(employee.base_salary) / (30 * 9);
-          const workDayHours = 9;
-          const deficitHours = deficitRatio * workDayHours;
-          const deductionAmount = deficitHours * hourlyRate;
+      // Deficit Logic
+      if (actualVal < targetVal) {
+        const deficitRatio = (targetVal - actualVal) / targetVal;
+        // Hourly Rate = base_salary / (30 * 9)
+        const hourlyRate = Number(employee.base_salary) / (30 * 9);
+        const workDayHours = 9;
+        const deficitHours = deficitRatio * workDayHours;
+        const deductionAmount = deficitHours * hourlyRate;
 
-          // Log Deduction Issue
-          // Check if already exists to avoid dupes
-          const existingIssue = await this.prisma.employeeIssue.findFirst({
-            where: {
-              employee_id: employeeId,
-              type: 'PRODUCTIVITY_DEDUCTION',
-              date: { gte: dayStart, lte: dayEnd }
-            }
-          });
-
-          if (!existingIssue && deductionAmount > 0) {
-            await this.prisma.$transaction([
-              this.prisma.employeeIssue.create({
-                data: {
-                  employee_id: employeeId,
-                  type: 'PRODUCTIVITY_DEDUCTION',
-                  description: `Productivity Deficit: ${Math.round(deficitRatio * 100)}% (${deficitHours.toFixed(1)}h)`,
-                  date: new Date(),
-                  severity: 'MEDIUM',
-                  deduction_points: deductionAmount,
-                  created_by: employee.user_id!,
-                }
-              }),
-              this.prisma.hRAdjustment.create({
-                data: {
-                  employee_id: employeeId,
-                  type: 'DEDUCTION',
-                  amount: deductionAmount,
-                  date: new Date(),
-                  reason: `Productivity Deficit: ${Math.round(deficitRatio * 100)}% (${deficitHours.toFixed(1)}h)`
-                }
-              })
-            ]);
+        // Log Deduction Issue
+        // Check if already exists to avoid dupes
+        const existingIssue = await this.prisma.employeeIssue.findFirst({
+          where: {
+            employee_id: employeeId,
+            type: 'PRODUCTIVITY_DEDUCTION',
+            date: { gte: dayStart, lte: dayEnd }
           }
+        });
+
+        if (!existingIssue && deductionAmount > 0) {
+          const systemAdmin = await this.prisma.user.findFirst({ where: { role: UserRole.ADMIN } });
+          const fallbackUserId = employee.user_id || systemAdmin?.id || 'system';
+
+          await this.prisma.$transaction([
+            this.prisma.employeeIssue.create({
+              data: {
+                employee_id: employeeId,
+                department_id: employee.department_id,
+                category_key: 'PRODUCTIVITY',
+                type: 'PRODUCTIVITY_DEDUCTION',
+                description: `Productivity Deficit: ${Math.round(deficitRatio * 100)}% (${deficitHours.toFixed(1)}h)`,
+                date: new Date(),
+                severity: 'MEDIUM',
+                deduction_points: deductionAmount,
+                created_by: fallbackUserId,
+                reported_by_user_id: fallbackUserId,
+              }
+            }),
+            this.prisma.reviewDeduction.create({
+              data: {
+                employee_id: employeeId,
+                department_id: employee.department_id,
+                period_key: periodKey,
+                reason_key: 'PRODUCTIVITY_DEFICIT',
+                details_json: JSON.stringify({
+                  deficitRatio: Math.round(deficitRatio * 100),
+                  deficitHours: deficitHours.toFixed(1),
+                  hourlyRate
+                }),
+                suggested_amount: deductionAmount,
+                status: 'REVIEW_NEEDED',
+                created_by_system: true
+              }
+            })
+          ]);
         }
       }
     } else {
@@ -275,8 +312,8 @@ export class KpiService {
 
     // 6. Upsert Daily Rollup
     // @ts-ignore
-    await this.prisma.kPIScore.upsert({
-      where: { employee_id_date: { employee_id: employeeId, date: dayStart } },
+    const existingScore = await this.prisma.kPIScore.upsert({
+      where: { employee_id_period_key: { employee_id: employeeId, period_key: periodKey } },
       update: {
         efficiency_score: efficiencyScore,
         quality_score: qualityScore,
@@ -288,6 +325,8 @@ export class KpiService {
       },
       create: {
         employee_id: employeeId,
+        department_id: employee.department_id,
+        period_key: periodKey,
         date: dayStart,
         efficiency_score: efficiencyScore,
         quality_score: qualityScore,
@@ -299,14 +338,14 @@ export class KpiService {
     });
 
     // 7. Gamification Integrations
-    if (totalScore > 90) {
+    if (totalScore > 90 && employee.user_id) {
       // Award Gamification Points using the service
       await this.gamificationService.awardPoints(
-        employee.user_id!,
+        employee.user_id,
         10,
         `Daily KPI Bonus: ${totalScore.toFixed(0)}% (${periodKey})`
       );
-      await this.gamificationService.updateMissionProgress(employee.user_id!, 'HIGH_KPI_SCORE', 1);
+      await this.gamificationService.updateMissionProgress(employee.user_id, 'HIGH_KPI_SCORE', 1);
     }
 
     // Check Streak: No Fatal Issues
@@ -318,13 +357,13 @@ export class KpiService {
       }
     });
 
-    if (recentFatalIssues === 0) {
-      await this.gamificationService.updateMissionProgress(employee.user_id!, 'NO_FATAL_ISSUES_7_DAYS', 1);
+    if (recentFatalIssues === 0 && employee.user_id) {
+      await this.gamificationService.updateMissionProgress(employee.user_id, 'NO_FATAL_ISSUES_7_DAYS', 1);
     }
 
     // Check Streak: Warehouse 100% Target
-    if ((role === UserRole.WH_MANAGER || role === 'WH_WORKER' as any) && efficiencyScore >= 100) {
-      await this.gamificationService.updateMissionProgress(employee.user_id!, 'WH_100_PERCENT_5_DAYS', 1);
+    if ((role === UserRole.WH_MANAGER || role === 'WH_WORKER' as any) && efficiencyScore >= 100 && employee.user_id) {
+      await this.gamificationService.updateMissionProgress(employee.user_id, 'WH_100_PERCENT_5_DAYS', 1);
     }
 
 
@@ -419,7 +458,7 @@ export class KpiService {
     } else if (employee_code) {
       targetEmployee = await this.prisma.employee.findUnique({ where: { code: employee_code } });
     }
-    if (!targetEmployee || !targetEmployee.user_id) throw new NotFoundException('Target employee/user not found');
+    if (!targetEmployee) throw new NotFoundException('Target employee not found');
 
     if (creatorUser.role !== UserRole.ADMIN) {
       const managerEmployee = await this.prisma.employee.findUnique({ where: { email: creatorUser.email } });
@@ -434,8 +473,8 @@ export class KpiService {
     // @ts-ignore
     return this.prisma.kPIActual.upsert({
       where: {
-        user_id_metric_name_period_key: {
-          user_id: targetEmployee.user_id,
+        employee_id_metric_name_period_key: {
+          employee_id: targetEmployee.id,
           metric_name: metric,
           period_key: periodKey
         }
@@ -444,7 +483,7 @@ export class KpiService {
         actual_value: actualValue,
       },
       create: {
-        user_id: targetEmployee.user_id,
+        employee_id: targetEmployee.id,
         metric_name: metric,
         period_key: periodKey,
         actual_value: actualValue,

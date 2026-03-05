@@ -58,8 +58,13 @@ export class KpiController {
   @Post('calculate-daily')
   // @ts-ignore
   @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
-  calculateDaily(@Body() body: { employeeId: string, date: string }) {
-    return this.kpiService.calculateDailyScore(body.employeeId, new Date(body.date));
+  async calculateDaily(@Body() body: { employeeId: string, date: string }) {
+    try {
+      return await this.kpiService.calculateDailyScore(body.employeeId, new Date(body.date));
+    } catch (e: any) {
+      console.error("CALC DAILY ERROR:", e);
+      return { error: e.message, stack: e.stack };
+    }
   }
 }
 

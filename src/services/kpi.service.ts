@@ -16,6 +16,8 @@ export interface KPIMetrics {
     }[];
     final_score: number;
     total_deductions: number;
+    scoreTrend?: { date: string, score: number }[];
+    gamificationBadges?: { name: string, icon: string, earned_at: string }[];
 
     // Compat helpers (optional, or we update UI)
     efficiency?: number;

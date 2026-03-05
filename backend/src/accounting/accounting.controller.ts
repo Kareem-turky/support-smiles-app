@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { AccountingService } from './accounting.service';
 import { CalculatePayrollDto } from './dto/calculate-payroll.dto';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
@@ -129,5 +129,24 @@ export class AccountingController {
     @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
     getStats() {
         return this.accountingService.getStats();
+    }
+
+    // --- Review Deductions ---
+    @Get('review-deductions')
+    @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+    getReviewDeductions() {
+        return this.accountingService.getReviewDeductions();
+    }
+
+    @Patch('review-deductions/:id/approve')
+    @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+    approveReviewDeduction(@Param('id') id: string, @Request() req) {
+        return this.accountingService.approveReviewDeduction(id, req.user);
+    }
+
+    @Patch('review-deductions/:id/reject')
+    @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+    rejectReviewDeduction(@Param('id') id: string, @Request() req) {
+        return this.accountingService.rejectReviewDeduction(id, req.user);
     }
 }

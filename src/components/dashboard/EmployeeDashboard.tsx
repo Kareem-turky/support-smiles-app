@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KPIService, KPIMetrics } from '@/services/kpi.service';
-import { GamificationService, GamificationProgress } from '@/services/gamification.service';
+import { GamificationService } from '@/services/gamification.service';
+import { GamificationProgress } from '@/types';
 import { Award, Zap, Target, Star, Flame } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -10,6 +11,11 @@ import {
     Legend,
     ResponsiveContainer,
     Tooltip,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
 } from 'recharts';
 
 export function EmployeeDashboard() {
@@ -144,6 +150,28 @@ export function EmployeeDashboard() {
                     </Card>
                 </div>
             </div>
+
+            {/* Score Trend */}
+            {metrics?.scoreTrend && metrics.scoreTrend.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Score Trend (Last 30 Days)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={metrics.scoreTrend} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                                    <Tooltip />
+                                    <Line type="monotone" dataKey="score" stroke="#8884d8" activeDot={{ r: 8 }} strokeWidth={2} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Badges */}
             <h3 className="text-xl font-semibold flex items-center gap-2">

@@ -104,6 +104,54 @@ export class AccountingService {
         });
     }
 
+    // --- Review Deductions ---
+    async getReviewDeductions() {
+        return this.prisma.reviewDeduction.findMany({
+            orderBy: { created_at: 'desc' },
+            include: { employee: true, department: true, reviewer: true }
+        });
+    }
+
+    async approveReviewDeduction(id: string, user: any) {
+        const deduction = await this.prisma.reviewDeduction.findUnique({ where: { id } });
+        if (!deduction || deduction.status !== 'REVIEW_NEEDED') {
+            throw new BadRequestException('Invalid or already processed deduction');
+        }
+
+        return this.prisma.$transaction(async (tx) => {
+            const hrAdj = await tx.hRAdjustment.create({
+                data: {
+                    employee_id: deduction.employee_id,
+                    type: 'DEDUCTION',
+                    amount: deduction.suggested_amount,
+                    date: new Date(),
+                    reason: `Approved Review Deduction: ${deduction.reason_key}`
+                }
+            });
+
+            return tx.reviewDeduction.update({
+                where: { id },
+                data: {
+                    status: 'APPROVED',
+                    reviewed_by_user_id: user.id,
+                    reviewed_at: new Date(),
+                    hr_adjustment_id: hrAdj.id
+                }
+            });
+        });
+    }
+
+    async rejectReviewDeduction(id: string, user: any) {
+        return this.prisma.reviewDeduction.update({
+            where: { id },
+            data: {
+                status: 'REJECTED',
+                reviewed_by_user_id: user.id,
+                reviewed_at: new Date()
+            }
+        });
+    }
+
     // --- Payroll ---
     async getPayrollRuns() {
         return this.prisma.payrollRun.findMany({

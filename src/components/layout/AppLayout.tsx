@@ -96,6 +96,12 @@ const navItems = [
     roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
   },
   {
+    title: 'Review Deductions',
+    url: '/accounting/review-deductions',
+    icon: Banknote,
+    roles: ['ADMIN', 'ACC_MANAGER']
+  },
+  {
     title: 'Deposits',
     url: '/accounting/deposits',
     icon: Banknote,
