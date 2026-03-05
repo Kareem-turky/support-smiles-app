@@ -80,9 +80,14 @@ export default function Deposits() {
     };
 
     const handleCreateVendor = async (name: string) => {
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+            toast.error('Vendor name is required');
+            return;
+        }
         setCreatingVendor(true);
         try {
-            const vendor = await AccountingService.createVendor({ name, phone: newVendorPhone });
+            const vendor = await AccountingService.createVendor({ name: trimmedName, phone: newVendorPhone });
             setVendors([...vendors, vendor]);
             setFormData({ ...formData, vendor_id: vendor.id });
             toast.success(`Vendor "${name}" created`);

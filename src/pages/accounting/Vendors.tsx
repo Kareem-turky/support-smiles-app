@@ -33,9 +33,14 @@ export default function Vendors() {
     }, []);
 
     const handleCreate = async () => {
+        const trimmedName = formData.name.trim();
+        if (!trimmedName) {
+            toast({ title: 'Error', description: 'Vendor name is required', variant: 'destructive' });
+            return;
+        }
         setCreateLoading(true);
         try {
-            await api.post('/accounting/vendors', formData);
+            await api.post('/accounting/vendors', { vendor_name: trimmedName, phone: formData.phone });
             toast({ title: 'Success', description: 'Vendor created successfully.' });
             setIsCreateOpen(false);
             fetchVendors();

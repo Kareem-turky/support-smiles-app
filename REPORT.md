@@ -39,3 +39,14 @@ CI=1 npx playwright test e2e/ --reporter=list
 All 404 dead-links eliminated.
 All React builds cleanly compiling without regression.
 **System is 100% stable.**
+
+---
+
+### Local Verification of Critical Fixes
+To verify the resolution of the `TicketReasons` 404 routing issue and the `Vendor` creation 400 payload errors, execute the unified test script available in the repository root:
+
+```bash
+# Ensure backend/frontend are running via ./scripts/dev_all.sh first
+bash ./scripts/verify_critical_fixes.sh
+```
+This script handles cross-authentication, creates mock vendor profiles securely via the API, validates token extraction, and enforces `TicketReasonCategory` PRISMA boundaries.

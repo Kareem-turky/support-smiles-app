@@ -116,6 +116,9 @@ const App = () => (
               } />
 
               {/* Admin */}
+              <Route path="/admin/ticket-reasons" element={
+                <ProtectedRoute allowedRoles={['ADMIN']}><TicketReasons /></ProtectedRoute>
+              } />
               {/* KPI & Gamification */}
               <Route path="/kpi" element={<MyKPIs />} />
               <Route path="/gamification" element={<Gamification />} />
