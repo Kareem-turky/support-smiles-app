@@ -30,7 +30,7 @@ echo "5) POST /admin/ticket-reasons (Create Reason)"
 RES=$(curl -s -w "\n%{http_code}" -X POST http://localhost:3000/admin/ticket-reasons \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"QA Test Reason","description":"Testing reason creation","category":"OTHER"}')
+  -d "{\"name\":\"QA Test Reason $(date +%s)\",\"description\":\"Testing reason creation\",\"category\":\"OTHER\"}")
 
 HTTP_CODE=$(echo "$RES" | tail -n1)
 BODY=$(echo "$RES" | sed '$d')

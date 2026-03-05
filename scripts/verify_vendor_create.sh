@@ -18,7 +18,7 @@ echo "2) POST /accounting/vendors with vendor_name"
 RES=$(curl -s -w "\n%{http_code}" -X POST http://localhost:3000/accounting/vendors \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"vendor_name":"Test Vendor AG","phone":"1234567890"}')
+  -d "{\"vendor_name\":\"Test Vendor $(date +%s)\",\"phone\":\"1234567890\"}")
 
 HTTP_CODE=$(echo "$RES" | tail -n1)
 BODY=$(echo "$RES" | sed '$d')
