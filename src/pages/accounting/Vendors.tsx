@@ -20,7 +20,8 @@ export default function Vendors() {
     const fetchVendors = async () => {
         try {
             const res = await api.get('/accounting/vendors');
-            setVendors(res.data);
+            const sortedData = res.data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+            setVendors(sortedData);
         } catch (err) {
             console.error(err);
         } finally {
@@ -40,10 +41,17 @@ export default function Vendors() {
         }
         setCreateLoading(true);
         try {
-            await api.post('/accounting/vendors', { vendor_name: trimmedName, phone: formData.phone });
+            const createRes = await api.post('/accounting/vendors', { vendor_name: trimmedName, phone: formData.phone });
             toast({ title: 'Success', description: 'Vendor created successfully.' });
             setIsCreateOpen(false);
-            fetchVendors();
+            setFormData({ name: '', phone: '' });
+
+            // Optimistically insert at the top of the list for immediate visibility
+            const newVendor = { ...createRes.data };
+            if (newVendor._count === undefined) {
+                newVendor._count = { purchases: 0, deposits: 0 };
+            }
+            setVendors((prev: any) => [newVendor, ...prev.filter((v: any) => v.id !== newVendor.id)]);
         } catch (err: any) {
             const msg = err.response?.data?.message || err.message || 'Failed to create vendor';
             toast({ title: 'Error', description: Array.isArray(msg) ? msg[0] : msg, variant: 'destructive' });
@@ -53,9 +61,9 @@ export default function Vendors() {
     };
 
     const columns = [
-        { header: 'ID', accessor: 'id' as const },
-        { header: 'Name', accessor: 'name' as const },
-        { header: 'Phone', accessor: 'phone' as const },
+        { header: 'ID', accessorKey: 'id' as const },
+        { header: 'Name', accessorKey: 'name' as const },
+        { header: 'Phone', accessorKey: 'phone' as const },
     ];
 
     return (
