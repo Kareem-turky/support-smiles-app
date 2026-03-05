@@ -45,7 +45,8 @@ export default function Vendors() {
             setIsCreateOpen(false);
             fetchVendors();
         } catch (err: any) {
-            toast({ title: 'Error', description: err.message || 'Failed to create vendor', variant: 'destructive' });
+            const msg = err.response?.data?.message || err.message || 'Failed to create vendor';
+            toast({ title: 'Error', description: Array.isArray(msg) ? msg[0] : msg, variant: 'destructive' });
         } finally {
             setCreateLoading(false);
         }

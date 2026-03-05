@@ -94,9 +94,10 @@ export default function Deposits() {
             setVendorModalOpen(false);
             setNewVendorName('');
             setNewVendorPhone('');
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast.error('Failed to create vendor');
+            const msg = error.response?.data?.message || error.message || 'Failed to create vendor';
+            toast.error(typeof msg === 'string' ? msg : (Array.isArray(msg) ? msg[0] : 'Failed to create vendor'));
         } finally {
             setCreatingVendor(false);
         }
