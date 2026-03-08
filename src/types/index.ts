@@ -4,20 +4,24 @@ export type UserRole =
   | 'CS_MANAGER'
   | 'CS_AGENT'
   | 'ACC_MANAGER'
-  | 'ACC_CLERK'
+  | 'ACC_AGENT'
+  | 'ACC_AGENT'
   | 'HR_MANAGER'
-  | 'HR_ASSISTANT'
-  | 'WH_MANAGER';
+  | 'HR_AGENT'
+  | 'HR_AGENT'
+  | 'WH_MANAGER'
+  | 'WH_AGENT';
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Administrator',
   CS_MANAGER: 'CS Manager',
   CS_AGENT: 'CS Agent',
   ACC_MANAGER: 'Accounting Manager',
-  ACC_CLERK: 'Accounting Clerk',
+  ACC_AGENT: 'Accounting Agent',
   HR_MANAGER: 'HR Manager',
-  HR_ASSISTANT: 'HR Assistant',
+  HR_AGENT: 'HR Agent',
   WH_MANAGER: 'Warehouse Manager',
+  WH_AGENT: 'Warehouse Agent',
 };
 
 // Ticket enums

@@ -47,7 +47,7 @@ const createUserSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['ADMIN', 'ACCOUNTING', 'CS'] as const),
+  role: z.enum(['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] as const),
 });
 
 type CreateUserForm = z.infer<typeof createUserSchema>;
@@ -66,7 +66,7 @@ export default function UsersPage() {
       name: '',
       email: '',
       password: '',
-      role: 'CS',
+      role: 'CS_AGENT',
     },
   });
 

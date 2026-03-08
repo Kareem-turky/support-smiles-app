@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canEditTicket = useCallback((ticketCreatorId: string) => {
     if (!state.user) return false;
     if (state.user.role === 'ADMIN') return true;
-    if (['ACC_MANAGER', 'ACC_CLERK'].includes(state.user.role)) {
+    if (['ACC_MANAGER', 'ACC_AGENT'].includes(state.user.role)) {
       return state.user.id === ticketCreatorId;
     }
     return false; // CS cannot edit ticket fields

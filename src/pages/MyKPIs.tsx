@@ -64,7 +64,7 @@ export default function MyKPIs() {
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label>Metric Name</Label>
-                            <Input required value={actualForm.metricName} onChange={e => setActualForm({ ...actualForm, metricName: e.target.value })} placeholder="e.g. Daily Orders" />
+                            <Input required value={actualForm.metricName} onChange={e => setActualForm({ ...actualForm, metricName: e.target.value })} placeholder="e.g. Daily Tickets" />
                         </div>
                         <div className="space-y-2">
                             <Label>Actual Value Achieved</Label>

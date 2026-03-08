@@ -21,7 +21,6 @@ interface DashboardData {
   };
   counts: {
     tickets_open: number;
-    orders_pending: number;
     employees_active: number;
   };
   recent: {

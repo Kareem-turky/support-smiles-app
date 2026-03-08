@@ -159,7 +159,7 @@ export class TicketsService {
 
         // Accounting Clerk can only update own; Manager can update all?
         // Let's stick to strict accounting logic for now: Accounting (any) only own.
-        const isAccounting = ([UserRole.ACC_MANAGER, UserRole.ACC_CLERK] as UserRole[]).includes(user.role);
+        const isAccounting = ([UserRole.ACC_MANAGER, UserRole.ACC_AGENT] as UserRole[]).includes(user.role);
         if (isAccounting && ticket.created_by !== user.id) {
             // Contract says: "ACCOUNTING: Can ONLY update tickets they created"
             throw new ForbiddenException('Accounting can only update tickets they created');

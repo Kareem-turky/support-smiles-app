@@ -57,19 +57,13 @@ const navItems = [
     title: 'Dashboard',
     url: '/',
     icon: LayoutDashboard,
-    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_CLERK', 'HR_MANAGER', 'HR_ASSISTANT', 'WH_MANAGER']
+    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER']
   },
   {
     title: 'Tickets',
     url: '/tickets',
     icon: Ticket,
     roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT']
-  },
-  {
-    title: 'Orders',
-    url: '/orders',
-    icon: ShoppingCart,
-    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'WH_MANAGER', 'WH_AGENT', 'ACC_MANAGER', 'HR_MANAGER']
   },
   {
     title: 'Users',
@@ -81,19 +75,19 @@ const navItems = [
     title: 'Purchases',
     url: '/accounting/purchases',
     icon: DollarSign,
-    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
+    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']
   },
   {
     title: 'Vendors',
     url: '/accounting/vendors',
     icon: Users,
-    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
+    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']
   },
   {
     title: 'Expenses',
     url: '/accounting/expenses',
     icon: CreditCard,
-    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
+    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']
   },
   {
     title: 'Review Deductions',
@@ -123,31 +117,31 @@ const navItems = [
     title: 'Advances',
     url: '/accounting/advances',
     icon: Banknote,
-    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']
+    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']
   },
   {
     title: 'Employees',
     url: '/hr/employees',
     icon: Users,
-    roles: ['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']
+    roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT']
   },
   {
     title: 'Adjustments',
     url: '/hr/adjustments',
     icon: List,
-    roles: ['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']
+    roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT']
   },
   {
     title: 'Attendance',
     url: '/hr/attendance',
     icon: List,
-    roles: ['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']
+    roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT']
   },
   {
     title: 'Leaves',
     url: '/hr/leaves',
     icon: List,
-    roles: ['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']
+    roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT']
   },
   {
     title: 'Shipping',
@@ -165,7 +159,7 @@ const navItems = [
     title: 'My KPIs',
     url: '/kpi',
     icon: Target,
-    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_CLERK', 'HR_MANAGER', 'HR_ASSISTANT', 'WH_MANAGER', 'WH_AGENT']
+    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT']
   },
   {
     title: 'Team KPIs',
@@ -177,7 +171,7 @@ const navItems = [
     title: 'Gamification',
     url: '/gamification',
     icon: Trophy,
-    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_CLERK', 'HR_MANAGER', 'HR_ASSISTANT', 'WH_MANAGER', 'WH_AGENT']
+    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT']
   },
 ];
 

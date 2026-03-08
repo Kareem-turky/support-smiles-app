@@ -61,12 +61,12 @@ async function main() {
   // 3. Seed Users
   const admin = await seedUser('admin@company.com', 'System Admin', UserRole.ADMIN, adminPassword);
   const accManager = await seedUser('sarah@company.com', 'Sarah Accountant', UserRole.ACC_MANAGER);
-  const hrManager = await seedUser('helen@company.com', 'Helen HR', UserRole.HR_MANAGER);
+  const hrManager = await seedUser('hr@company.com', 'HR Manager', UserRole.HR_MANAGER);
   const csManager = await seedUser('mike@company.com', 'Mike CS Manager', UserRole.CS_MANAGER);
   const agent1 = await seedUser('alice@company.com', 'Alice Agent', UserRole.CS_AGENT);
   const agent2 = await seedUser('bob@company.com', 'Bob Agent', UserRole.CS_AGENT);
-  const whManager = await seedUser('wayne@company.com', 'Wayne WH Manager', UserRole.WH_MANAGER);
-  const worker1 = await seedUser('william@company.com', 'William Worker', UserRole.WH_AGENT);
+  const whManager = await seedUser('wh_manager@company.com', 'Warehouse Manager', UserRole.WH_MANAGER);
+  const worker1 = await seedUser('wh_agent@company.com', 'Warehouse Agent', UserRole.WH_AGENT);
   const worker2 = await seedUser('wanda@company.com', 'Wanda Worker', UserRole.WH_AGENT);
 
   console.log('Users and Employees seeded.');

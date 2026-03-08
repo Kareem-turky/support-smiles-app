@@ -413,7 +413,7 @@ export class KpiService {
 
     return this.prisma.kPITarget.create({
       data: {
-        employee_id: employeeId,
+        employee_id: targetEmployee.id,
         manager_id: managerId,
         department_id: targetEmployee.department_id,
         date: new Date(date || new Date()),

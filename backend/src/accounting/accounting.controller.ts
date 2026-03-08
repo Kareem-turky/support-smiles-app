@@ -50,13 +50,13 @@ export class AccountingController {
 
     // --- Vendors ---
     @Get('vendors')
-    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_CLERK, UserRole.ADMIN)
+    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
     getVendors() {
         return this.accountingService.getVendors();
     }
 
     @Post('vendors')
-    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_CLERK, UserRole.ADMIN)
+    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
     createVendor(@Body() dto: CreateVendorDto) {
         return this.accountingService.createVendor(dto);
     }
@@ -76,26 +76,26 @@ export class AccountingController {
 
     // --- Purchases ---
     @Get('purchases')
-    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_CLERK, UserRole.ADMIN)
+    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
     getPurchases() {
         return this.accountingService.getPurchases();
     }
 
     @Post('purchases')
-    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_CLERK, UserRole.ADMIN)
+    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
     createPurchase(@Body() dto: CreatePurchaseDto, @Request() req) {
         return this.accountingService.createPurchase(dto, req.user);
     }
 
     // --- Expenses ---
     @Get('expenses')
-    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_CLERK, UserRole.ADMIN)
+    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
     getExpenses() {
         return this.accountingService.getExpenses();
     }
 
     @Post('expenses')
-    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_CLERK, UserRole.ADMIN)
+    @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
     createExpense(@Body() dto: CreateExpenseDto, @Request() req) {
         return this.accountingService.createExpense(dto, req.user);
     }

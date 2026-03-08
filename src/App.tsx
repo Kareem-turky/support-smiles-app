@@ -11,7 +11,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import TicketsList from "./pages/TicketsList";
 import TicketDetails from "./pages/TicketDetails";
-import Orders from "./pages/Orders";
+
 import UsersPage from "./pages/UsersPage";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
@@ -64,7 +64,6 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/tickets" element={<TicketsList />} />
               <Route path="/tickets/:id" element={<TicketDetails />} />
-              <Route path="/orders" element={<Orders />} />
 
               <Route path="/users" element={
                 <ProtectedRoute allowedRoles={['ADMIN']}><UsersPage /></ProtectedRoute>
@@ -72,13 +71,13 @@ const App = () => (
 
               {/* Accounting */}
               <Route path="/accounting/vendors" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']}><Vendors /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']}><Vendors /></ProtectedRoute>
               } />
               <Route path="/accounting/purchases" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']}><Purchases /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']}><Purchases /></ProtectedRoute>
               } />
               <Route path="/accounting/expenses" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']}><Expenses /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']}><Expenses /></ProtectedRoute>
               } />
               <Route path="/accounting/review-deductions" element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER']}><ReviewDeductions /></ProtectedRoute>
@@ -93,21 +92,21 @@ const App = () => (
                 <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER']}><Transfers /></ProtectedRoute>
               } />
               <Route path="/accounting/advances" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_CLERK']}><Advances /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']}><Advances /></ProtectedRoute>
               } />
 
               {/* HR */}
               <Route path="/hr/employees" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']}><Employees /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN', 'HR_MANAGER', 'HR_AGENT']}><Employees /></ProtectedRoute>
               } />
               <Route path="/hr/adjustments" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']}><Adjustments /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN', 'HR_MANAGER', 'HR_AGENT']}><Adjustments /></ProtectedRoute>
               } />
               <Route path="/hr/attendance" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']}><AttendancePage /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN', 'HR_MANAGER', 'HR_AGENT']}><AttendancePage /></ProtectedRoute>
               } />
               <Route path="/hr/leaves" element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HR_MANAGER', 'HR_ASSISTANT']}><LeavesPage /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN', 'HR_MANAGER', 'HR_AGENT']}><LeavesPage /></ProtectedRoute>
               } />
 
               {/* Operations */}

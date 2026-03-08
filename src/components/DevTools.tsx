@@ -17,9 +17,9 @@ const USERS = [
     { role: 'CS_MANAGER', email: 'mike@company.com', pass: 'cs123', name: 'CS Mgr' },
     { role: 'CS_AGENT', email: 'agent@company.com', pass: 'password123', name: 'CS Agent' },
     { role: 'ACC_MANAGER', email: 'sarah@company.com', pass: 'accounting123', name: 'Acc Mgr' },
-    { role: 'ACC_CLERK', email: 'clerk@company.com', pass: 'password123', name: 'Acc Clerk' },
+    { role: 'ACC_AGENT', email: 'clerk@company.com', pass: 'password123', name: 'Acc Clerk' },
     { role: 'HR_MANAGER', email: 'hr@company.com', pass: 'password123', name: 'HR Mgr' },
-    { role: 'HR_ASSISTANT', email: 'assist@company.com', pass: 'password123', name: 'HR Assist' },
+    { role: 'HR_AGENT', email: 'assist@company.com', pass: 'password123', name: 'HR Assist' },
     { role: 'WH_MANAGER', email: 'warehouse@company.com', pass: 'password123', name: 'WH Mgr' },
 ];
 

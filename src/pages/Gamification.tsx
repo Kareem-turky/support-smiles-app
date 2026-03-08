@@ -562,7 +562,7 @@ export default function Gamification() {
                                                                 <SelectContent>
                                                                     <SelectItem value="ALL">Universal</SelectItem>
                                                                     <SelectItem value="CS_AGENT">CS Agents Only</SelectItem>
-                                                                    <SelectItem value="ACC_CLERK">Accounting Clerks Only</SelectItem>
+                                                                    <SelectItem value="ACC_AGENT">Accounting Clerks Only</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
