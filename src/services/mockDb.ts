@@ -8,7 +8,7 @@
  * When migrating to NestJS, replace calls to mockDb with actual API fetch calls.
  */
 
-import { User, Ticket, TicketMessage, Notification, TicketEvent, Employee } from '@/types';
+import { User, Ticket, TicketMessage, Notification, TicketEvent, Employee, Mission, Reward, RewardRedemption, Department } from '@/types';
 import { TicketReason } from '@/services/reasons.service';
 
 
@@ -44,7 +44,7 @@ const INITIAL_USERS: User[] = [
     name: 'Sarah Johnson',
     email: 'sarah@company.com',
     password_hash: simpleHash('accounting123'),
-    role: 'ACCOUNTING',
+    role: 'ACC_MANAGER',
     is_active: true,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
@@ -54,7 +54,7 @@ const INITIAL_USERS: User[] = [
     name: 'Mike Chen',
     email: 'mike@company.com',
     password_hash: simpleHash('cs123'),
-    role: 'CS',
+    role: 'CS_AGENT',
     is_active: true,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
@@ -64,7 +64,7 @@ const INITIAL_USERS: User[] = [
     name: 'Emily Davis',
     email: 'emily@company.com',
     password_hash: simpleHash('cs123'),
-    role: 'CS',
+    role: 'CS_AGENT',
     is_active: true,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
@@ -322,6 +322,14 @@ const INITIAL_EVENTS: TicketEvent[] = [
   },
 ];
 
+const INITIAL_DEPARTMENTS: Department[] = [
+  { id: 'dept-eng', name: 'Engineering' },
+  { id: 'dept-mkt', name: 'Marketing' },
+  { id: 'dept-sls', name: 'Sales' },
+  { id: 'dept-ops', name: 'Operations' },
+  { id: 'dept-hr', name: 'HR' },
+];
+
 const INITIAL_EMPLOYEES: Employee[] = [
   {
     id: 'emp-1',
@@ -330,7 +338,7 @@ const INITIAL_EMPLOYEES: Employee[] = [
     start_date: '2024-01-01',
     base_salary: 5000,
     salary_type: 'MONTHLY',
-    department: 'Engineering',
+    department_id: 'dept-eng',
     is_active: true,
   },
   {
@@ -340,7 +348,7 @@ const INITIAL_EMPLOYEES: Employee[] = [
     start_date: '2024-02-01',
     base_salary: 6000,
     salary_type: 'MONTHLY',
-    department: 'Marketing',
+    department_id: 'dept-mkt',
     is_active: true,
   },
   {
@@ -350,7 +358,7 @@ const INITIAL_EMPLOYEES: Employee[] = [
     start_date: '2024-03-01',
     base_salary: 4000,
     salary_type: 'MONTHLY',
-    department: 'Sales',
+    department_id: 'dept-sls',
     is_active: false,
   },
   {
@@ -360,7 +368,7 @@ const INITIAL_EMPLOYEES: Employee[] = [
     start_date: '2024-04-01',
     base_salary: 100,
     salary_type: 'DAILY',
-    department: 'Operations',
+    department_id: 'dept-ops',
     is_active: true,
   },
   {
@@ -370,9 +378,47 @@ const INITIAL_EMPLOYEES: Employee[] = [
     start_date: '2024-05-01',
     base_salary: 4500,
     salary_type: 'MONTHLY',
-    department: 'HR',
+    department_id: 'dept-hr',
     is_active: true,
   },
+];
+
+const INITIAL_MISSIONS: Mission[] = [
+  {
+    id: 'miss-1',
+    title: 'Operation: Speed Resolve',
+    description: 'Resolve 10 tickets in a single day.',
+    points: 100,
+    target_value: 10,
+    metric_key: 'RESOLVED_TICKETS',
+    frequency: 'DAILY',
+    assignments: [],
+  },
+  {
+    id: 'miss-2',
+    title: 'Perfect Attendance',
+    description: 'Arrive on time for 5 consecutive days.',
+    points: 250,
+    target_value: 5,
+    metric_key: 'ON_TIME_ATTENDANCE',
+    frequency: 'WEEKLY',
+    assignments: [],
+  }
+];
+
+const INITIAL_REWARDS: Reward[] = [
+  {
+    id: 'rew-1',
+    name: 'Extra Break Time',
+    description: '15 minutes additional break.',
+    cost_points: 500,
+  },
+  {
+    id: 'rew-2',
+    name: 'Gift Card',
+    description: '$10 Amazon Gift Card.',
+    cost_points: 2000,
+  }
 ];
 
 // ============= In-Memory Database Store =============
@@ -385,6 +431,10 @@ interface DatabaseState {
   events: TicketEvent[];
   reasons: TicketReason[];
   employees: Employee[];
+  departments: Department[];
+  missions: Mission[];
+  rewards: Reward[];
+  redemptions: RewardRedemption[];
   currentUser: User | null;
 }
 
@@ -401,6 +451,10 @@ class MockDatabase {
       events: [],
       reasons: [],
       employees: [],
+      departments: [],
+      missions: [],
+      rewards: [],
+      redemptions: [],
       currentUser: null,
     };
   }
@@ -422,6 +476,10 @@ class MockDatabase {
       events: JSON.parse(JSON.stringify(INITIAL_EVENTS)),
       reasons: JSON.parse(JSON.stringify(INITIAL_REASONS)),
       employees: JSON.parse(JSON.stringify(INITIAL_EMPLOYEES)),
+      departments: JSON.parse(JSON.stringify(INITIAL_DEPARTMENTS)),
+      missions: JSON.parse(JSON.stringify(INITIAL_MISSIONS)),
+      rewards: JSON.parse(JSON.stringify(INITIAL_REWARDS)),
+      redemptions: [],
       currentUser: null,
     };
 
@@ -680,6 +738,52 @@ class MockDatabase {
     return [...this.state.reasons].sort((a, b) => a.sort_order - b.sort_order);
   }
 
+  // ============= Gamification =============
+
+  getMissions(): Mission[] {
+    return [...this.state.missions];
+  }
+
+  createMission(mission: Omit<Mission, 'id'>): Mission {
+    const newMission: Mission = {
+      ...mission,
+      id: generateUUID(),
+    };
+    this.state.missions.push(newMission);
+    return newMission;
+  }
+
+  getRewards(): Reward[] {
+    return [...this.state.rewards];
+  }
+
+  getRedemptions(): RewardRedemption[] {
+    return [...this.state.redemptions].map(r => {
+      const reward = this.state.rewards.find(rw => rw.id === r.reward_id);
+      const user = this.state.users.find(u => u.id === r.user_id);
+      return { ...r, reward, user };
+    }) as any[];
+  }
+
+  createRedemption(userId: string, rewardId: string): RewardRedemption {
+    const newRedemption: RewardRedemption = {
+      id: generateUUID(),
+      user_id: userId,
+      reward_id: rewardId,
+      status: 'REQUESTED',
+      created_at: new Date().toISOString(),
+    };
+    this.state.redemptions.push(newRedemption);
+    return newRedemption;
+  }
+
+  updateRedemption(id: string, status: RewardRedemption['status']): RewardRedemption | undefined {
+    const index = this.state.redemptions.findIndex(r => r.id === id);
+    if (index === -1) return undefined;
+    this.state.redemptions[index].status = status;
+    return this.state.redemptions[index];
+  }
+
   // ============= Employees =============
 
   getEmployees(): Employee[] {
@@ -694,6 +798,23 @@ class MockDatabase {
       // Employee interface has optional fields, but let's be safe.
     };
     this.state.employees.push(newEmployee);
+
+    // START STRIKER FIX: Sync with Users for Assignee Dropdown
+    // Automatically create a corresponding User so they appear in "Assign To" lists
+    // using the SAME ID to mimic a linked system.
+    const newUser: User = {
+      id: newEmployee.id,
+      name: newEmployee.full_name,
+      email: `${newEmployee.code?.toLowerCase().replace('-', '') || 'emp' + Date.now()}@company.com`,
+      password_hash: simpleHash('password123'),
+      role: 'CS_AGENT', // Default to CS_AGENT
+      is_active: newEmployee.is_active,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    this.state.users.push(newUser);
+    // END STRIKER FIX
+
     return newEmployee;
   }
 }

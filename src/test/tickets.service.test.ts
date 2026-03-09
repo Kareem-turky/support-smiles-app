@@ -114,7 +114,7 @@ describe('TicketsService', () => {
       const result = await ticketsService.changeStatus(ticket.id, 'CLOSED');
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('CS can only set status to');
+      expect(result.error).toContain('CS cannot set this status');
     });
   });
 

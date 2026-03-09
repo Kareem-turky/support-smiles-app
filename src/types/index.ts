@@ -1,5 +1,28 @@
 // User roles
-export type UserRole = 'ADMIN' | 'ACCOUNTING' | 'CS';
+export type UserRole =
+  | 'ADMIN'
+  | 'CS_MANAGER'
+  | 'CS_AGENT'
+  | 'ACC_MANAGER'
+  | 'ACC_AGENT'
+  | 'ACC_AGENT'
+  | 'HR_MANAGER'
+  | 'HR_AGENT'
+  | 'HR_AGENT'
+  | 'WH_MANAGER'
+  | 'WH_AGENT';
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  ADMIN: 'Administrator',
+  CS_MANAGER: 'CS Manager',
+  CS_AGENT: 'CS Agent',
+  ACC_MANAGER: 'Accounting Manager',
+  ACC_AGENT: 'Accounting Agent',
+  HR_MANAGER: 'HR Manager',
+  HR_AGENT: 'HR Agent',
+  WH_MANAGER: 'Warehouse Manager',
+  WH_AGENT: 'Warehouse Agent',
+};
 
 // Ticket enums
 export type IssueType = 'ACCOUNTING' | 'DELIVERY' | 'COD' | 'RETURNS' | 'ADDRESS' | 'DUPLICATE' | 'OTHER';
@@ -16,8 +39,71 @@ export interface User {
   password_hash: string;
   role: UserRole;
   is_active: boolean;
+  department_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+// HR/Employee models
+export interface Department {
+  id: string;
+  name: string;
+  _count?: { employees: number };
+}
+
+export interface Employee {
+  id: string;
+  code: string;
+  full_name: string;
+  department_id: string;
+  department?: Department;
+  start_date: string;
+  base_salary: number;
+  salary_type: 'MONTHLY' | 'DAILY';
+  is_active: boolean;
+  role?: string;
+  department_name?: string;
+}
+
+export interface Adjustment {
+  id: string;
+  employee_id: string;
+  employee?: Employee;
+  type: 'BONUS' | 'DEDUCTION' | 'ADVANCE';
+  amount: number;
+  date: string;
+  reason: string;
+}
+
+export interface HRAttendance {
+  id: string;
+  employee_id: string;
+  employee?: Employee;
+  date: string;
+  status: 'PRESENT' | 'ABSENT' | 'LEAVE';
+  minutes_late: number;
+  notes?: string;
+}
+
+export interface HRLeave {
+  id: string;
+  employee_id: string;
+  employee?: Employee;
+  from_date: string;
+  to_date: string;
+  leave_type: 'ANNUAL' | 'SICK' | 'UNPAID' | 'OTHER';
+  notes?: string;
+}
+
+// Ticket Reason model
+export interface TicketReason {
+  id: string;
+  name: string;
+  category: 'ACCOUNTING' | 'CS' | 'SHIPPING' | 'OTHER';
+  sort_order: number;
+  is_active: boolean;
+  default_assign_role?: UserRole;
+  default_priority?: Priority;
 }
 
 // Ticket model
@@ -31,11 +117,14 @@ export interface Ticket {
   description: string;
   created_by: string;
   assigned_to: string | null;
+  reason_id?: string;
+  reason?: TicketReason;
   resolved_at: string | null;
   closed_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  integration_inbox?: { source: string; external_id: string };
 }
 
 // Ticket message model
@@ -56,6 +145,27 @@ export interface Notification {
   body: string;
   is_read: boolean;
   link: string;
+  created_at: string;
+}
+
+export interface ShippingCompany {
+  id: string;
+  name: string;
+}
+
+export interface Order {
+  id: string;
+  order_number: string;
+  customer_name?: string;
+  status: string;
+  amount?: number;
+  notes?: string;
+  department_id: string;
+  department?: Department;
+  assigned_employee_id?: string;
+  assigned_employee?: Employee;
+  shipping_company_id?: string;
+  shipping_company?: ShippingCompany;
   created_at: string;
 }
 
@@ -123,6 +233,7 @@ export interface CreateTicketDto {
   priority: Priority;
   description: string;
   assigned_to?: string;
+  reason_id?: string;
 }
 
 export interface UpdateTicketDto {
@@ -135,7 +246,12 @@ export interface UpdateTicketDto {
 
 export interface CreateMessageDto {
   message: string;
+  previous_status?: TicketStatus;
+  new_status?: TicketStatus;
+  // Deprecated but keeping for compatibility if utilized elsewhere
+  status?: TicketStatus;
 }
+
 
 // Display helpers
 export const ISSUE_TYPE_LABELS: Record<IssueType, string> = {
@@ -165,12 +281,6 @@ export const STATUS_LABELS: Record<TicketStatus, string> = {
   REOPENED: 'Reopened',
 };
 
-export const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: 'Administrator',
-  ACCOUNTING: 'Accounting',
-  CS: 'Customer Service',
-};
-
 export const PRIORITY_COLORS: Record<Priority, string> = {
   LOW: 'bg-muted text-muted-foreground',
   MEDIUM: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
@@ -187,3 +297,78 @@ export const STATUS_COLORS: Record<TicketStatus, string> = {
   CLOSED: 'bg-muted text-muted-foreground',
   REOPENED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 };
+
+// Gamification Types
+export interface Mission {
+  id: string;
+  title: string;
+  description?: string;
+  points: number;
+  target_value: number;
+  metric_key: string;
+  frequency: 'DAILY' | 'WEEKLY';
+  role_scope?: string;
+  department_id?: string;
+  assignments: {
+    status: 'ACTIVE' | 'DONE' | 'EXPIRED';
+    progress_value: number;
+    completed_at?: string;
+  }[];
+}
+
+export interface Reward {
+  id: string;
+  name: string;
+  description?: string;
+  cost_points: number;
+}
+
+export interface RewardRedemption {
+  id: string;
+  reward_id: string;
+  user_id: string;
+  status: 'REQUESTED' | 'APPROVED' | 'REJECTED';
+  created_at: string;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  unlocked_at: string;
+}
+
+export interface Streak {
+  key: string;
+  current_count: number;
+  best_count: number;
+  last_hit_date?: string;
+}
+
+export interface Activity {
+  id: string;
+  reason: string;
+  amount: number;
+  created_at: string;
+}
+
+export interface GamificationProgress {
+  points: number;
+  level: number;
+  next_level_points: number;
+  streak_days?: number;
+  badges: Badge[];
+  streaks: Streak[];
+  history: Activity[];
+}
+
+export interface LeaderboardEntry {
+  user_id: string;
+  user: string;
+  name: string;
+  rank?: number;
+  role: string;
+  department?: string;
+  points: number;
+}
