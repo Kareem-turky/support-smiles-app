@@ -1,0 +1,472 @@
+{
+    "common": {
+        "loading": "جاري التحميل...",
+        "save": "حفظ",
+        "cancel": "إلغاء",
+        "delete": "حذف",
+        "edit": "تعديل",
+        "submit": "إرسال",
+        "success": "نجاح",
+        "error": "خطأ",
+        "confirm": "تأكيد",
+        "actions": "إجراءات",
+        "language": "اللغة"
+    },
+    "nav": {
+        "dashboard": "لوحة التحكم",
+        "orders": "الطلبات",
+        "expenses": "المصروفات",
+        "tickets": "التذاكر",
+        "shipping": "الشحن",
+        "team": "الفريق",
+        "kpi": "مؤشراتي",
+        "gamification": "نقاطي",
+        "admin": {
+            "title": "الإدارة",
+            "users": "المستخدمين",
+            "settings": "الإعدادات",
+            "kpi_types": "أنواع المؤشرات"
+        }
+    },
+    "hr": {
+        "title": "الموارد البشرية",
+        "employees": "الموظفين",
+        "departments": "الأقسام",
+        "attendance": "الحضور والانصراف",
+        "leaves": "الإجازات",
+        "adjustments": "التسويات",
+        "hr_employees": {
+            "title": "الموظفين",
+            "new_employee": "موظف جديد",
+            "directory": "دليل الموظفين",
+            "no_employees": "لم يتم العثور على موظفين.",
+            "table": {
+                "code": "الكود",
+                "name": "الاسم",
+                "dept": "القسم",
+                "salary_type": "نوع الراتب",
+                "start_date": "تاريخ البدء",
+                "status": "الحالة",
+                "active": "نشط",
+                "inactive": "غير نشط"
+            },
+            "modal": {
+                "add_title": "إضافة موظف جديد",
+                "code_label": "الكود *",
+                "code_placeholder": "EMP-001",
+                "name_label": "الاسم الكامل *",
+                "name_placeholder": "أحمد محمد",
+                "email_label": "البريد الإلكتروني *",
+                "email_placeholder": "ahmed@company.com",
+                "dept_label": "القسم *",
+                "select_dept": "اختر القسم",
+                "search_dept": "ابحث في الأقسام...",
+                "add_dept": "إضافة قسم",
+                "salary_type_label": "طبيعة الراتب",
+                "monthly": "شهري",
+                "daily": "يومي",
+                "base_salary_label": "الراتب الأساسي",
+                "start_date_label": "تاريخ المباشرة",
+                "new_dept_title": "إنشاء قسم جديد",
+                "dept_name_label": "اسم القسم",
+                "dept_name_placeholder": "أدخل اسم القسم",
+                "create_dept_btn": "إنشاء قسم"
+            },
+            "messages": {
+                "fill_required": "يرجى ملء جميع الحقول المطلوبة",
+                "created_success": "تم إنشاء الموظف بنجاح",
+                "created_error": "فشل إنشاء الموظف",
+                "dept_success": "تم إنشاء القسم",
+                "dept_error": "فشل إنشاء القسم",
+                "loading": "جاري تحميل الموظفين...",
+                "error": "فشل في جلب البيانات"
+            }
+        },
+        "hr_attendance": {
+            "title": "الحضور والانصراف",
+            "mark_attendance": "تسجيل حضور",
+            "records": "سجلات الحضور",
+            "table": {
+                "date": "التاريخ",
+                "employee": "الموظف",
+                "status": "الحالة",
+                "late_min": "تأخير (دقائق)",
+                "notes": "ملاحظات"
+            },
+            "no_records": "لم يتم العثور على سجلات حضور لهذه الفترة.",
+            "present": "حاضر",
+            "absent": "غائب",
+            "leave": "إجازة",
+            "modal": {
+                "select_emp": "اختر الموظف",
+                "search_emp": "ابحث عن الموظفين...",
+                "employee_label": "الموظف",
+                "date_label": "التاريخ",
+                "status_label": "الحالة",
+                "late_min_label": "دقائق التأخير",
+                "notes_label": "ملاحظات"
+            },
+            "messages": {
+                "load_error": "فشل في تحميل بيانات الحضور",
+                "select_error": "تحديد الموظف مطلوب",
+                "success": "تم حفظ الحضور",
+                "save_error": "فشل في حفظ الحضور"
+            }
+        },
+        "hr_leaves": {
+            "title": "الإجازات",
+            "request_leave": "طلب إجازة",
+            "history": "سجل الإجازات",
+            "table": {
+                "employee": "الموظف",
+                "from": "من",
+                "to": "إلى",
+                "type": "النوع",
+                "notes": "ملاحظات"
+            },
+            "no_records": "لم يتم العثور على سجلات إجازات.",
+            "types": {
+                "annual": "سنوية",
+                "sick": "مرضية",
+                "unpaid": "غير مدفوعة",
+                "other": "أخرى"
+            },
+            "modal": {
+                "employee_label": "الموظف",
+                "select_emp": "اختر الموظف",
+                "search_emp": "ابحث عن الموظفين...",
+                "from_date": "تاريخ البدء",
+                "to_date": "تاريخ الانتهاء",
+                "type_label": "النوع",
+                "notes_label": "ملاحظات"
+            },
+            "messages": {
+                "load_error": "فشل تحميل بيانات الإجازات",
+                "select_error": "تحديد الموظف مطلوب",
+                "success": "تم حفظ الإجازة بنجاح",
+                "save_error": "فشل إضافة الإجازة"
+            }
+        },
+        "hr_adjustments": {
+            "title": "التسويات المالية للموارد البشرية",
+            "new_adjustment": "تسوية جديدة",
+            "history": "سجل التسويات",
+            "table": {
+                "employee": "الموظف",
+                "type": "النوع",
+                "date": "التاريخ",
+                "amount": "القيمة",
+                "reason": "السبب"
+            },
+            "filters": {
+                "from": "من",
+                "to": "إلى"
+            },
+            "no_records": "لم يتم العثور على سجلات.",
+            "types": {
+                "bonus": "مكافأة",
+                "deduction": "خصم"
+            },
+            "modal": {
+                "employee_label": "الموظف *",
+                "select_emp": "اختر الموظف",
+                "search_emp": "ابحث عن الموظفين...",
+                "type_label": "النوع",
+                "amount_label": "القيمة",
+                "date_label": "التاريخ",
+                "reason_label": "السبب"
+            },
+            "messages": {
+                "fill_required": "يرجى اختيار الموظف وقيمة صالحة",
+                "success": "تم إنشاء التسوية بنجاح",
+                "error": "فشل إنشاء التسوية"
+            }
+        }
+    },
+    "tickets_list": {
+        "title": "التذاكر",
+        "found": "تم العثور على {{count}} تذاكر",
+        "found_one": "تم العثور على تذكرة واحدة",
+        "new_ticket": "تذكرة جديدة",
+        "filters": {
+            "status": "الحالة",
+            "all_status": "جميع الحالات",
+            "priority": "الأولوية",
+            "all_priority": "الكل",
+            "type": "النوع",
+            "all_types": "جميع الأنواع",
+            "assignee": "المندوب/الموظف",
+            "all_assignees": "الكل",
+            "unassigned": "غير معين",
+            "clear": "مسح"
+        },
+        "table": {
+            "order": "رقم الطلب #",
+            "courier": "المندوب",
+            "reason": "السبب",
+            "type": "النوع",
+            "priority": "الأولوية",
+            "status": "الحالة",
+            "assignee": "المندوب/الموظف",
+            "updated": "محدث"
+        },
+        "no_tickets": "لم يتم العثور على تذاكر"
+    },
+    "ticket_details": {
+        "not_found": "التذكرة غير موجودة",
+        "messages_count": "الرسائل ({{count}})",
+        "no_messages": "لا توجد رسائل بعد",
+        "type_message": "اكتب رسالتك...",
+        "unassigned": "غير معين",
+        "unknown_user": "مستخدم غير معروف",
+        "buttons": {
+            "assign": "تعيين",
+            "reassign": "إعادة التعيين",
+            "resolve": "حل",
+            "reopen": "إعادة فتح",
+            "delete": "حذف"
+        },
+        "cards": {
+            "description": "الوصف",
+            "details": "التفاصيل",
+            "assigned_to": "معين إلى",
+            "created_by": "تم الإنشاء بواسطة",
+            "created": "تاريخ الإنشاء",
+            "last_updated": "آخر تحديث",
+            "resolved_at": "تم الحل في",
+            "source_system": "نظام المصدر",
+            "external_id": "المعرف الخارجي",
+            "change_status": "تغيير الحالة",
+            "timeline": "الجدول الزمني",
+            "no_events": "لا توجد أحداث"
+        },
+        "dialogs": {
+            "assign_title": "تعيين التذكرة",
+            "assign_desc": "اختر ممثل خدمة العملاء لتعيين هذه التذكرة إليه.",
+            "select_assignee": "اختر المعين",
+            "cancel": "إلغاء",
+            "delete_title": "حذف التذكرة",
+            "delete_desc": "هل أنت متأكد أنك تريد حذف هذه التذكرة؟ لا يمكن التراجع عن هذا الإجراء."
+        },
+        "events": {
+            "created": "قام {{actor}} بإنشاء هذه التذكرة",
+            "assigned": "قام {{actor}} بتعيين التذكرة إلى {{target}}",
+            "changed_status": "قام {{actor}} بتغيير الحالة من {{from}} إلى {{to}}",
+            "sent_message": "قام {{actor}} بإرسال رسالة",
+            "resolved": "قام {{actor}} بحل هذه التذكرة",
+            "reopened": "قام {{actor}} بإعادة فتح هذه التذكرة",
+            "updated": "قام {{actor}} بتحديث تفاصيل التذكرة",
+            "action": "قام {{actor}} بإجراء عملية"
+        },
+        "messages": {
+            "fetch_error": "فشل تحميل التذكرة",
+            "sent": "تم إرسال الرسالة",
+            "status_changed": "تم تغيير الحالة إلى {{status}}",
+            "assigned": "تم تعيين التذكرة بنجاح",
+            "resolved": "تم حل التذكرة",
+            "reopened": "تم إعادة فتح التذكرة",
+            "deleted": "تم حذف التذكرة"
+        }
+    },
+    "users_page": {
+        "title": "المستخدمين",
+        "subtitle": "إدارة حسابات المستخدمين وصلاحياتهم",
+        "new_user": "مستخدم جديد",
+        "table": {
+            "name": "الاسم",
+            "email": "البريد الإلكتروني",
+            "role": "الصلاحية",
+            "status": "الحالة",
+            "created": "الإنشاء",
+            "actions": "إجراءات",
+            "no_users": "لا يوجد مستخدمين"
+        },
+        "status": {
+            "active": "نشط",
+            "inactive": "غير نشط"
+        },
+        "actions": {
+            "activate": "تفعيل",
+            "deactivate": "تعطيل",
+            "login_as": "تسجيل الدخول كـ...",
+            "reset_password": "إعادة تعيين كلمة المرور"
+        },
+        "dialogs": {
+            "create": {
+                "title": "إنشاء مستخدم جديد",
+                "desc": "إضافة مستخدم جديد للنظام.",
+                "name": "الاسم",
+                "name_placeholder": "أحمد محمود",
+                "email": "البريد الإلكتروني",
+                "email_placeholder": "ahmed@company.com",
+                "password": "كلمة المرور",
+                "password_placeholder": "••••••••",
+                "role": "الصلاحية",
+                "select_role": "اختر الصلاحية",
+                "cancel": "إلغاء",
+                "submit": "إنشاء مستخدم",
+                "submitting": "جاري الإنشاء..."
+            },
+            "reset": {
+                "title": "إعادة تعيين كلمة المرور",
+                "desc": "تغيير كلمة مرور المستخدم بقوة. سيتم تسجيل خروجه من النظام.",
+                "new_password": "كلمة المرور الجديدة",
+                "cancel": "إلغاء",
+                "submit": "إعادة تعيين",
+                "submitting": "جاري الحفظ..."
+            }
+        },
+        "messages": {
+            "status_updated": "تم تحديث حالة المستخدم",
+            "confirm_login": "هل أنت متأكد من تسجيل الدخول كـ هذا المستخدم؟ ستفقد جلستك الحالية كمدير.",
+            "password_length": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل",
+            "password_reset_success": "تم إعادة تعيين كلمة المرور بنجاح",
+            "user_created": "تم إنشاء المستخدم",
+            "user_created_desc": "تم إنشاء {{name}} بنجاح.",
+            "error": "خطأ",
+            "success": "نجاح"
+        }
+    },
+    "gamification_page": {
+        "title": "مركز الألعاب والمكافآت",
+        "subtitle": "ارتق بمستوى أدائك واكسب مكافآت حصرية.",
+        "buttons": {
+            "start_shift": "بدء المناوبة",
+            "end_shift": "إنهاء المناوبة"
+        },
+        "tabs": {
+            "my_progress": "تقدمي",
+            "missions": "المهام",
+            "rewards": "المكافآت",
+            "leaderboard": "لوحة الصدارة",
+            "mission_control": "وحدة التحكم بالمهام"
+        },
+        "progress": {
+            "current_prestige": "المرتبة الحالية",
+            "rank": "المستوى {{level}}",
+            "available_power": "الطاقة المتاحة (نقاط)",
+            "level_prog": "تقدم المستوى",
+            "xp": "{{points}} / {{next}} خبرة",
+            "more_xp": "استمر بجمع {{more}} نقطة خبرة لفتح المستوى {{level}}",
+            "streak": "سلسلة {{key}}",
+            "days": "أيام",
+            "days_count": "{{count}} أيام",
+            "all_time_best": "الأفضل على الإطلاق",
+            "last": "الآخر: {{date}}",
+            "never": "أبداً",
+            "no_streaks": "لا يوجد سلاسل نشطة",
+            "no_streaks_desc": "ابدأ يومك بنشاط لبناء أول سلسلة لك!",
+            "badge_armory": "ترسانة الأوسمة",
+            "no_badges": "لم يتم فتح أي أوسمة",
+            "mission_log": "سجل وتاريخ المهام",
+            "no_activity": "لا يوجد نشاط مسجل"
+        },
+        "missions_tab": {
+            "cleared": "تم إنجاز المهمة",
+            "active": "مهمة نشطة",
+            "current_progress": "التقدم الحالي",
+            "achieved_on": "أُنجزت في {{date}}",
+            "no_missions": "لا توجد مهام موجزة",
+            "no_missions_desc": "استعد للأهداف القادمة من مديرك."
+        },
+        "rewards_tab": {
+            "redeem": "استبدال الطاقة",
+            "insufficient": "الخبرة غير كافية",
+            "empty": "متجر المكافآت فارغ",
+            "empty_desc": "اكسب المزيد من النقاط بينما نعيد تخزين المزايا الحصرية!"
+        },
+        "manager": {
+            "active_control": "التحكم النشط في المهام",
+            "all_tactical": "جميع الأهداف التكتيكية في الميدان",
+            "launch": "إطلاق مهمة جديدة",
+            "briefing": "ملخص المهمة الاستراتيجية",
+            "briefing_desc": "حدد هدفاً جديداً لوكلائك ليحققوه.",
+            "form": {
+                "title": "عنوان المهمة",
+                "title_placeholder": "مثال: عملية الحل السريع",
+                "desc": "بيانات الهدف (الوصف)",
+                "desc_placeholder": "صف الأهداف والمتطلبات...",
+                "metric": "مصدر المقياس",
+                "metrics": {
+                    "resolved": "التذاكر المحلولة",
+                    "daily": "التقديمات اليومية",
+                    "attendance": "الحضور في الوقت المحدد",
+                    "high_kpi": "درجات مؤشر أداء عالية (>90%)"
+                },
+                "target": "الهدف المطلوب",
+                "power": "جائزة الطاقة (نقاط)",
+                "frequency": "التكرار",
+                "frequencies": {
+                    "daily": "تُعاد يومياً",
+                    "weekly": "تُعاد أسبوعياً"
+                },
+                "scope": "النطاق التكتيكي (الدور)",
+                "all_roles": "جميع الأدوار",
+                "scopes": {
+                    "universal": "كافة الأدوار",
+                    "cs": "وكلاء خدمة العملاء فقط",
+                    "acc": "مكتب الحسابات فقط"
+                },
+                "dept": "رابط القسم",
+                "all_depts": "جميع الأقسام",
+                "cross_dept": "مشترك بين الأقسام",
+                "abort": "إلغاء",
+                "deploy": "نشر المهمة"
+            },
+            "table": {
+                "objective": "الهدف",
+                "scope": "النطاق",
+                "target": "المطلوب",
+                "reward": "المكافأة",
+                "global": "عام"
+            },
+            "supply": {
+                "title": "طلبات الدعم المستحقة",
+                "subtitle": "استبدالات تنتظر الموافقة",
+                "requested_by": "مُقدمة بواسطة {{name}}",
+                "approve": "موافقة",
+                "deny": "رفض",
+                "no_requests": "لا توجد طلبات معلقة"
+            }
+        },
+        "messages": {
+            "fetch_failed": "فشل في إحضار بيانات البطولات والمكافآت",
+            "shift_started": "بدأت المناوبة بنجاح!",
+            "shift_ended": "انتهت المناوبة بنجاح!",
+            "action_failed": "فشل الإجراء",
+            "reward_requested": "تم طلب استبدال المكافأة!",
+            "redemption_failed": "فشل الاستبدال",
+            "mission_created": "تم إنشاء المهمة بنجاح!",
+            "mission_failed": "فشل في إنشاء المهمة",
+            "redemption_approved": "تم الموافقة على الاستبدال!",
+            "redemption_rejected": "تم رفض الاستبدال!",
+            "error": "خطأ",
+            "success": "نجاح"
+        }
+    },
+    "accounting": {
+        "title": "الحسابات",
+        "purchases": "المشتريات",
+        "vendors": "الموردين",
+        "expenses": "المصروفات",
+        "deductions": "مراجعة الخصومات",
+        "deposits": "الإيداعات",
+        "payroll": "الرواتب",
+        "transfers": "التحويلات",
+        "advances": "السلف"
+    },
+    "dashboard": {
+        "welcome": "مرحباً بعودتك",
+        "stats": {
+            "tickets_resolved": "التذاكر المُنجزة",
+            "avg_response": "متوسط سرعة الرد",
+            "active_users": "المستخدمين النشطين"
+        }
+    },
+    "auth": {
+        "login": "تسجيل الدخول",
+        "email": "البريد الإلكتروني",
+        "password": "كلمة المرور",
+        "sign_in": "تسجيل الدخول لحسابك"
+    }
+}
