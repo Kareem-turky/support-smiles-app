@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { HRService } from '@/services/hr';
 import { HRAttendance, Employee } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,7 @@ export default function AttendancePage() {
         notes: ''
     });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [attendanceRes, employeesRes] = await Promise.all([
@@ -51,11 +51,11 @@ export default function AttendancePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [fromDate, toDate, t]);
 
     useEffect(() => {
         fetchData();
-    }, [fromDate, toDate]);
+    }, [fetchData]);
 
     const handleSubmit = async () => {
         if (!formData.employee_id) {

@@ -106,7 +106,7 @@ export default function TicketDetails() {
     }
 
     setIsLoading(false);
-  }, [id, navigate, toast]);
+  }, [id, navigate, toast, t]);
 
   useEffect(() => {
     fetchTicketData();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { HRService } from '@/services/hr';
 import { HRLeave, Employee } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ export default function LeavesPage() {
         notes: ''
     });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [leavesRes, employeesRes] = await Promise.all([
@@ -47,11 +47,11 @@ export default function LeavesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [t]);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     const handleSubmit = async () => {
         if (!formData.employee_id) {

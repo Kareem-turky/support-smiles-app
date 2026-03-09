@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { HRService, Adjustment, Employee } from '@/services/hr';
+import { useEffect, useState, useCallback } from 'react';
+import { HRService } from '@/services/hr';
+import { Adjustment, Employee } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +31,7 @@ export default function Advances() {
         reason: ''
     });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [advances, emps] = await Promise.all([
@@ -48,11 +49,11 @@ export default function Advances() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [dateFrom, dateTo]);
 
     useEffect(() => {
         fetchData();
-    }, [dateFrom, dateTo]);
+    }, [fetchData]);
 
     const handleCreate = async () => {
         if (!formData.employee_id || formData.amount <= 0) {

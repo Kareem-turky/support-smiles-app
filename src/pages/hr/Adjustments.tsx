@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { HRService } from '@/services/hr';
 import { Adjustment, Employee } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ export default function Adjustments() {
         reason: ''
     });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             // For Adjustments list, we probably want both Bonus and Deductions but NOT advances
@@ -54,11 +54,11 @@ export default function Adjustments() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [dateFrom, dateTo]);
 
     useEffect(() => {
         fetchData();
-    }, [dateFrom, dateTo]);
+    }, [fetchData]);
 
     const handleCreate = async () => {
         if (!formData.employee_id || formData.amount <= 0) {

@@ -23,15 +23,17 @@ export default function MyKPIs() {
     const [kpiMetrics, setKpiMetrics] = useState<KpiMetric[]>([]);
     const [metricsLoading, setMetricsLoading] = useState(false);
 
+    const hasMetrics = kpiMetrics.length > 0;
+
     useEffect(() => {
-        if (actualOpened && kpiMetrics.length === 0 && !metricsLoading) {
+        if (actualOpened && !hasMetrics && !metricsLoading) {
             setMetricsLoading(true);
             KPIService.getMetrics(true)
                 .then(res => setKpiMetrics(res))
                 .catch(err => console.error("Failed to fetch metrics", err))
                 .finally(() => setMetricsLoading(false));
         }
-    }, [actualOpened]);
+    }, [actualOpened, hasMetrics, metricsLoading]);
 
     const [refreshKey, setRefreshKey] = useState(0);
     const reloadDashboard = () => setRefreshKey(prev => prev + 1);

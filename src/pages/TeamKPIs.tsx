@@ -36,16 +36,19 @@ export default function TeamKPIs() {
     const [kpiMetrics, setKpiMetrics] = useState<KpiMetric[]>([]);
     const [metricsLoading, setMetricsLoading] = useState(false);
 
+    const hasEmployees = employees.length > 0;
+    const hasMetrics = kpiMetrics.length > 0;
+
     useEffect(() => {
         if (targetOpened || actualOpened || issueOpened) {
-            if (employees.length === 0 && !employeesLoading) {
+            if (!hasEmployees && !employeesLoading) {
                 setEmployeesLoading(true);
                 HRService.getEmployees()
                     .then(res => setEmployees(res))
                     .catch(err => console.error("Failed to fetch employees", err))
                     .finally(() => setEmployeesLoading(false));
             }
-            if (kpiMetrics.length === 0 && !metricsLoading && (targetOpened || actualOpened)) {
+            if (!hasMetrics && !metricsLoading && (targetOpened || actualOpened)) {
                 setMetricsLoading(true);
                 KPIService.getMetrics(true) // only active
                     .then(res => setKpiMetrics(res))
@@ -53,7 +56,7 @@ export default function TeamKPIs() {
                     .finally(() => setMetricsLoading(false));
             }
         }
-    }, [targetOpened, actualOpened, issueOpened]);
+    }, [targetOpened, actualOpened, issueOpened, hasEmployees, employeesLoading, hasMetrics, metricsLoading]);
 
     const employeeOptions = employees.map(emp => ({
         value: emp.id,

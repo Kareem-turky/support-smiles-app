@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ export default function Gamification() {
 
     const isManager = user?.role?.includes('MANAGER') || user?.role === 'ADMIN';
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const [prog, ld, miss, rew] = await Promise.all([
                 GamificationService.getMyProgress(),
@@ -92,11 +92,11 @@ export default function Gamification() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isManager, t, toast]);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     const handleShiftAction = async (action: 'start' | 'end') => {
         setActionLoading(true);
