@@ -68,7 +68,7 @@ api.interceptors.response.use(
             const errorMsg = Array.isArray(message) ? message.join(', ') : message;
 
             // Use a custom property to pass the clear message to UI
-            return Promise.reject(new Error(`[${error.response.status}] ${errorMsg}`));
+            return Promise.reject(new Error(errorMsg));
         }
         return Promise.reject(error);
     }

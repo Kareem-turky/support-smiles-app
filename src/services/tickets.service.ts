@@ -32,77 +32,125 @@ export const ticketsService = {
       && delete params[key as keyof typeof params]
     );
 
-    const res = await api.get<PaginatedResponse<Ticket>>('/tickets', { params });
-    // Normalize response if backend returns simple array vs paginated
-    if (Array.isArray(res.data)) {
-      return {
-        success: true,
-        data: {
-          data: res.data,
-          total: res.data.length,
-          page,
-          pageSize,
-          totalPages: 1
-        }
-      };
+    try {
+      const res = await api.get<PaginatedResponse<Ticket>>('/tickets', { params });
+      // Normalize response if backend returns simple array vs paginated
+      if (Array.isArray(res.data)) {
+        return {
+          success: true,
+          data: {
+            data: res.data,
+            total: res.data.length,
+            page,
+            pageSize,
+            totalPages: 1
+          }
+        };
+      }
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-    return { success: true, data: res.data };
   },
 
   getById: async (id: string): Promise<ApiResponse<Ticket>> => {
-    const res = await api.get<Ticket>(`/tickets/${id}`);
-    return { success: true, data: res.data };
+    try {
+      const res = await api.get<Ticket>(`/tickets/${id}`);
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   create: async (dto: CreateTicketDto): Promise<ApiResponse<Ticket>> => {
-    const res = await api.post<Ticket>('/tickets', dto);
-    return { success: true, data: res.data };
+    try {
+      const res = await api.post<Ticket>('/tickets', dto);
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   update: async (id: string, dto: UpdateTicketDto): Promise<ApiResponse<Ticket>> => {
-    const res = await api.patch<Ticket>(`/tickets/${id}`, dto);
-    return { success: true, data: res.data };
+    try {
+      const res = await api.patch<Ticket>(`/tickets/${id}`, dto);
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   assign: async (id: string, assigneeId: string): Promise<ApiResponse<Ticket>> => {
-    const res = await api.post<Ticket>(`/tickets/${id}/assign`, { assigned_to: assigneeId });
-    return { success: true, data: res.data };
+    try {
+      const res = await api.post<Ticket>(`/tickets/${id}/assign`, { assigned_to: assigneeId });
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   changeStatus: async (id: string, status: TicketStatus): Promise<ApiResponse<Ticket>> => {
-    const res = await api.patch<Ticket>(`/tickets/${id}/status`, { status });
-    return { success: true, data: res.data };
+    try {
+      const res = await api.patch<Ticket>(`/tickets/${id}/status`, { status });
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   resolve: async (id: string): Promise<ApiResponse<Ticket>> => {
-    return ticketsService.changeStatus(id, 'RESOLVED');
+    try {
+      return ticketsService.changeStatus(id, 'RESOLVED');
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   reopen: async (id: string): Promise<ApiResponse<Ticket>> => {
-    const res = await api.patch<Ticket>(`/tickets/${id}/reopen`);
-    return { success: true, data: res.data };
+    try {
+      const res = await api.patch<Ticket>(`/tickets/${id}/reopen`);
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   delete: async (id: string): Promise<ApiResponse<void>> => {
-    await api.delete(`/tickets/${id}`);
-    return { success: true };
+    try {
+      await api.delete(`/tickets/${id}`);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   // Messages
   getMessages: async (ticketId: string): Promise<ApiResponse<TicketMessage[]>> => {
-    const res = await api.get<TicketMessage[]>(`/tickets/${ticketId}/messages`);
-    return { success: true, data: res.data };
+    try {
+      const res = await api.get<TicketMessage[]>(`/tickets/${ticketId}/messages`);
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   addMessage: async (ticketId: string, message: string): Promise<ApiResponse<TicketMessage>> => {
-    const res = await api.post<TicketMessage>(`/tickets/${ticketId}/messages`, { message });
-    return { success: true, data: res.data };
+    try {
+      const res = await api.post<TicketMessage>(`/tickets/${ticketId}/messages`, { message });
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   // Events (audit log)
   getEvents: async (ticketId: string): Promise<ApiResponse<TicketEvent[]>> => {
-    const res = await api.get<TicketEvent[]>(`/tickets/${ticketId}/events`);
-    return { success: true, data: res.data };
+    try {
+      const res = await api.get<TicketEvent[]>(`/tickets/${ticketId}/events`);
+      return { success: true, data: res.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   // Dashboard stats

@@ -15,7 +15,7 @@ describe('Mock API - Assignee Sync', () => {
         const newEmployeeData = {
             full_name: 'Test New Agent',
             email: 'agent.new@company.com',
-            role: 'CS',
+            role: 'CS_AGENT',
             department: 'Customer Service',
             start_date: '2025-01-01',
             base_salary: 5000,
@@ -45,7 +45,7 @@ describe('Mock API - Assignee Sync', () => {
         // 3. Verify Sync
         expect(createdUser).toBeDefined();
         expect(createdUser.name).toBe(newEmployeeData.full_name);
-        // Should have CS role by default (as per our fix) or logic
-        expect(createdUser.role).toBe('CS');
+        // Should have CS_AGENT role by default (as per our fix) or logic
+        expect(createdUser.role).toBe('CS_AGENT');
     });
 });

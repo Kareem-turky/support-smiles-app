@@ -12,9 +12,8 @@ describe('Mock API Standardization & Coverage', () => {
             });
 
             expect(result.data).toBeDefined();
-            expect(result.data.data).toBeDefined();
-            expect(result.data.data.user).toBeDefined();
-            expect(result.data.data.access_token).toBeDefined();
+            expect(result.data.user).toBeDefined();
+            expect(result.data.access_token).toBeDefined();
         });
 
         it('GET /auth/me returns direct user object', async () => {
@@ -28,8 +27,7 @@ describe('Mock API Standardization & Coverage', () => {
             });
 
             expect(result.data).toBeDefined();
-            expect(result.data.data).toBeDefined();
-            expect(result.data.data.id).toBe('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+            expect(result.data.id).toBe('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
         });
     });
 
@@ -40,7 +38,7 @@ describe('Mock API Standardization & Coverage', () => {
                 url: '/tickets'
             });
 
-            expect(Array.isArray(result.data.data)).toBe(true);
+            expect(Array.isArray(result.data)).toBe(true);
         });
 
         it('GET /tickets/:id returns single object', async () => {

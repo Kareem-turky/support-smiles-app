@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { beforeEach } from "vitest";
+import { beforeEach, vi } from "vitest";
 
 // Initialize global coverage store if in test environment
 if (typeof globalThis !== 'undefined') {
@@ -39,4 +39,17 @@ Object.defineProperty(window, "matchMedia", {
     removeEventListener: () => { },
     dispatchEvent: () => { },
   }),
+});
+
+Object.defineProperty(window, 'location', {
+  value: {
+    href: window.location.href,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    assign: vi.fn(),
+    replace: vi.fn(),
+    reload: vi.fn()
+  },
+  writable: true
 });
