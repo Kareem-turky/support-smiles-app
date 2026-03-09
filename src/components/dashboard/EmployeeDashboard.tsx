@@ -17,8 +17,10 @@ import {
     YAxis,
     CartesianGrid,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 export function EmployeeDashboard() {
+    const { t } = useTranslation();
     const [metrics, setMetrics] = useState<KPIMetrics | null>(null);
     const [gamification, setGamification] = useState<GamificationProgress | null>(null);
     const [loading, setLoading] = useState(true);

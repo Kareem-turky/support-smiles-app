@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { HRService, HRAttendance, Employee } from '@/services/hr';
+import { HRService } from '@/services/hr';
+import { HRAttendance, Employee } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +11,10 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { EntityModal } from '@/components/shared/EntityModal';
 import { toast } from 'sonner';
 import { Combobox } from '@/components/ui/combobox';
+import { useTranslation } from 'react-i18next';
 
 export default function AttendancePage() {
+    const { t } = useTranslation();
     const [data, setData] = useState<HRAttendance[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
@@ -44,7 +47,7 @@ export default function AttendancePage() {
             setEmployees(employeesRes);
         } catch (err) {
             console.error(err);
-            toast.error('Failed to load attendance data');
+            toast.error(t('hr.hr_attendance.messages.load_error'));
         } finally {
             setLoading(false);
         }
@@ -56,18 +59,18 @@ export default function AttendancePage() {
 
     const handleSubmit = async () => {
         if (!formData.employee_id) {
-            toast.error('Select employee');
+            toast.error(t('hr.hr_attendance.messages.select_error'));
             return;
         }
         setSaving(true);
         try {
             await HRService.upsertAttendance(formData);
-            toast.success('Attendance saved');
+            toast.success(t('hr.hr_attendance.messages.success'));
             setOpen(false);
             fetchData();
         } catch (err) {
             console.error(err);
-            toast.error('Failed to save attendance');
+            toast.error(t('hr.hr_attendance.messages.save_error'));
         } finally {
             setSaving(false);
         }
@@ -76,14 +79,14 @@ export default function AttendancePage() {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold">Attendance</h1>
-                <Button onClick={() => setOpen(true)}>Mark Attendance</Button>
+                <h1 className="text-3xl font-bold">{t('hr.hr_attendance.title')}</h1>
+                <Button onClick={() => setOpen(true)}>{t('hr.hr_attendance.mark_attendance')}</Button>
             </div>
 
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle>Attendance Records</CardTitle>
+                        <CardTitle>{t('hr.hr_attendance.records')}</CardTitle>
                         <div className="flex gap-2">
                             <Input
                                 type="date"
@@ -105,18 +108,18 @@ export default function AttendancePage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Employee</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Late (min)</TableHead>
-                                    <TableHead>Notes</TableHead>
+                                    <TableHead>{t('hr.hr_attendance.table.date')}</TableHead>
+                                    <TableHead>{t('hr.hr_attendance.table.employee')}</TableHead>
+                                    <TableHead>{t('hr.hr_attendance.table.status')}</TableHead>
+                                    <TableHead>{t('hr.hr_attendance.table.late_min')}</TableHead>
+                                    <TableHead>{t('hr.hr_attendance.table.notes')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {data.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                            No attendance records found for this period.
+                                            {t('hr.hr_attendance.no_records')}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -132,7 +135,7 @@ export default function AttendancePage() {
                                                     item.status === 'ABSENT' ? 'bg-red-100 text-red-800' :
                                                         'bg-yellow-100 text-yellow-800'
                                                     }`}>
-                                                    {item.status}
+                                                    {item.status === 'PRESENT' ? t('hr.hr_attendance.present') : item.status === 'ABSENT' ? t('hr.hr_attendance.absent') : t('hr.hr_attendance.leave')}
                                                 </span>
                                             </TableCell>
                                             <TableCell>{item.minutes_late}</TableCell>
@@ -149,22 +152,22 @@ export default function AttendancePage() {
             <EntityModal
                 open={open}
                 onOpenChange={setOpen}
-                title="Mark Attendance"
+                title={t('hr.hr_attendance.mark_attendance')}
                 loading={saving}
                 onSubmit={handleSubmit as any}
             >
                 <div>
-                    <Label className="mb-2 block">Employee</Label>
+                    <Label className="mb-2 block">{t('hr.hr_attendance.modal.employee_label')}</Label>
                     <Combobox
                         options={employees.map(emp => ({ label: `${emp.full_name} (${emp.code})`, value: emp.id }))}
                         value={formData.employee_id}
                         onChange={(val) => setFormData({ ...formData, employee_id: val })}
-                        placeholder="Select Employee"
-                        searchPlaceholder="Search employees..."
+                        placeholder={t('hr.hr_attendance.modal.select_emp')}
+                        searchPlaceholder={t('hr.hr_attendance.modal.search_emp')}
                     />
                 </div>
                 <div>
-                    <Label className="mb-2 block">Date</Label>
+                    <Label className="mb-2 block">{t('hr.hr_attendance.modal.date_label')}</Label>
                     <Input
                         type="date"
                         value={formData.date}
@@ -172,7 +175,7 @@ export default function AttendancePage() {
                     />
                 </div>
                 <div>
-                    <Label className="mb-2 block">Status</Label>
+                    <Label className="mb-2 block">{t('hr.hr_attendance.modal.status_label')}</Label>
                     <Select
                         value={formData.status}
                         onValueChange={(val) => setFormData({ ...formData, status: val })}
@@ -181,14 +184,14 @@ export default function AttendancePage() {
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="PRESENT">Present</SelectItem>
-                            <SelectItem value="ABSENT">Absent</SelectItem>
-                            <SelectItem value="LEAVE">Leave</SelectItem>
+                            <SelectItem value="PRESENT">{t('hr.hr_attendance.present')}</SelectItem>
+                            <SelectItem value="ABSENT">{t('hr.hr_attendance.absent')}</SelectItem>
+                            <SelectItem value="LEAVE">{t('hr.hr_attendance.leave')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div>
-                    <Label className="mb-2 block">Minutes Late</Label>
+                    <Label className="mb-2 block">{t('hr.hr_attendance.modal.late_min_label')}</Label>
                     <Input
                         type="number"
                         value={formData.minutes_late}
@@ -196,7 +199,7 @@ export default function AttendancePage() {
                     />
                 </div>
                 <div>
-                    <Label className="mb-2 block">Notes</Label>
+                    <Label className="mb-2 block">{t('hr.hr_attendance.modal.notes_label')}</Label>
                     <Input
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}

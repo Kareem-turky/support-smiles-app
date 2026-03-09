@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Query, Param, Patch, Delete } from '@nestjs/common';
 import { KpiService } from './kpi.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { CreateTargetDto } from './dto/create-target.dto';
@@ -12,6 +12,34 @@ import { UserRole } from '@prisma/client';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class KpiController {
   constructor(private readonly kpiService: KpiService) { }
+
+  // --- KPI Metrics Admin ---
+  @Get('metrics')
+  getMetrics(@Query('activeOnly') activeOnly?: string) {
+    if (activeOnly === 'true') {
+      return this.kpiService.getActiveMetrics();
+    }
+    return this.kpiService.getAllMetrics();
+  }
+
+  @Post('metrics')
+  @Roles(UserRole.ADMIN)
+  createMetric(@Body('name') name: string) {
+    return this.kpiService.createMetric(name);
+  }
+
+  @Patch('metrics/:id')
+  @Roles(UserRole.ADMIN)
+  toggleMetric(@Param('id') id: string, @Body('is_active') is_active: boolean) {
+    return this.kpiService.toggleMetric(id, is_active);
+  }
+
+  @Delete('metrics/:id')
+  @Roles(UserRole.ADMIN)
+  deleteMetric(@Param('id') id: string) {
+    return this.kpiService.deleteMetric(id);
+  }
+  // --- END KPI Metrics Admin ---
 
   @Get('my-stats')
   getMyStats(@Request() req) {

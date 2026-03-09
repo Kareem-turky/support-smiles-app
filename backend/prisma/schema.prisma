@@ -769,6 +769,15 @@ enum KPIFrequency {
   MONTHLY
 }
 
+model KpiMetric {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  @@map("kpi_metrics")
+}
+
 model KPITarget {
   id               String       @id @default(uuid())
   employee_id      String

@@ -3,7 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ManagerDashboard } from '@/components/dashboard/ManagerDashboard';
 import { useAuth } from '@/contexts/useAuth';
 import { EntityModal } from '@/components/shared/EntityModal';
-import { KPIService } from '@/services/kpi.service';
+import { KPIService, KpiMetric } from '@/services/kpi.service';
 import { HRService } from '@/services/hr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,12 +25,16 @@ export default function TeamKPIs() {
     const [loading, setLoading] = useState(false);
 
     // Form states
-    const [targetForm, setTargetForm] = useState({ employeeId: '', metric: '', targetValue: '', date: '', weight: '10' });
+    const [targetForm, setTargetForm] = useState({ employeeId: '', metric: '', targetValue: '', date: new Date().toISOString(), weight: '10' });
     const [actualForm, setActualForm] = useState({ employeeId: '', metric: '', actualValue: '', date: '' });
     const [issueForm, setIssueForm] = useState({ employeeId: '', type: 'PRODUCTIVITY', description: '', severity: 'LOW', deductionPoints: '0' });
 
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [employeesLoading, setEmployeesLoading] = useState(false);
+
+    // KPI Metrics Dropdown list
+    const [kpiMetrics, setKpiMetrics] = useState<KpiMetric[]>([]);
+    const [metricsLoading, setMetricsLoading] = useState(false);
 
     useEffect(() => {
         if (targetOpened || actualOpened || issueOpened) {
@@ -40,6 +44,13 @@ export default function TeamKPIs() {
                     .then(res => setEmployees(res))
                     .catch(err => console.error("Failed to fetch employees", err))
                     .finally(() => setEmployeesLoading(false));
+            }
+            if (kpiMetrics.length === 0 && !metricsLoading && (targetOpened || actualOpened)) {
+                setMetricsLoading(true);
+                KPIService.getMetrics(true) // only active
+                    .then(res => setKpiMetrics(res))
+                    .catch(err => console.error("Failed to fetch metrics", err))
+                    .finally(() => setMetricsLoading(false));
             }
         }
     }, [targetOpened, actualOpened, issueOpened]);
@@ -70,6 +81,7 @@ export default function TeamKPIs() {
                 weight: Number(targetForm.weight)
             });
             toast({ title: 'Success', description: 'Target created.' });
+            setTargetForm({ employeeId: '', metric: '', targetValue: '', date: new Date().toISOString(), weight: '10' });
             setTargetOpened(false);
             reloadDashboard();
         } catch (err: any) {
@@ -157,8 +169,22 @@ export default function TeamKPIs() {
                             )}
                         </div>
                         <div className="space-y-2">
+                            <Label>Target Month</Label>
+                            <Input required type="month" value={targetForm.date.slice(0, 7)} onChange={e => setTargetForm({ ...targetForm, date: new Date(e.target.value).toISOString() })} />
+                        </div>
+                        <div className="space-y-2">
                             <Label>Metric Name</Label>
-                            <Input required value={targetForm.metric} onChange={e => setTargetForm({ ...targetForm, metric: e.target.value })} placeholder="Daily Tickets" />
+                            <Select value={targetForm.metric} onValueChange={v => setTargetForm({ ...targetForm, metric: v })}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a preset metric" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {kpiMetrics.map(m => (
+                                        <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
+                                    ))}
+                                    {kpiMetrics.length === 0 && <SelectItem value="none" disabled>No active metrics. Ask Admin to create some.</SelectItem>}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -190,7 +216,17 @@ export default function TeamKPIs() {
                         </div>
                         <div className="space-y-2">
                             <Label>Metric Name</Label>
-                            <Input required value={actualForm.metric} onChange={e => setActualForm({ ...actualForm, metric: e.target.value })} placeholder="Daily Tickets" />
+                            <Select value={actualForm.metric} onValueChange={v => setActualForm({ ...actualForm, metric: v })}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a preset metric" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {kpiMetrics.map(m => (
+                                        <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
+                                    ))}
+                                    {kpiMetrics.length === 0 && <SelectItem value="none" disabled>No active metrics. Ask Admin to create some.</SelectItem>}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label>Actual Value Achieved</Label>
@@ -216,7 +252,17 @@ export default function TeamKPIs() {
                         </div>
                         <div className="space-y-2">
                             <Label>Type</Label>
-                            <Input required value={issueForm.type} onChange={e => setIssueForm({ ...issueForm, type: e.target.value })} placeholder="e.g. LATE_DELIVERY" />
+                            <Select value={issueForm.type} onValueChange={v => setIssueForm({ ...issueForm, type: v })}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a preset metric" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {kpiMetrics.map(m => (
+                                        <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
+                                    ))}
+                                    {kpiMetrics.length === 0 && <SelectItem value="" disabled>No active metrics. Ask Admin to create some.</SelectItem>}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label>Description</Label>

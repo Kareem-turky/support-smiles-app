@@ -1,14 +1,56 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { User, UserRole, AttendanceStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class KpiService {
   constructor(
     private prisma: PrismaService,
+    private notificationsService: NotificationsService,
     private gamificationService: GamificationService,
   ) { }
+
+  // --- KPI Metrics Admin ---
+  async getAllMetrics() {
+    return this.prisma.kpiMetric.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async getActiveMetrics() {
+    return this.prisma.kpiMetric.findMany({
+      where: { is_active: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createMetric(name: string) {
+    if (!name || !name.trim()) throw new BadRequestException('Name is required');
+    try {
+      return await this.prisma.kpiMetric.create({
+        data: { name: name.trim() }
+      });
+    } catch (e: any) {
+      if (e.code === 'P2002') throw new BadRequestException('A metric with this name already exists.');
+      throw e;
+    }
+  }
+
+  async toggleMetric(id: string, is_active: boolean) {
+    return this.prisma.kpiMetric.update({
+      where: { id },
+      data: { is_active }
+    });
+  }
+
+  async deleteMetric(id: string) {
+    return this.prisma.kpiMetric.delete({ where: { id } }).catch(() => {
+      throw new BadRequestException('Cannot delete metric. It may be in use.');
+    });
+  }
+  // --- END KPI Metrics Admin ---
 
   async getMetrics(userId: string) {
     const user = await this.prisma.user.findUnique({

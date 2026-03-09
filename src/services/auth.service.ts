@@ -50,6 +50,43 @@ export const authService = {
     }
   },
 
+  impersonate: async (targetUserId: string): Promise<ApiResponse<AuthUser>> => {
+    try {
+      const response = await api.post<any>(`/auth/impersonate/${targetUserId}`);
+      const rawData = response.data;
+      const loginData = (rawData.data || rawData) as LoginResponse;
+
+      if (!loginData?.access_token) {
+        throw new Error('No access token received');
+      }
+
+      const user: AuthUser = {
+        id: loginData.user.id,
+        name: loginData.user.name,
+        email: loginData.user.email,
+        role: loginData.user.role,
+      };
+
+      // Destroy previous session explicitly and hook new token in
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, loginData.access_token);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+
+      // Force a full React re-mount with the new authentication context
+      window.location.href = '/';
+
+      return { success: true, data: user };
+    } catch (error: any) {
+      console.error('[Auth] Impersonation failed:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Impersonation failed.'
+      };
+    }
+  },
+
   logout: async (): Promise<void> => {
     try {
       await api.post('/auth/logout');

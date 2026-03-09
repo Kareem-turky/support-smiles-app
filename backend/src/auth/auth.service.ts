@@ -136,4 +136,51 @@ export class AuthService {
         await this.prisma.refreshToken.deleteMany({ where: { user_id: userId } });
         return { success: true };
     }
+
+    async impersonate(targetUserId: string) {
+        const targetUser = await this.prisma.user.findUnique({
+            where: { id: targetUserId },
+        });
+
+        if (!targetUser) {
+            throw new UnauthorizedException('Target user not found');
+        }
+
+        if (!targetUser.is_active) {
+            throw new ForbiddenException('Target account is deactivated');
+        }
+
+        const payload = { sub: targetUser.id, email: targetUser.email, role: targetUser.role };
+
+        const refreshToken = this.jwtService.sign(payload, {
+            secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+            expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d',
+        } as any);
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+
+        await this.prisma.refreshToken.create({
+            data: {
+                token: refreshToken,
+                user_id: targetUser.id,
+                expires_at: expiresAt,
+            }
+        });
+
+        return {
+            success: true,
+            data: {
+                user: {
+                    id: targetUser.id,
+                    name: targetUser.name,
+                    email: targetUser.email,
+                    role: targetUser.role,
+                },
+                access_token: this.jwtService.sign(payload),
+                refresh_token: refreshToken,
+                expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            },
+        };
+    }
 }

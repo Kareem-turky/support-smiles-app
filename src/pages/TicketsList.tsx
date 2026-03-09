@@ -6,6 +6,7 @@ import { usersService } from '@/services/users.service';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
 import {
   Table,
   TableBody,
@@ -49,6 +50,7 @@ import { CreateTicketDialog } from '@/components/tickets/CreateTicketDialog';
 export default function TicketsList() {
   const { user, hasRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t } = useTranslation();
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -118,7 +120,7 @@ export default function TicketsList() {
     typeFilter !== 'all' || assigneeFilter !== 'all' || searchParams.get('search');
 
   const getUserName = (userId: string | null) => {
-    if (!userId) return 'Unassigned';
+    if (!userId) return t('tickets_list.filters.unassigned');
     const u = users.find(usr => usr.id === userId);
     return u?.name || 'Unknown';
   };
@@ -133,15 +135,15 @@ export default function TicketsList() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Tickets</h1>
+            <h1 className="text-2xl font-bold">{t('tickets_list.title')}</h1>
             <p className="text-muted-foreground">
-              {total} ticket{total !== 1 ? 's' : ''} found
+              {total === 1 ? t('tickets_list.found_one') : t('tickets_list.found', { count: total })}
             </p>
           </div>
-          {hasRole(['ADMIN', 'ACCOUNTING', 'CS_MANAGER', 'CS_AGENT']) && (
+          {hasRole(['ADMIN', 'ACC_MANAGER', 'ACC_AGENT', 'CS_MANAGER', 'CS_AGENT']) && (
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              New Ticket
+              {t('tickets_list.new_ticket')}
             </Button>
           )}
         </div>
@@ -153,10 +155,10 @@ export default function TicketsList() {
 
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as TicketStatus | 'all'); setPage(1); }}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t('tickets_list.filters.status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="all">{t('tickets_list.filters.all_status')}</SelectItem>
                 {Object.entries(STATUS_LABELS).map(([key, label]) => (
                   <SelectItem key={key} value={key}>{label}</SelectItem>
                 ))}
@@ -165,10 +167,10 @@ export default function TicketsList() {
 
             <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v as Priority | 'all'); setPage(1); }}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Priority" />
+                <SelectValue placeholder={t('tickets_list.filters.priority')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="all">{t('tickets_list.filters.all_priority')}</SelectItem>
                 {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
                   <SelectItem key={key} value={key}>{label}</SelectItem>
                 ))}
@@ -177,24 +179,24 @@ export default function TicketsList() {
 
             <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v as IssueType | 'all'); setPage(1); }}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Type" />
+                <SelectValue placeholder={t('tickets_list.filters.type')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="all">{t('tickets_list.filters.all_types')}</SelectItem>
                 {Object.entries(ISSUE_TYPE_LABELS).map(([key, label]) => (
                   <SelectItem key={key} value={key}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {hasRole(['ADMIN', 'ACCOUNTING']) && (
+            {hasRole(['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']) && (
               <Select value={assigneeFilter} onValueChange={(v) => { setAssigneeFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Assignee" />
+                  <SelectValue placeholder={t('tickets_list.filters.assignee')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Assignees</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  <SelectItem value="all">{t('tickets_list.filters.all_assignees')}</SelectItem>
+                  <SelectItem value="unassigned">{t('tickets_list.filters.unassigned')}</SelectItem>
                   {users.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                   ))}
@@ -205,7 +207,7 @@ export default function TicketsList() {
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="mr-1 h-3 w-3" />
-                Clear
+                {t('tickets_list.filters.clear')}
               </Button>
             )}
           </div>
@@ -216,14 +218,14 @@ export default function TicketsList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Order #</TableHead>
-                <TableHead>Courier</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead>Updated</TableHead>
+                <TableHead>{t('tickets_list.table.order')}</TableHead>
+                <TableHead>{t('tickets_list.table.courier')}</TableHead>
+                <TableHead>{t('tickets_list.table.reason')}</TableHead>
+                <TableHead>{t('tickets_list.table.type')}</TableHead>
+                <TableHead>{t('tickets_list.table.priority')}</TableHead>
+                <TableHead>{t('tickets_list.table.status')}</TableHead>
+                <TableHead>{t('tickets_list.table.assignee')}</TableHead>
+                <TableHead>{t('tickets_list.table.updated')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -238,7 +240,7 @@ export default function TicketsList() {
               ) : tickets.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No tickets found
+                    {t('tickets_list.no_tickets')}
                   </TableCell>
                 </TableRow>
               ) : (

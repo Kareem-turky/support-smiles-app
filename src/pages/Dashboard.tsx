@@ -4,6 +4,7 @@ import { DashboardService } from '@/services/dashboard';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Ticket, DollarSign, ShoppingCart, Users, TrendingUp, CreditCard } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { EmployeeDashboard } from '@/components/dashboard/EmployeeDashboard';
 import { ManagerDashboard } from '@/components/dashboard/ManagerDashboard';
 
@@ -31,6 +32,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { user, hasRole } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +71,7 @@ export default function Dashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, {user?.name}</h1>
+          <h1 className="text-3xl font-bold">{t('dashboard.welcome')}, {user?.name}</h1>
           <p className="text-muted-foreground mt-1">
             Your Performance & Gamification Dashboard
           </p>
@@ -84,7 +86,7 @@ export default function Dashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, {user?.name}</h1>
+          <h1 className="text-3xl font-bold">{t('dashboard.welcome')}, {user?.name}</h1>
           <p className="text-muted-foreground mt-1">
             Team Overview & Leaderboards
           </p>
@@ -101,42 +103,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Welcome back, {user?.name}</h1>
+        <h1 className="text-3xl font-bold">{t('dashboard.welcome')}, {user?.name}</h1>
         <p className="text-muted-foreground mt-1">
           Financial & Operational Overview
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle>
-            <TrendingUp className={`h-4 w-4 ${financials.net_profit_loss >= 0 ? 'text-green-500' : 'text-red-500'}`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${financials.net_profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${financials.net_profit_loss.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Revenue - All Costs
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              ${financials.deposits_total.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Vendor Deposits
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

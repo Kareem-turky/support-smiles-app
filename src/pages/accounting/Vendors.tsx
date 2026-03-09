@@ -61,7 +61,6 @@ export default function Vendors() {
     };
 
     const columns = [
-        { header: 'ID', accessorKey: 'id' as const },
         { header: 'Name', accessorKey: 'name' as const },
         { header: 'Phone', accessorKey: 'phone' as const },
     ];

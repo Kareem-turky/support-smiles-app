@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { EntityModal } from '@/components/shared/EntityModal';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Combobox } from '@/components/ui/combobox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Expenses() {
     const [data, setData] = useState<Expense[]>([]);
@@ -21,6 +21,7 @@ export default function Expenses() {
     // Modal
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [isCustomCategory, setIsCustomCategory] = useState(false);
     const [formData, setFormData] = useState({
         category: 'OFFICE',
         date: new Date().toISOString().split('T')[0],
@@ -60,6 +61,7 @@ export default function Expenses() {
                 amount: 0,
                 notes: ''
             });
+            setIsCustomCategory(false);
             fetchData();
         } catch (err) {
             console.error(err);
@@ -78,7 +80,7 @@ export default function Expenses() {
     // Derive unique categories from existing data + defaults
     const defaultCategories = ['OFFICE', 'UTILITIES', 'RENT', 'MAINTENANCE', 'OTHER'];
     const existingCategories = Array.from(new Set(data.map(e => e.category)));
-    const allCategories = Array.from(new Set([...defaultCategories, ...existingCategories]));
+    const allCategories = Array.from(new Set([...defaultCategories, ...existingCategories, formData.category].filter(Boolean)));
 
     return (
         <div className="space-y-6">
@@ -141,17 +143,44 @@ export default function Expenses() {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <Label className="mb-2 block">Category</Label>
-                        <Combobox
-                            options={allCategories.map(c => ({ label: c, value: c }))}
-                            value={formData.category}
-                            onChange={(val) => setFormData({ ...formData, category: val })}
-                            placeholder="Select Category"
-                            searchPlaceholder="Search categories..."
-                            onCreate={(inputValue) => {
-                                setFormData({ ...formData, category: inputValue });
-                            }}
-                            createLabel="Add Category"
-                        />
+                        {isCustomCategory ? (
+                            <div className="flex gap-2">
+                                <Input
+                                    value={formData.category}
+                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                    placeholder="Type new category..."
+                                    autoFocus
+                                />
+                                <Button type="button" variant="outline" onClick={() => {
+                                    setIsCustomCategory(false);
+                                    setFormData({ ...formData, category: 'OFFICE' });
+                                }}>Cancel</Button>
+                            </div>
+                        ) : (
+                            <Select
+                                value={formData.category}
+                                onValueChange={(val) => {
+                                    if (val === 'NEW') {
+                                        setIsCustomCategory(true);
+                                        setFormData({ ...formData, category: '' });
+                                    } else {
+                                        setFormData({ ...formData, category: val });
+                                    }
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {allCategories.map((c: string) => (
+                                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                                    ))}
+                                    <SelectItem value="NEW" className="font-bold text-primary border-t mt-1 pt-1 cursor-pointer">
+                                        + Create New Category...
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
                     <div>
                         <Label className="mb-2 block">Date</Label>

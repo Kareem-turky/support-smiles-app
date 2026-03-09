@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import { notificationsService } from '@/services/notifications.service';
 import { Notification, ROLE_LABELS } from '@/types';
+import { useTranslation } from 'react-i18next';
 import {
   Sidebar,
   SidebarContent,
@@ -53,129 +54,31 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  {
-    title: 'Dashboard',
-    url: '/',
-    icon: LayoutDashboard,
-    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER']
-  },
-  {
-    title: 'Tickets',
-    url: '/tickets',
-    icon: Ticket,
-    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT']
-  },
-  {
-    title: 'Users',
-    url: '/users',
-    icon: Users,
-    roles: ['ADMIN']
-  },
-  {
-    title: 'Purchases',
-    url: '/accounting/purchases',
-    icon: DollarSign,
-    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']
-  },
-  {
-    title: 'Vendors',
-    url: '/accounting/vendors',
-    icon: Users,
-    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']
-  },
-  {
-    title: 'Expenses',
-    url: '/accounting/expenses',
-    icon: CreditCard,
-    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']
-  },
-  {
-    title: 'Review Deductions',
-    url: '/accounting/review-deductions',
-    icon: Banknote,
-    roles: ['ADMIN', 'ACC_MANAGER']
-  },
-  {
-    title: 'Deposits',
-    url: '/accounting/deposits',
-    icon: Banknote,
-    roles: ['ADMIN', 'ACC_MANAGER']
-  },
-  {
-    title: 'Payroll',
-    url: '/accounting/payroll',
-    icon: Banknote,
-    roles: ['ADMIN', 'ACC_MANAGER']
-  },
-  {
-    title: 'Transfers',
-    url: '/accounting/transfers',
-    icon: Banknote,
-    roles: ['ADMIN', 'ACC_MANAGER']
-  },
-  {
-    title: 'Advances',
-    url: '/accounting/advances',
-    icon: Banknote,
-    roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT']
-  },
-  {
-    title: 'Employees',
-    url: '/hr/employees',
-    icon: Users,
-    roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT']
-  },
-  {
-    title: 'Adjustments',
-    url: '/hr/adjustments',
-    icon: List,
-    roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT']
-  },
-  {
-    title: 'Attendance',
-    url: '/hr/attendance',
-    icon: List,
-    roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT']
-  },
-  {
-    title: 'Leaves',
-    url: '/hr/leaves',
-    icon: List,
-    roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT']
-  },
-  {
-    title: 'Shipping',
-    url: '/shipping',
-    icon: Ticket,
-    roles: ['ADMIN', 'WH_MANAGER']
-  },
-  {
-    title: 'Reasons',
-    url: '/admin/ticket-reasons',
-    icon: List,
-    roles: ['ADMIN']
-  },
-  {
-    title: 'My KPIs',
-    url: '/kpi',
-    icon: Target,
-    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT']
-  },
-  {
-    title: 'Team KPIs',
-    url: '/team-kpi',
-    icon: TrendingUp,
-    roles: ['ADMIN', 'CS_MANAGER', 'ACC_MANAGER', 'HR_MANAGER', 'WH_MANAGER']
-  },
-  {
-    title: 'Gamification',
-    url: '/gamification',
-    icon: Trophy,
-    roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT']
-  },
+  { titleKey: 'nav.dashboard', url: '/', icon: LayoutDashboard, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER'] },
+  { titleKey: 'nav.tickets', url: '/tickets', icon: Ticket, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT'] },
+  { titleKey: 'nav.admin.users', url: '/users', icon: Users, roles: ['ADMIN'] },
+  { titleKey: 'accounting.purchases', url: '/accounting/purchases', icon: DollarSign, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
+  { titleKey: 'accounting.vendors', url: '/accounting/vendors', icon: Users, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
+  { titleKey: 'accounting.expenses', url: '/accounting/expenses', icon: CreditCard, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
+  { titleKey: 'accounting.deductions', url: '/accounting/review-deductions', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER'] },
+  { titleKey: 'accounting.deposits', url: '/accounting/deposits', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER'] },
+  { titleKey: 'accounting.payroll', url: '/accounting/payroll', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER'] },
+  { titleKey: 'accounting.transfers', url: '/accounting/transfers', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER'] },
+  { titleKey: 'accounting.advances', url: '/accounting/advances', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
+  { titleKey: 'hr.employees', url: '/hr/employees', icon: Users, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
+  { titleKey: 'hr.adjustments', url: '/hr/adjustments', icon: List, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
+  { titleKey: 'hr.attendance', url: '/hr/attendance', icon: List, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
+  { titleKey: 'hr.leaves', url: '/hr/leaves', icon: List, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
+  { titleKey: 'nav.shipping', url: '/shipping', icon: Ticket, roles: ['ADMIN', 'WH_MANAGER'] },
+  { titleKey: 'nav.admin.settings', url: '/admin/ticket-reasons', icon: List, roles: ['ADMIN'] },
+  { titleKey: 'nav.admin.kpi_types', url: '/admin/kpi-types', icon: List, roles: ['ADMIN'] },
+  { titleKey: 'nav.kpi', url: '/kpi', icon: Target, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] },
+  { titleKey: 'nav.team', url: '/team-kpi', icon: TrendingUp, roles: ['ADMIN', 'CS_MANAGER', 'ACC_MANAGER', 'HR_MANAGER', 'WH_MANAGER'] },
+  { titleKey: 'nav.gamification', url: '/gamification', icon: Trophy, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] },
 ];
 
 function AppSidebarContent() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuth();
   const { state } = useSidebar();
@@ -203,7 +106,7 @@ function AppSidebarContent() {
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location.pathname === item.url ||
@@ -211,7 +114,7 @@ function AppSidebarContent() {
                   >
                     <Link to={item.url}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -331,9 +234,14 @@ function NotificationBell() {
 }
 
 function TopBar({ onSearch }: { onSearch?: (query: string) => void }) {
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'en' ? 'ar' : 'en');
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -373,6 +281,9 @@ function TopBar({ onSearch }: { onSearch?: (query: string) => void }) {
       </form>
 
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={toggleLanguage} className="font-semibold text-sm">
+          {i18n.language === 'en' ? 'عربي' : 'EN'}
+        </Button>
         <NotificationBell />
 
         <DropdownMenu>
@@ -415,10 +326,11 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, onSearch }: AppLayoutProps) {
+  const { i18n } = useTranslation();
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <Sidebar collapsible="icon">
+      <div className="flex min-h-screen w-full" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+        <Sidebar collapsible="icon" side={i18n.language === 'ar' ? 'right' : 'left'}>
           <AppSidebarContent />
         </Sidebar>
         <div className="flex-1 flex flex-col">

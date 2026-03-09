@@ -3,7 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ticketsService } from '@/services/tickets.service';
-import { HRService, Department, Employee } from '@/services/hr';
+import { HRService } from '@/services/hr';
+import { Employee, Department } from '@/types';
+import { ShippingService, ShippingCompany } from '@/services/shipping';
 import { reasonsService, TicketReason } from '@/services/reasons.service';
 import { IssueType, Priority, ISSUE_TYPE_LABELS, PRIORITY_LABELS } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +63,7 @@ export function CreateTicketDialog({ open, onOpenChange, onCreated }: CreateTick
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [reasons, setReasons] = useState<TicketReason[]>([]);
+  const [shippingCompanies, setShippingCompanies] = useState<ShippingCompany[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -91,14 +94,16 @@ export function CreateTicketDialog({ open, onOpenChange, onCreated }: CreateTick
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const [deptRes, empRes, reasonsRes] = await Promise.all([
+        const [deptRes, empRes, reasonsRes, shippingRes] = await Promise.all([
           HRService.getDepartments(),
           HRService.getEmployees(),
-          reasonsService.getAll(true)
+          reasonsService.getAll(true),
+          ShippingService.getCompanies()
         ]);
         setDepartments(deptRes || []);
         setEmployees(empRes || []);
         setReasons(reasonsRes || []);
+        setShippingCompanies(shippingRes || []);
         setFilteredEmployees(empRes || []);
       } catch (error) {
         console.error("Failed to load metadata", error);
@@ -211,7 +216,13 @@ export function CreateTicketDialog({ open, onOpenChange, onCreated }: CreateTick
                     <FormItem>
                       <FormLabel>Courier Company</FormLabel>
                       <FormControl>
-                        <Input placeholder="FedEx" {...field} />
+                        <Combobox
+                          options={shippingCompanies.map(c => ({ label: c.name, value: c.name }))}
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select Shipping Company"
+                          searchPlaceholder="Search couriers..."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

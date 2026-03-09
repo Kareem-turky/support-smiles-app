@@ -29,10 +29,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useTranslation } from 'react-i18next';
 
 export default function Gamification() {
     const { toast } = useToast();
     const { user, hasRole } = useAuth();
+    const { t } = useTranslation();
     const [progress, setProgress] = useState<GamificationProgress | null>(null);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [missions, setMissions] = useState<Mission[]>([]);
@@ -86,7 +88,7 @@ export default function Gamification() {
             }
         } catch (err) {
             console.error(err);
-            toast({ title: 'Error', description: 'Failed to fetch gamification data', variant: 'destructive' });
+            toast({ title: t('gamification_page.messages.error'), description: t('gamification_page.messages.fetch_failed'), variant: 'destructive' });
         } finally {
             setLoading(false);
         }
@@ -102,10 +104,10 @@ export default function Gamification() {
             if (action === 'start') await GamificationService.startShift();
             else await GamificationService.endShift();
 
-            toast({ title: 'Success', description: `Shift ${action === 'start' ? 'started' : 'ended'} successfully!` });
+            toast({ title: t('gamification_page.messages.success'), description: action === 'start' ? t('gamification_page.messages.shift_started') : t('gamification_page.messages.shift_ended') });
             fetchData();
         } catch (err) {
-            toast({ title: 'Error', description: 'Action failed', variant: 'destructive' });
+            toast({ title: t('gamification_page.messages.error'), description: t('gamification_page.messages.action_failed'), variant: 'destructive' });
         } finally {
             setActionLoading(false);
         }
@@ -115,12 +117,12 @@ export default function Gamification() {
         setActionLoading(true);
         try {
             await GamificationService.redeemReward(rewardId);
-            toast({ title: 'Success', description: 'Reward redemption requested!' });
+            toast({ title: t('gamification_page.messages.success'), description: t('gamification_page.messages.reward_requested') });
             fetchData();
         } catch (err: any) {
             toast({
-                title: 'Redemption Failed',
-                description: err.response?.data?.message || 'Insufficient points or error.',
+                title: t('gamification_page.messages.redemption_failed'),
+                description: err.response?.data?.message || t('gamification_page.messages.redemption_failed'),
                 variant: 'destructive'
             });
         } finally {
@@ -132,11 +134,11 @@ export default function Gamification() {
         setActionLoading(true);
         try {
             await GamificationService.createMission({ ...newMission, assignments: [] });
-            toast({ title: 'Success', description: 'Mission created successfully!' });
+            toast({ title: t('gamification_page.messages.success'), description: t('gamification_page.messages.mission_created') });
             setIsCreateModalOpen(false);
             fetchData();
         } catch (err: any) {
-            toast({ title: 'Error', description: 'Failed to create mission', variant: 'destructive' });
+            toast({ title: t('gamification_page.messages.error'), description: t('gamification_page.messages.mission_failed'), variant: 'destructive' });
         } finally {
             setActionLoading(false);
         }
@@ -146,10 +148,10 @@ export default function Gamification() {
         setActionLoading(true);
         try {
             await GamificationService.approveRedemption(id, status);
-            toast({ title: 'Success', description: `Redemption ${status.toLowerCase()}!` });
+            toast({ title: t('gamification_page.messages.success'), description: status === 'APPROVED' ? t('gamification_page.messages.redemption_approved') : t('gamification_page.messages.redemption_rejected') });
             fetchData();
         } catch (err: any) {
-            toast({ title: 'Error', description: 'Action failed', variant: 'destructive' });
+            toast({ title: t('gamification_page.messages.error'), description: t('gamification_page.messages.action_failed'), variant: 'destructive' });
         } finally {
             setActionLoading(false);
         }
@@ -168,9 +170,9 @@ export default function Gamification() {
             <div className="space-y-6 max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Gamification Hub</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">{t('gamification_page.title')}</h1>
                         <p className="text-muted-foreground mt-1 text-lg">
-                            Level up your performance and earn exclusive rewards.
+                            {t('gamification_page.subtitle')}
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -179,14 +181,14 @@ export default function Gamification() {
                             disabled={actionLoading}
                             className="bg-green-600 hover:bg-green-700"
                         >
-                            <Play className="h-4 w-4 mr-2" /> Start Shift
+                            <Play className="h-4 w-4 mr-2" /> {t('gamification_page.buttons.start_shift')}
                         </Button>
                         <Button
                             onClick={() => handleShiftAction('end')}
                             disabled={actionLoading}
                             variant="destructive"
                         >
-                            <Square className="h-4 w-4 mr-2" /> End Shift
+                            <Square className="h-4 w-4 mr-2" /> {t('gamification_page.buttons.end_shift')}
                         </Button>
                     </div>
                 </div>
@@ -194,10 +196,10 @@ export default function Gamification() {
                 <Tabs defaultValue="progress" className="space-y-6">
                     <TabsList className="bg-muted/50 p-1 rounded-xl h-auto flex flex-wrap gap-1 border">
                         <TabsTrigger value="progress" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 font-bold flex gap-2">
-                            <Star className="h-4 w-4" /> My Progress
+                            <Star className="h-4 w-4" /> {t('gamification_page.tabs.my_progress')}
                         </TabsTrigger>
                         <TabsTrigger value="missions" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 font-bold flex gap-2">
-                            <Target className="h-4 w-4" /> Missions
+                            <Target className="h-4 w-4" /> {t('gamification_page.tabs.missions')}
                             {missions.filter(m => m.assignments.some(a => a.status === 'ACTIVE')).length > 0 && (
                                 <UIBadge variant="destructive" className="ml-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px]">
                                     {missions.filter(m => m.assignments.some(a => a.status === 'ACTIVE')).length}
@@ -205,14 +207,14 @@ export default function Gamification() {
                             )}
                         </TabsTrigger>
                         <TabsTrigger value="rewards" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 font-bold flex gap-2">
-                            <Gift className="h-4 w-4" /> Rewards
+                            <Gift className="h-4 w-4" /> {t('gamification_page.tabs.rewards')}
                         </TabsTrigger>
                         <TabsTrigger value="leaderboard" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 font-bold flex gap-2">
-                            <Trophy className="h-4 w-4" /> Leaderboard
+                            <Trophy className="h-4 w-4" /> {t('gamification_page.tabs.leaderboard')}
                         </TabsTrigger>
                         {isManager && (
                             <TabsTrigger value="manager" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 font-bold flex gap-2 border-l border-indigo-200 ml-auto">
-                                <Settings className="h-4 w-4" /> Mission Control
+                                <Settings className="h-4 w-4" /> {t('gamification_page.tabs.mission_control')}
                             </TabsTrigger>
                         )}
                     </TabsList>
@@ -229,12 +231,12 @@ export default function Gamification() {
                                                         <Star className="h-12 w-12 text-yellow-300 fill-yellow-300 animate-pulse" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-indigo-100 font-bold uppercase tracking-widest text-xs">Current Prestige</p>
-                                                        <h2 className="text-6xl font-black">Rank {progress.level}</h2>
+                                                        <p className="text-indigo-100 font-bold uppercase tracking-widest text-xs">{t('gamification_page.progress.current_prestige')}</p>
+                                                        <h2 className="text-6xl font-black">{t('gamification_page.progress.rank', { level: progress.level })}</h2>
                                                     </div>
                                                 </div>
                                                 <div className="md:text-right">
-                                                    <p className="text-indigo-100 font-bold uppercase tracking-widest text-xs">Available Power (Points)</p>
+                                                    <p className="text-indigo-100 font-bold uppercase tracking-widest text-xs">{t('gamification_page.progress.available_power')}</p>
                                                     <div className="flex items-center md:justify-end gap-3 mt-1">
                                                         <Zap className="h-10 w-10 text-yellow-300 fill-yellow-300" />
                                                         <span className="text-5xl font-black">{progress.points.toLocaleString()}</span>
@@ -243,8 +245,8 @@ export default function Gamification() {
                                             </div>
                                             <div className="space-y-4">
                                                 <div className="flex justify-between text-sm font-black uppercase tracking-tight">
-                                                    <span className="text-indigo-100">Level Progression</span>
-                                                    <span>{progress.points} / {progress.next_level_points} XP</span>
+                                                    <span className="text-indigo-100">{t('gamification_page.progress.level_prog')}</span>
+                                                    <span>{t('gamification_page.progress.xp', { points: progress.points, next: progress.next_level_points })}</span>
                                                 </div>
                                                 <div className="h-5 bg-white/20 rounded-full p-1 ring-1 ring-white/30">
                                                     <div
@@ -255,7 +257,7 @@ export default function Gamification() {
                                                     </div>
                                                 </div>
                                                 <p className="text-xs text-indigo-100 text-right font-bold italic">
-                                                    {Math.max(0, progress.next_level_points - progress.points)} more XP to unlock Rank {progress.level + 1}
+                                                    {t('gamification_page.progress.more_xp', { more: Math.max(0, progress.next_level_points - progress.points), level: progress.level + 1 })}
                                                 </p>
                                             </div>
                                         </div>
@@ -273,21 +275,21 @@ export default function Gamification() {
                                                             <Flame className="h-8 w-8 text-white fill-white animate-bounce" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-orange-100 text-xs font-black uppercase tracking-widest leading-none">{s.key} Streak</p>
+                                                            <p className="text-orange-100 text-xs font-black uppercase tracking-widest leading-none">{t('gamification_page.progress.streak', { key: s.key })}</p>
                                                             <div className="flex items-baseline gap-2">
                                                                 <span className="text-5xl font-black">{s.current_count}</span>
-                                                                <span className="text-orange-100 text-sm font-bold">Days</span>
+                                                                <span className="text-orange-100 text-sm font-bold">{t('gamification_page.progress.days')}</span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="mt-4 pt-4 border-t border-white/20 flex justify-between items-end">
                                                         <div>
-                                                            <p className="text-orange-100 text-[10px] font-bold uppercase">All-Time Best</p>
-                                                            <p className="font-black text-lg">{s.best_count} Days</p>
+                                                            <p className="text-orange-100 text-[10px] font-bold uppercase">{t('gamification_page.progress.all_time_best')}</p>
+                                                            <p className="font-black text-lg">{t('gamification_page.progress.days_count', { count: s.best_count })}</p>
                                                         </div>
                                                         <div className="text-right">
                                                             <Clock className="h-4 w-4 inline-block mr-1 opacity-70" />
-                                                            <span className="text-[10px] font-bold uppercase">Last: {s.last_hit_date ? new Date(s.last_hit_date).toLocaleDateString() : 'Never'}</span>
+                                                            <span className="text-[10px] font-bold uppercase">{t('gamification_page.progress.last', { date: s.last_hit_date ? new Date(s.last_hit_date).toLocaleDateString() : t('gamification_page.progress.never') })}</span>
                                                         </div>
                                                     </div>
                                                 </CardContent>
@@ -296,8 +298,8 @@ export default function Gamification() {
                                         {progress.streaks.length === 0 && (
                                             <Card className="bg-muted/50 border-dashed border-2 flex flex-col items-center justify-center p-8 text-center">
                                                 <Clock className="h-10 w-10 text-muted-foreground mb-2" />
-                                                <p className="font-bold text-muted-foreground uppercase text-xs tracking-widest">No Active Streaks</p>
-                                                <p className="text-xs text-muted-foreground mt-1">Start daily actions to build your first streak!</p>
+                                                <p className="font-bold text-muted-foreground uppercase text-xs tracking-widest">{t('gamification_page.progress.no_streaks')}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">{t('gamification_page.progress.no_streaks_desc')}</p>
                                             </Card>
                                         )}
                                     </div>
@@ -308,7 +310,7 @@ export default function Gamification() {
                                         <CardHeader>
                                             <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight">
                                                 <Award className="h-6 w-6 text-indigo-600" />
-                                                Badge Armory
+                                                {t('gamification_page.progress.badge_armory')}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent>
@@ -324,7 +326,7 @@ export default function Gamification() {
                                                 ))}
                                                 {progress.badges.length === 0 && (
                                                     <div className="col-span-3 text-center py-10">
-                                                        <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">No Badges Locked</p>
+                                                        <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">{t('gamification_page.progress.no_badges')}</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -335,7 +337,7 @@ export default function Gamification() {
                                         <CardHeader>
                                             <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight">
                                                 <Clock className="h-6 w-6 text-indigo-600" />
-                                                Mission Log & History
+                                                {t('gamification_page.progress.mission_log')}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent>
@@ -353,7 +355,7 @@ export default function Gamification() {
                                                     </div>
                                                 ))}
                                                 {progress.history.length === 0 && (
-                                                    <p className="text-center text-muted-foreground py-10 font-bold uppercase text-[10px] tracking-widest">No Activity Logged</p>
+                                                    <p className="text-center text-muted-foreground py-10 font-bold uppercase text-[10px] tracking-widest">{t('gamification_page.progress.no_activity')}</p>
                                                 )}
                                             </div>
                                         </CardContent>
@@ -375,7 +377,7 @@ export default function Gamification() {
                                         <CardHeader className="pb-2">
                                             <div className="flex justify-between items-start mb-2">
                                                 <UIBadge variant={isCompleted ? 'default' : 'secondary'} className={`${isCompleted ? 'bg-green-600' : ''} font-black uppercase text-[10px]`}>
-                                                    {isCompleted ? 'Objective Cleared' : 'Active Duty'}
+                                                    {isCompleted ? t('gamification_page.missions_tab.cleared') : t('gamification_page.missions_tab.active')}
                                                 </UIBadge>
                                                 <div className="flex items-center gap-1 text-primary font-black">
                                                     <Zap className="h-4 w-4 fill-primary" />
@@ -388,7 +390,7 @@ export default function Gamification() {
                                         <CardContent className="space-y-4 pt-2">
                                             <div className="space-y-2">
                                                 <div className="flex justify-between text-[11px] font-black uppercase tracking-tight">
-                                                    <span className="text-muted-foreground">Current Progress</span>
+                                                    <span className="text-muted-foreground">{t('gamification_page.missions_tab.current_progress')}</span>
                                                     <span className={isCompleted ? 'text-green-600' : 'text-indigo-600'}>
                                                         {assignment?.progress_value || 0} / {mission.target_value}
                                                     </span>
@@ -401,7 +403,7 @@ export default function Gamification() {
                                             {isCompleted && assignment?.completed_at && (
                                                 <div className="flex items-center gap-2 text-[10px] font-black text-green-700 bg-green-100/50 p-2 rounded-lg justify-center uppercase tracking-widest">
                                                     <CheckCircle2 className="h-3 w-3" />
-                                                    Achieved on {new Date(assignment.completed_at).toLocaleDateString()}
+                                                    {t('gamification_page.missions_tab.achieved_on', { date: new Date(assignment.completed_at).toLocaleDateString() })}
                                                 </div>
                                             )}
                                         </CardContent>
@@ -411,8 +413,8 @@ export default function Gamification() {
                             {missions.length === 0 && (
                                 <div className="col-span-full py-16 text-center border-2 border-dashed rounded-3xl bg-muted/20">
                                     <Target className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                                    <h3 className="text-xl font-black uppercase tracking-tighter">No Missions Briefed</h3>
-                                    <p className="text-muted-foreground text-sm font-medium">Stand by for upcoming objectives from your manager.</p>
+                                    <h3 className="text-xl font-black uppercase tracking-tighter">{t('gamification_page.missions_tab.no_missions')}</h3>
+                                    <p className="text-muted-foreground text-sm font-medium">{t('gamification_page.missions_tab.no_missions_desc')}</p>
                                 </div>
                             )}
                         </div>
@@ -446,7 +448,7 @@ export default function Gamification() {
                                                 variant={canAfford ? 'default' : 'outline'}
                                                 onClick={() => handleRedeem(reward.id)}
                                             >
-                                                {canAfford ? 'Redeem Power' : 'Insufficient XP'}
+                                                {canAfford ? t('gamification_page.rewards_tab.redeem') : t('gamification_page.rewards_tab.insufficient')}
                                                 <ChevronRight className="h-4 w-4 ml-2" />
                                             </Button>
                                         </CardContent>
@@ -456,8 +458,8 @@ export default function Gamification() {
                             {rewards.length === 0 && (
                                 <div className="col-span-full py-16 text-center border-2 border-dashed rounded-3xl bg-muted/20">
                                     <Gift className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                                    <h3 className="text-xl font-black uppercase tracking-tighter">Reward Store Empty</h3>
-                                    <p className="text-muted-foreground text-sm font-medium">Earn more points while we restock exclusive perks!</p>
+                                    <h3 className="text-xl font-black uppercase tracking-tighter">{t('gamification_page.rewards_tab.empty')}</h3>
+                                    <p className="text-muted-foreground text-sm font-medium">{t('gamification_page.rewards_tab.empty_desc')}</p>
                                 </div>
                             )}
                         </div>
@@ -475,54 +477,54 @@ export default function Gamification() {
                                 <Card className="lg:col-span-2 shadow-md">
                                     <CardHeader className="flex flex-row items-center justify-between">
                                         <div>
-                                            <CardTitle className="text-xl font-black uppercase tracking-tight">Active Mission Control</CardTitle>
-                                            <CardDescription className="text-xs font-bold uppercase py-1">All tactical objectives in the field</CardDescription>
+                                            <CardTitle className="text-xl font-black uppercase tracking-tight">{t('gamification_page.manager.active_control')}</CardTitle>
+                                            <CardDescription className="text-xs font-bold uppercase py-1">{t('gamification_page.manager.all_tactical')}</CardDescription>
                                         </div>
                                         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                                             <DialogTrigger asChild>
                                                 <Button className="bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-xs">
-                                                    <Plus className="h-4 w-4 mr-2" /> Launch New Mission
+                                                    <Plus className="h-4 w-4 mr-2" /> {t('gamification_page.manager.launch')}
                                                 </Button>
                                             </DialogTrigger>
                                             <DialogContent className="max-w-2xl">
                                                 <DialogHeader>
-                                                    <DialogTitle className="text-2xl font-black uppercase tracking-tighter">Strategic Mission Briefing</DialogTitle>
-                                                    <DialogDescription>Define a new objective for your agents to achieve.</DialogDescription>
+                                                    <DialogTitle className="text-2xl font-black uppercase tracking-tighter">{t('gamification_page.manager.briefing')}</DialogTitle>
+                                                    <DialogDescription>{t('gamification_page.manager.briefing_desc')}</DialogDescription>
                                                 </DialogHeader>
                                                 <div className="grid gap-6 py-4">
                                                     <div className="grid gap-2">
-                                                        <Label className="font-black uppercase text-[10px] tracking-widest">Mission Title</Label>
+                                                        <Label className="font-black uppercase text-[10px] tracking-widest">{t('gamification_page.manager.form.title')}</Label>
                                                         <Input
-                                                            placeholder="e.g. Operation: Speed Resolve"
+                                                            placeholder={t('gamification_page.manager.form.title_placeholder')}
                                                             value={newMission.title}
                                                             onChange={e => setNewMission({ ...newMission, title: e.target.value })}
                                                         />
                                                     </div>
                                                     <div className="grid gap-2">
-                                                        <Label className="font-black uppercase text-[10px] tracking-widest">Objective Intel (Description)</Label>
+                                                        <Label className="font-black uppercase text-[10px] tracking-widest">{t('gamification_page.manager.form.desc')}</Label>
                                                         <Textarea
-                                                            placeholder="Describe the goals and requirements..."
+                                                            placeholder={t('gamification_page.manager.form.desc_placeholder')}
                                                             value={newMission.description}
                                                             onChange={e => setNewMission({ ...newMission, description: e.target.value })}
                                                         />
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="grid gap-2">
-                                                            <Label className="font-black uppercase text-[10px] tracking-widest">Metric Source</Label>
+                                                            <Label className="font-black uppercase text-[10px] tracking-widest">{t('gamification_page.manager.form.metric')}</Label>
                                                             <Select value={newMission.metric_key} onValueChange={v => setNewMission({ ...newMission, metric_key: v })}>
                                                                 <SelectTrigger>
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="RESOLVED_TICKETS">Resolved Tickets</SelectItem>
-                                                                    <SelectItem value="DAILY_SUBMISSION">Daily Submissions</SelectItem>
-                                                                    <SelectItem value="ON_TIME_ATTENDANCE">On-Time Attendance</SelectItem>
-                                                                    <SelectItem value="HIGH_KPI_SCORE">High KPI Scores (&gt;90%)</SelectItem>
+                                                                    <SelectItem value="RESOLVED_TICKETS">{t('gamification_page.manager.form.metrics.resolved')}</SelectItem>
+                                                                    <SelectItem value="DAILY_SUBMISSION">{t('gamification_page.manager.form.metrics.daily')}</SelectItem>
+                                                                    <SelectItem value="ON_TIME_ATTENDANCE">{t('gamification_page.manager.form.metrics.attendance')}</SelectItem>
+                                                                    <SelectItem value="HIGH_KPI_SCORE">{t('gamification_page.manager.form.metrics.high_kpi')}</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
                                                         <div className="grid gap-2">
-                                                            <Label className="font-black uppercase text-[10px] tracking-widest">Target Threshold</Label>
+                                                            <Label className="font-black uppercase text-[10px] tracking-widest">{t('gamification_page.manager.form.target')}</Label>
                                                             <Input
                                                                 type="number"
                                                                 value={newMission.target_value}
@@ -532,7 +534,7 @@ export default function Gamification() {
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="grid gap-2">
-                                                            <Label className="font-black uppercase text-[10px] tracking-widest">Power Award (Points)</Label>
+                                                            <Label className="font-black uppercase text-[10px] tracking-widest">{t('gamification_page.manager.form.power')}</Label>
                                                             <Input
                                                                 type="number"
                                                                 value={newMission.points}
@@ -540,40 +542,40 @@ export default function Gamification() {
                                                             />
                                                         </div>
                                                         <div className="grid gap-2">
-                                                            <Label className="font-black uppercase text-[10px] tracking-widest">Frequency</Label>
+                                                            <Label className="font-black uppercase text-[10px] tracking-widest">{t('gamification_page.manager.form.frequency')}</Label>
                                                             <Select value={newMission.frequency} onValueChange={v => setNewMission({ ...newMission, frequency: v })}>
                                                                 <SelectTrigger>
                                                                     <SelectValue />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="DAILY">Daily Reset</SelectItem>
-                                                                    <SelectItem value="WEEKLY">Weekly Reset</SelectItem>
+                                                                    <SelectItem value="DAILY">{t('gamification_page.manager.form.frequencies.daily')}</SelectItem>
+                                                                    <SelectItem value="WEEKLY">{t('gamification_page.manager.form.frequencies.weekly')}</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="grid gap-2">
-                                                            <Label className="font-black uppercase text-[10px] tracking-widest">Tactical Scope (Role)</Label>
+                                                            <Label className="font-black uppercase text-[10px] tracking-widest">{t('gamification_page.manager.form.scope')}</Label>
                                                             <Select value={newMission.role_scope} onValueChange={v => setNewMission({ ...newMission, role_scope: v })}>
                                                                 <SelectTrigger>
-                                                                    <SelectValue placeholder="All Roles" />
+                                                                    <SelectValue placeholder={t('gamification_page.manager.form.all_roles')} />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="ALL">Universal</SelectItem>
-                                                                    <SelectItem value="CS_AGENT">CS Agents Only</SelectItem>
-                                                                    <SelectItem value="ACC_AGENT">Accounting Clerks Only</SelectItem>
+                                                                    <SelectItem value="ALL">{t('gamification_page.manager.form.scopes.universal')}</SelectItem>
+                                                                    <SelectItem value="CS_AGENT">{t('gamification_page.manager.form.scopes.cs')}</SelectItem>
+                                                                    <SelectItem value="ACC_AGENT">{t('gamification_page.manager.form.scopes.acc')}</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
                                                         <div className="grid gap-2">
-                                                            <Label className="font-black uppercase text-[10px] tracking-widest">Department Link</Label>
+                                                            <Label className="font-black uppercase text-[10px] tracking-widest">{t('gamification_page.manager.form.dept')}</Label>
                                                             <Select value={newMission.department_id} onValueChange={v => setNewMission({ ...newMission, department_id: v })}>
                                                                 <SelectTrigger>
-                                                                    <SelectValue placeholder="All Departments" />
+                                                                    <SelectValue placeholder={t('gamification_page.manager.form.all_depts')} />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="">Cross-Department</SelectItem>
+                                                                    <SelectItem value="">{t('gamification_page.manager.form.cross_dept')}</SelectItem>
                                                                     {departments.map(d => (
                                                                         <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                                                                     ))}
@@ -583,8 +585,8 @@ export default function Gamification() {
                                                     </div>
                                                 </div>
                                                 <DialogFooter>
-                                                    <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Abort</Button>
-                                                    <Button onClick={handleCreateMission} disabled={actionLoading} className="bg-indigo-600">Deploy Mission</Button>
+                                                    <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>{t('gamification_page.manager.form.abort')}</Button>
+                                                    <Button onClick={handleCreateMission} disabled={actionLoading} className="bg-indigo-600">{t('gamification_page.manager.form.deploy')}</Button>
                                                 </DialogFooter>
                                             </DialogContent>
                                         </Dialog>
@@ -593,10 +595,10 @@ export default function Gamification() {
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead className="font-black uppercase text-[10px]">Objective</TableHead>
-                                                    <TableHead className="font-black uppercase text-[10px]">Scope</TableHead>
-                                                    <TableHead className="font-black uppercase text-[10px]">Target</TableHead>
-                                                    <TableHead className="font-black uppercase text-[10px]">Reward</TableHead>
+                                                    <TableHead className="font-black uppercase text-[10px]">{t('gamification_page.manager.table.objective')}</TableHead>
+                                                    <TableHead className="font-black uppercase text-[10px]">{t('gamification_page.manager.table.scope')}</TableHead>
+                                                    <TableHead className="font-black uppercase text-[10px]">{t('gamification_page.manager.table.target')}</TableHead>
+                                                    <TableHead className="font-black uppercase text-[10px]">{t('gamification_page.manager.table.reward')}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -607,7 +609,7 @@ export default function Gamification() {
                                                             <p className="text-[10px] text-muted-foreground">{(m as any).frequency}</p>
                                                         </TableCell>
                                                         <TableCell className="text-[10px] font-bold uppercase">
-                                                            {(m as any).department?.name || (m as any).role_scope || 'Global'}
+                                                            {(m as any).department?.name || (m as any).role_scope || t('gamification_page.manager.table.global')}
                                                         </TableCell>
                                                         <TableCell className="text-[10px] font-bold">
                                                             {m.target_value} {m.metric_key}
@@ -627,8 +629,8 @@ export default function Gamification() {
 
                                 <Card className="shadow-md">
                                     <CardHeader>
-                                        <CardTitle className="text-xl font-black uppercase tracking-tight">Supply Requests</CardTitle>
-                                        <CardDescription className="text-xs font-bold uppercase py-1">Redemptions awaiting approval</CardDescription>
+                                        <CardTitle className="text-xl font-black uppercase tracking-tight">{t('gamification_page.manager.supply.title')}</CardTitle>
+                                        <CardDescription className="text-xs font-bold uppercase py-1">{t('gamification_page.manager.supply.subtitle')}</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
@@ -637,7 +639,7 @@ export default function Gamification() {
                                                     <div className="flex justify-between items-start">
                                                         <div>
                                                             <p className="font-black text-sm">{r.reward?.name}</p>
-                                                            <p className="text-[10px] font-bold text-muted-foreground">Requested by {r.user?.name}</p>
+                                                            <p className="text-[10px] font-bold text-muted-foreground">{t('gamification_page.manager.supply.requested_by', { name: r.user?.name })}</p>
                                                         </div>
                                                         <div className="flex items-center gap-1 font-black text-xs text-indigo-600">
                                                             <Zap className="h-3 w-3 fill-indigo-600" />
@@ -651,7 +653,7 @@ export default function Gamification() {
                                                             onClick={() => handleApproveRedemption(r.id, 'APPROVED')}
                                                             disabled={actionLoading}
                                                         >
-                                                            <Check className="h-3 w-3 mr-1" /> Approve
+                                                            <Check className="h-3 w-3 mr-1" /> {t('gamification_page.manager.supply.approve')}
                                                         </Button>
                                                         <Button
                                                             size="sm"
@@ -660,7 +662,7 @@ export default function Gamification() {
                                                             onClick={() => handleApproveRedemption(r.id, 'REJECTED')}
                                                             disabled={actionLoading}
                                                         >
-                                                            <X className="h-3 w-3 mr-1" /> Deny
+                                                            <X className="h-3 w-3 mr-1" /> {t('gamification_page.manager.supply.deny')}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -668,7 +670,7 @@ export default function Gamification() {
                                             {redemptions.filter(r => r.status === 'REQUESTED').length === 0 && (
                                                 <div className="text-center py-10">
                                                     <CheckCircle2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No pending requests</p>
+                                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('gamification_page.manager.supply.no_requests')}</p>
                                                 </div>
                                             )}
                                         </div>

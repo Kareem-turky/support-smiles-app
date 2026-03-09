@@ -29,6 +29,7 @@ import Employees from "./pages/hr/Employees";
 import Adjustments from "./pages/hr/Adjustments";
 import Shipping from "./pages/Shipping";
 import TicketReasons from "./pages/admin/TicketReasons";
+import KPITypes from "./pages/admin/KPITypes";
 import MyKPIs from "./pages/MyKPIs";
 import TeamKPIs from "./pages/TeamKPIs";
 import Gamification from "./pages/Gamification";
@@ -116,8 +117,16 @@ const App = () => (
 
               {/* Admin */}
               <Route path="/admin/ticket-reasons" element={
-                <ProtectedRoute allowedRoles={['ADMIN']}><TicketReasons /></ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <TicketReasons />
+                </ProtectedRoute>
               } />
+              <Route path="/admin/kpi-types" element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <KPITypes />
+                </ProtectedRoute>
+              } />
+
               {/* KPI & Gamification */}
               <Route path="/kpi" element={<MyKPIs />} />
               <Route path="/gamification" element={<Gamification />} />
