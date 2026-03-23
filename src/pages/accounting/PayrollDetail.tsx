@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AccountingService, PayrollRun } from '@/services/accounting';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ export default function PayrollDetail() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
-    const fetchDetail = async () => {
+    const fetchDetail = useCallback(async () => {
         if (!id) return;
         setLoading(true);
         try {
@@ -27,11 +27,11 @@ export default function PayrollDetail() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, navigate]);
 
     useEffect(() => {
         fetchDetail();
-    }, [id]);
+    }, [fetchDetail]);
 
     const handleApprove = async () => {
         if (!id) return;
