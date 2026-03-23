@@ -97,7 +97,23 @@ export default function Dashboard() {
   }
 
   // Financial / Admin View
-  const { financials, counts } = data!;
+  if (!data) {
+      return (
+          <div className="space-y-6">
+              <div>
+                  <h1 className="text-3xl font-bold">{t('dashboard.welcome')}, {user?.name}</h1>
+                  <p className="text-muted-foreground mt-1">Financial & Operational Overview</p>
+              </div>
+              <Card>
+                  <CardContent className="pt-6 text-center text-muted-foreground">
+                      Could not load dashboard data. Please check your connection or try again later.
+                  </CardContent>
+              </Card>
+          </div>
+      );
+  }
+
+  const { financials, counts } = data;
   const totalExpenses = financials.purchases_total + financials.expenses_total + financials.payroll_total + financials.transfers_total + financials.hr_bonus_total;
 
   return (

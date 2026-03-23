@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Purchases from "./pages/accounting/Purchases";
 import Expenses from "./pages/accounting/Expenses";
 import Payroll from "./pages/accounting/Payroll";
+import PayrollDetail from "./pages/accounting/PayrollDetail";
 import Deposits from "./pages/accounting/Deposits";
 import Transfers from "./pages/accounting/Transfers";
 import Advances from "./pages/accounting/Advances";
@@ -88,6 +89,9 @@ const App = () => (
               } />
               <Route path="/accounting/payroll" element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER']}><Payroll /></ProtectedRoute>
+              } />
+              <Route path="/accounting/payroll/:id" element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER']}><PayrollDetail /></ProtectedRoute>
               } />
               <Route path="/accounting/transfers" element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'ACC_MANAGER']}><Transfers /></ProtectedRoute>

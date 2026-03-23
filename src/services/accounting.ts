@@ -99,6 +99,7 @@ export const AccountingService = {
     calculatePayroll: async (year: number, month: number) => (await api.post<PayrollRun>('/accounting/payroll/calculate', { year, month })).data,
     approvePayroll: async (id: string) => (await api.post<PayrollRun>(`/accounting/payroll/${id}/approve`)).data,
     payPayroll: async (id: string) => (await api.post<PayrollRun>(`/accounting/payroll/${id}/pay`)).data,
+    getPayrollRunById: async (id: string) => (await api.get<PayrollRun>(`/accounting/payroll/${id}`)).data,
 
     // Review Deductions
     getReviewDeductions: async () => (await api.get<ReviewDeduction[]>('/accounting/review-deductions')).data,

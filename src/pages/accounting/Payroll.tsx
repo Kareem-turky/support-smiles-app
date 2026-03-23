@@ -9,7 +9,10 @@ import { EntityModal } from '@/components/shared/EntityModal';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
+import { useNavigate } from 'react-router-dom';
+
 export default function Payroll() {
+    const navigate = useNavigate();
     const [data, setData] = useState<PayrollRun[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -105,7 +108,13 @@ export default function Payroll() {
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <Button variant="outline" size="sm">View</Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => navigate(`/accounting/payroll/${item.id}`)}
+                                            >
+                                                View
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
