@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Delete, ParseIntPipe, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Delete, ParseIntPipe, Request } from '@nestjs/common';
 import { HRService } from './hr.service';
 import { CreateAttendanceDto, BulkAttendanceDto } from './dto/create-attendance.dto';
 import { CreateLeaveDto } from './dto/create-leave.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -17,7 +18,7 @@ export class HRController {
 
     // --- Departments ---
     @Get('departments')
-    @Roles(UserRole.HR_MANAGER, UserRole.HR_AGENT, UserRole.ADMIN)
+    // Open to all authenticated users for dropdowns
     getDepartments() {
         return this.hrService.getDepartments();
     }
@@ -30,7 +31,7 @@ export class HRController {
 
     // --- Employees ---
     @Get('employees')
-    @Roles(UserRole.HR_MANAGER, UserRole.HR_AGENT, UserRole.ADMIN, UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.CS_MANAGER, UserRole.WH_MANAGER)
+    // Open to all authenticated users for dropdowns
     getEmployees(@Request() req: any) {
         return this.hrService.getEmployees(req.user);
     }
@@ -39,6 +40,30 @@ export class HRController {
     @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
     createEmployee(@Body() dto: CreateEmployeeDto) {
         return this.hrService.createEmployee(dto);
+    }
+
+    @Put('employees/:id')
+    @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
+    updateEmployee(@Param('id') id: string, @Body() dto: UpdateEmployeeDto) {
+        return this.hrService.updateEmployee(id, dto);
+    }
+
+    @Delete('employees/:id')
+    @Roles(UserRole.ADMIN)
+    deleteEmployee(@Param('id') id: string) {
+        return this.hrService.deleteEmployee(id);
+    }
+
+    @Post('employees/:id/toggle-status')
+    @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
+    toggleEmployeeStatus(@Param('id') id: string) {
+        return this.hrService.toggleEmployeeStatus(id);
+    }
+
+    @Post('employees/:id/reset-password')
+    @Roles(UserRole.ADMIN)
+    resetEmployeePassword(@Param('id') id: string) {
+        return this.hrService.resetEmployeePassword(id);
     }
 
     // --- Adjustments ---

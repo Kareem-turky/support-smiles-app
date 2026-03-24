@@ -73,10 +73,13 @@ export class KpiService {
     const targets = Array.from(latestTargetsMap.values());
 
     // 2. Get Actuals for Current Month (e.g., "2025-02")
-    const periodKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
     // @ts-ignore
     const actuals = await this.prisma.kPIActual.findMany({
-      where: { employee_id: user.employee.id, period_key: periodKey },
+      where: { 
+        employee_id: user.employee.id, 
+        period_key: { startsWith: monthKey } 
+      },
     });
 
     // 3. Get Issues
@@ -96,14 +99,14 @@ export class KpiService {
 
     // 4. Calculate Scores
     const metrics = targets.map((target) => {
-      const actual = actuals.find((a) => a.metric_name === target.metric_name);
-      const actualVal = actual ? Number(actual.actual_value) : 0;
+      const metricActuals = actuals.filter((a) => a.metric_name === target.metric_name);
+      const actualVal = metricActuals.reduce((sum, a) => sum + Number(a.actual_value), 0);
       const targetVal = Number(target.target_value);
       const weight = Number(target.weight);
 
       // Score = (Actual / Target) * Weight
       // Cap at weight? Or allow over-performance? Let's cap at 120% of weight for now.
-      let rawScore = (actualVal / targetVal) * weight;
+      let rawScore = targetVal > 0 ? (actualVal / targetVal) * weight : 0;
       if (rawScore > weight * 1.2) rawScore = weight * 1.2;
 
       return {
@@ -146,7 +149,7 @@ export class KpiService {
     }));
 
     return {
-      period: periodKey,
+      period: monthKey,
       user_role: user.role,
       metrics,
       issues: issues.map(i => ({ type: i.type, deduction: Number(i.deduction_points), date: i.date })),
@@ -420,16 +423,35 @@ export class KpiService {
     if (!emp) throw new NotFoundException('Employee not found');
 
     // @ts-ignore
-    return this.prisma.employeeIssue.create({
-      data: {
-        employee_id: employeeId,
-        type,
-        description,
-        date: new Date(date),
-        severity,
-        deduction_points: deductionPoints,
-        created_by: creatorId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const issue = await tx.employeeIssue.create({
+        data: {
+          employee_id: employeeId,
+          type,
+          description,
+          date: new Date(date),
+          severity,
+          deduction_points: deductionPoints,
+          created_by: creatorId,
+        }
+      });
+
+      if (deductionPoints > 0) {
+        await tx.reviewDeduction.create({
+          data: {
+            employee_id: employeeId,
+            department_id: emp.department_id,
+            period_key: new Date(date).toISOString().slice(0, 7),
+            reason_key: type,
+            suggested_amount: deductionPoints,
+            status: 'REVIEW_NEEDED',
+            created_by_system: false,
+            details_json: JSON.stringify({ description, severity, manual_entry: true })
+          }
+        });
+      }
+
+      return issue;
     });
   }
 

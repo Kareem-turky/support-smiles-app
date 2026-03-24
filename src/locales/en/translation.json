@@ -24,7 +24,9 @@
         "admin": {
             "title": "Admin",
             "users": "Users",
-            "settings": "Settings",
+            "settings": "System Settings",
+            "ticket_reasons": "Ticket Reasons",
+            "shipping_companies": "Shipping Companies",
             "kpi_types": "KPI Types"
         }
     },

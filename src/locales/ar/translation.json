@@ -24,7 +24,9 @@
         "admin": {
             "title": "الإدارة",
             "users": "المستخدمين",
-            "settings": "الإعدادات",
+            "settings": "إعدادات النظام",
+            "ticket_reasons": "أسباب التذاكر",
+            "shipping_companies": "شركات الشحن",
             "kpi_types": "أنواع المؤشرات"
         }
     },

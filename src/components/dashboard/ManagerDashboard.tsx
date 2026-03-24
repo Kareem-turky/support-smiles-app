@@ -96,7 +96,7 @@ export function ManagerDashboard() {
                     </CardHeader>
                     <CardContent className="grid gap-6 pt-6">
                         {(teamStats?.member_performance || []).map((member: any) => (
-                            <div key={member.user_id} className="flex items-center justify-between group hover:bg-muted/50 p-2 rounded-lg transition-colors -mx-2">
+                            <div key={member.id} className="flex items-center justify-between group hover:bg-muted/50 p-2 rounded-lg transition-colors -mx-2">
                                 <div className="flex items-center space-x-4">
                                     <Avatar className="h-10 w-10 border-2 border-background shadow-sm group-hover:scale-105 transition-transform">
                                         <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${member.name || 'User'}&backgroundColor=0f172a,334155,0284c7`} alt={member.name || 'User'} />

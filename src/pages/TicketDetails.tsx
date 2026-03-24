@@ -75,11 +75,12 @@ export default function TicketDetails() {
     if (!id) return;
 
     setIsLoading(true);
-    const [ticketResult, messagesResult, eventsResult, csResult] = await Promise.all([
+    const [ticketResult, messagesResult, eventsResult, csResult, allUsersResult] = await Promise.all([
       ticketsService.getById(id),
       ticketsService.getMessages(id),
       ticketsService.getEvents(id),
       usersService.getCSUsers(),
+      usersService.getAll(),
     ]);
 
     if (ticketResult.success && ticketResult.data) {
@@ -102,7 +103,9 @@ export default function TicketDetails() {
     }
     if (csResult.success && csResult.data) {
       setCsUsers(csResult.data);
-      setAllUsers(csResult.data);
+    }
+    if (allUsersResult.success && allUsersResult.data) {
+      setAllUsers(allUsersResult.data);
     }
 
     setIsLoading(false);

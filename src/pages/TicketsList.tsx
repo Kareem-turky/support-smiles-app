@@ -67,7 +67,7 @@ export default function TicketsList() {
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
 
   const fetchUsers = useCallback(async () => {
-    const result = await usersService.getCSUsers();
+    const result = await usersService.getAll();
     if (result.success && result.data) {
       setUsers(result.data);
     }

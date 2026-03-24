@@ -98,19 +98,19 @@ export function Combobox({
                                 </CommandItem>
                             ))}
                         </CommandGroup>
-                        {onCreate && inputValue && !options.find(o => o.label.toLowerCase() === inputValue.toLowerCase()) && (
+                        {onCreate && (
                             <>
                                 <CommandSeparator />
                                 <CommandGroup>
                                     <CommandItem
                                         onSelect={() => {
-                                            onCreate(inputValue)
+                                            onCreate(inputValue || 'New item')
                                             setOpen(false)
                                         }}
-                                        className="cursor-pointer"
+                                        className="cursor-pointer text-primary font-medium"
                                     >
                                         <Plus className="mr-2 h-4 w-4" />
-                                        {createLabel} "{inputValue}"
+                                        {createLabel} {inputValue ? `"${inputValue}"` : ''}
                                     </CommandItem>
                                 </CommandGroup>
                             </>

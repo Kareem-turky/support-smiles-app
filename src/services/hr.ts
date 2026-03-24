@@ -9,6 +9,10 @@ export const HRService = {
     // Employees
     getEmployees: async () => (await api.get<Employee[]>('/hr/employees')).data,
     createEmployee: async (data: any) => (await api.post<Employee>('/hr/employees', data)).data,
+    updateEmployee: async (id: string, data: any) => (await api.put<Employee>(`/hr/employees/${id}`, data)).data,
+    deleteEmployee: async (id: string) => (await api.delete(`/hr/employees/${id}`)).data,
+    toggleEmployeeStatus: async (id: string) => (await api.post<Employee>(`/hr/employees/${id}/toggle-status`)).data,
+    resetPassword: async (id: string) => (await api.post<{success: boolean, message: string}>(`/hr/employees/${id}/reset-password`)).data,
 
     // Adjustments
     getAdjustments: async (params?: { type?: string; employee_id?: string; from?: string; to?: string }) => {

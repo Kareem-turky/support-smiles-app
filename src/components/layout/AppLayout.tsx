@@ -53,10 +53,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-const navItems = [
+const mainNavItems = [
   { titleKey: 'nav.dashboard', url: '/', icon: LayoutDashboard, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER'] },
-  { titleKey: 'nav.tickets', url: '/tickets', icon: Ticket, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT'] },
-  { titleKey: 'nav.admin.users', url: '/users', icon: Users, roles: ['ADMIN'] },
+  { titleKey: 'nav.tickets', url: '/tickets', icon: Ticket, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] },
   { titleKey: 'accounting.purchases', url: '/accounting/purchases', icon: DollarSign, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
   { titleKey: 'accounting.vendors', url: '/accounting/vendors', icon: Users, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
   { titleKey: 'accounting.expenses', url: '/accounting/expenses', icon: CreditCard, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
@@ -67,14 +66,16 @@ const navItems = [
   { titleKey: 'accounting.advances', url: '/accounting/advances', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
   { titleKey: 'hr.employees', url: '/hr/employees', icon: Users, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
   { titleKey: 'hr.adjustments', url: '/hr/adjustments', icon: List, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
-  { titleKey: 'hr.attendance', url: '/hr/attendance', icon: List, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
-  { titleKey: 'hr.leaves', url: '/hr/leaves', icon: List, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
-  { titleKey: 'nav.shipping', url: '/shipping', icon: Ticket, roles: ['ADMIN', 'WH_MANAGER'] },
-  { titleKey: 'nav.admin.settings', url: '/admin/ticket-reasons', icon: List, roles: ['ADMIN'] },
-  { titleKey: 'nav.admin.kpi_types', url: '/admin/kpi-types', icon: List, roles: ['ADMIN'] },
+  { titleKey: 'hr.leaves', url: '/hr/leaves', icon: Target, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
   { titleKey: 'nav.kpi', url: '/kpi', icon: Target, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] },
   { titleKey: 'nav.team', url: '/team-kpi', icon: TrendingUp, roles: ['ADMIN', 'CS_MANAGER', 'ACC_MANAGER', 'HR_MANAGER', 'WH_MANAGER'] },
   { titleKey: 'nav.gamification', url: '/gamification', icon: Trophy, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] },
+];
+
+const settingsNavItems = [
+  { titleKey: 'nav.admin.shipping_companies', url: '/shipping', icon: ShoppingCart, roles: ['ADMIN', 'WH_MANAGER'] },
+  { titleKey: 'nav.admin.ticket_reasons', url: '/admin/ticket-reasons', icon: List, roles: ['ADMIN'] },
+  { titleKey: 'nav.admin.kpi_types', url: '/admin/kpi-types', icon: Target, roles: ['ADMIN'] },
 ];
 
 function AppSidebarContent() {
@@ -84,7 +85,10 @@ function AppSidebarContent() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
 
-  const filteredNavItems = navItems.filter(
+  const filteredMainNavItems = mainNavItems.filter(
+    item => user && item.roles.includes(user.role)
+  );
+  const filteredSettingsNavItems = settingsNavItems.filter(
     item => user && item.roles.includes(user.role)
   );
 
@@ -105,7 +109,7 @@ function AppSidebarContent() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredNavItems.map((item) => (
+              {filteredMainNavItems.map((item) => (
                 <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
@@ -122,6 +126,30 @@ function AppSidebarContent() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {filteredSettingsNavItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Settings & Configuration</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredSettingsNavItems.map((item) => (
+                  <SidebarMenuItem key={item.titleKey}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.url ||
+                        (item.url !== '/' && location.pathname.startsWith(item.url))}
+                    >
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{t(item.titleKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </>
   );

@@ -237,7 +237,7 @@ export function CreateTicketDialog({ open, onOpenChange, onCreated }: CreateTick
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Issue Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select type" />
@@ -259,7 +259,7 @@ export function CreateTicketDialog({ open, onOpenChange, onCreated }: CreateTick
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Priority</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select priority" />
@@ -309,7 +309,7 @@ export function CreateTicketDialog({ open, onOpenChange, onCreated }: CreateTick
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Department Filter</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value || 'all'}>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value || 'all'}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Filter by Department" />
@@ -333,7 +333,7 @@ export function CreateTicketDialog({ open, onOpenChange, onCreated }: CreateTick
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Assign To (Optional)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value || 'unassigned'}>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value || 'unassigned'}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select assignee" />
@@ -341,8 +341,10 @@ export function CreateTicketDialog({ open, onOpenChange, onCreated }: CreateTick
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {filteredEmployees.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>{user.full_name}</SelectItem>
+                          {filteredEmployees
+                            .filter(user => user.user_id)
+                            .map((user) => (
+                              <SelectItem key={user.user_id} value={user.user_id!}>{user.full_name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>

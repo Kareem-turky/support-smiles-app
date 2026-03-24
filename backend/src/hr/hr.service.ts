@@ -1,3 +1,4 @@
+import * as bcrypt from 'bcrypt';
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
@@ -6,7 +7,7 @@ import { CreateLeaveDto } from './dto/create-leave.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
-import { HRMonthStatus, User, HRAttendance, EmployeeSalaryType, AttendanceStatus } from '@prisma/client';
+import { HRMonthStatus, User, HRAttendance, EmployeeSalaryType, AttendanceStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class HRService {
@@ -30,7 +31,7 @@ export class HRService {
         return { year: d.getFullYear(), month: d.getMonth() + 1 };
     }
 
-    // --- Departments ---
+// --- Departments ---
     async getDepartments() {
         return this.prisma.department.findMany({
             include: { _count: { select: { employees: true } } }
@@ -45,16 +46,8 @@ export class HRService {
 
     // --- Employees ---
     async getEmployees(user?: any) {
-        let whereClause = {};
-        if (user && user.role !== 'ADMIN') {
-            const managerEmployee = await this.prisma.employee.findUnique({ where: { user_id: user.id } });
-            if (managerEmployee) {
-                whereClause = { department_id: managerEmployee.department_id };
-            }
-        }
-
+        // Tickets need to be routed cross-department, so all internal staff must be able to see the full directory.
         const employees = await this.prisma.employee.findMany({
-            where: whereClause,
             include: { department: true, user: { select: { email: true, role: true } } },
             orderBy: { full_name: 'asc' }
         });
@@ -68,19 +61,168 @@ export class HRService {
     async createEmployee(dto: CreateEmployeeDto) {
         const count = await this.prisma.employee.count();
         const code = `EMP${String(count + 1).padStart(3, '0')}`;
+        
+        // Auto-create User account with default password 'password123'
+        const password_hash = await bcrypt.hash('password123', 10);
+        
+        let user;
+        try {
+            user = await this.prisma.user.create({
+                data: {
+                    email: dto.email,
+                    name: dto.full_name,
+                    password_hash,
+                    role: (dto.role as any) || UserRole.CS_AGENT,
+                    is_active: dto.is_active ?? true,
+                }
+            });
+        } catch (error) {
+            throw new BadRequestException('User email already exists or invalid role.');
+        }
 
         return this.prisma.employee.create({
             data: {
                 code,
                 full_name: dto.full_name,
-                // Email is on User, not Employee
+                email: dto.email,
+                user_id: user.id,
                 department_id: dto.department_id,
                 start_date: new Date(dto.start_date),
                 base_salary: dto.base_salary,
                 salary_type: dto.salary_type || EmployeeSalaryType.MONTHLY,
-                // is_active/phone/position not in schema subset seen, assuming excluded.
             }
         });
+    }
+
+    async updateEmployee(id: string, dto: any) {
+        const employee = await this.prisma.employee.findUnique({ where: { id } });
+        if (!employee) throw new NotFoundException('Employee not found');
+
+        // Update User if linked
+        if (employee.user_id) {
+            const userUpdate: any = {};
+            if (dto.full_name) userUpdate.name = dto.full_name;
+            if (dto.email) userUpdate.email = dto.email;
+            if (dto.role) userUpdate.role = dto.role as UserRole;
+            if (dto.is_active !== undefined) userUpdate.is_active = dto.is_active;
+
+            if (Object.keys(userUpdate).length > 0) {
+                try {
+                    await this.prisma.user.update({
+                        where: { id: employee.user_id },
+                        data: userUpdate,
+                    });
+                } catch (e) {
+                    throw new BadRequestException('Email might already be in use by another user.');
+                }
+            }
+        } else if (dto.email && dto.full_name && dto.role) {
+            // Generate a User account if this employee is orphaned (e.g., from old seeded data)
+            const password_hash = await bcrypt.hash('password123', 10);
+            try {
+                const newUser = await this.prisma.user.create({
+                    data: {
+                        email: dto.email,
+                        password_hash,
+                        name: dto.full_name,
+                        role: dto.role as UserRole,
+                        is_active: dto.is_active !== undefined ? dto.is_active : true,
+                    }
+                });
+                await this.prisma.employee.update({
+                    where: { id },
+                    data: { user_id: newUser.id }
+                });
+            } catch (e) {
+                // Ignore silent unique failure if email collision occurs
+            }
+        }
+
+        // Update Employee
+        const empUpdate: any = {};
+        if (dto.full_name) empUpdate.full_name = dto.full_name;
+        if (dto.email) empUpdate.email = dto.email;
+        if (dto.department_id !== undefined) empUpdate.department_id = dto.department_id;
+        if (dto.base_salary !== undefined) empUpdate.base_salary = dto.base_salary;
+        if (dto.salary_type) empUpdate.salary_type = dto.salary_type;
+        if (dto.start_date) empUpdate.start_date = new Date(dto.start_date);
+        if (dto.is_active !== undefined) empUpdate.is_active = dto.is_active;
+
+        return this.prisma.employee.update({
+            where: { id },
+            data: empUpdate,
+            include: { department: true, user: { select: { email: true, role: true } } }
+        });
+    }
+
+    async deleteEmployee(id: string) {
+        const employee = await this.prisma.employee.findUnique({ where: { id } });
+        if (!employee) throw new NotFoundException('Employee not found');
+
+        // Delete HR records
+        await this.prisma.hRAttendance.deleteMany({ where: { employee_id: id } });
+        await this.prisma.hRLeave.deleteMany({ where: { employee_id: id } });
+        await this.prisma.hRAdjustment.deleteMany({ where: { employee_id: id } });
+        await this.prisma.employeeIssue.deleteMany({ where: { employee_id: id } });
+        await this.prisma.kPIActual.deleteMany({ where: { employee_id: id } });
+        await this.prisma.kPIScore.deleteMany({ where: { employee_id: id } });
+        await this.prisma.kPITarget.deleteMany({ where: { employee_id: id } });
+
+        // Finally delete the Employee record
+        await this.prisma.employee.delete({ where: { id } });
+
+        // And the user if linked
+        if (employee.user_id) {
+            // Delete gamification and notification info before deleting the user
+            await this.prisma.gamificationPoint.deleteMany({ where: { user_id: employee.user_id } });
+            await this.prisma.notification.deleteMany({ where: { user_id: employee.user_id } });
+            await this.prisma.userBadge.deleteMany({ where: { user_id: employee.user_id } });
+            await this.prisma.missionAssignment.deleteMany({ where: { user_id: employee.user_id } });
+
+            // Ensure they are unassigned from tickets
+            await this.prisma.ticket.updateMany({
+                where: { assigned_to: employee.user_id },
+                data: { assigned_to: null }
+            });
+
+            await this.prisma.user.delete({ where: { id: employee.user_id } }).catch(() => null);
+        }
+
+        return { success: true };
+    }
+
+    async toggleEmployeeStatus(id: string) {
+        const employee = await this.prisma.employee.findUnique({ where: { id } });
+        if (!employee) throw new NotFoundException('Employee not found');
+
+        const newStatus = !employee.is_active;
+
+        if (employee.user_id) {
+            await this.prisma.user.update({
+                where: { id: employee.user_id },
+                data: { is_active: newStatus }
+            });
+        }
+
+        return this.prisma.employee.update({
+            where: { id },
+            data: { is_active: newStatus },
+            include: { department: true, user: { select: { email: true, role: true } } }
+        });
+    }
+
+    async resetEmployeePassword(id: string) {
+        const employee = await this.prisma.employee.findUnique({ where: { id } });
+        if (!employee) throw new NotFoundException('Employee not found');
+        if (!employee.user_id) throw new BadRequestException('This employee has no user account to reset.');
+
+        const password_hash = await bcrypt.hash('password123', 10);
+        await this.prisma.user.update({
+            where: { id: employee.user_id },
+            data: { password_hash }
+        });
+
+        return { success: true, message: 'Password reset to password123' };
     }
 
     // --- Adjustments (Bonus/Deduction/Advance) ---

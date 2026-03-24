@@ -56,6 +56,7 @@ export interface Employee {
   code: string;
   full_name: string;
   department_id: string;
+  user_id?: string;
   department?: Department;
   start_date: string;
   base_salary: number;

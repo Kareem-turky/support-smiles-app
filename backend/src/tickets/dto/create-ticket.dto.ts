@@ -26,7 +26,7 @@ export class CreateTicketDto {
     @IsUUID()
     assigned_to?: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsUUID()
-    reason_id: string;
+    reason_id?: string;
 }

@@ -55,8 +55,8 @@ export default function Gamification() {
         target_value: 10,
         metric_key: 'RESOLVED_TICKETS',
         frequency: 'DAILY',
-        role_scope: '',
-        department_id: '',
+        role_scope: 'ALL',
+        department_id: 'none',
     });
 
     const isManager = user?.role?.includes('MANAGER') || user?.role === 'ADMIN';
@@ -133,7 +133,13 @@ export default function Gamification() {
     const handleCreateMission = async () => {
         setActionLoading(true);
         try {
-            await GamificationService.createMission({ ...newMission, assignments: [] });
+            const payload = { 
+                ...newMission, 
+                department_id: newMission.department_id === 'none' ? undefined : newMission.department_id,
+                role_scope: newMission.role_scope === 'ALL' ? undefined : newMission.role_scope,
+                assignments: [] 
+            };
+            await GamificationService.createMission(payload);
             toast({ title: t('gamification_page.messages.success'), description: t('gamification_page.messages.mission_created') });
             setIsCreateModalOpen(false);
             fetchData();
@@ -575,7 +581,7 @@ export default function Gamification() {
                                                                     <SelectValue placeholder={t('gamification_page.manager.form.all_depts')} />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="">{t('gamification_page.manager.form.cross_dept')}</SelectItem>
+                                                                    <SelectItem value="none">{t('gamification_page.manager.form.cross_dept')}</SelectItem>
                                                                     {departments.map(d => (
                                                                         <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                                                                     ))}

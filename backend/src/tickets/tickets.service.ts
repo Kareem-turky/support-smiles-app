@@ -79,7 +79,7 @@ export class TicketsService {
             data: {
                 ...createTicketDto,
                 priority: priority || Priority.LOW, // Ensure priority is set
-                assigned_to: assignedTo,
+                assigned_to: assignedTo || null,
                 status: assignedTo ? TicketStatus.ASSIGNED : TicketStatus.NEW,
                 created_by: user.id,
             },
@@ -112,9 +112,15 @@ export class TicketsService {
     async findAll(user: User, filters: any) {
         const where: any = { deleted_at: null };
 
-        // CS Agents only see assigned
-        if (user.role === UserRole.CS_AGENT) {
-            where.assigned_to = user.id;
+        // Scope visibility based on role
+        if (user.role === UserRole.ADMIN || user.role === UserRole.CS_MANAGER) {
+            // Can see all tickets
+        } else {
+            // CS Agents, Accounting, HR, WH only see tickets they created or are assigned to
+            where.OR = [
+                { assigned_to: user.id },
+                { created_by: user.id }
+            ];
         }
 
         if (filters.status) where.status = { in: filters.status.split(',') };
@@ -141,9 +147,12 @@ export class TicketsService {
 
         if (!ticket) throw new NotFoundException('Ticket not found');
 
-        // CS Agents only see assigned
-        if (user.role === UserRole.CS_AGENT && ticket.assigned_to !== user.id) {
-            throw new ForbiddenException('Access denied');
+        // Scope visibility based on role
+        if (user.role !== UserRole.ADMIN && user.role !== UserRole.CS_MANAGER) {
+            // Everyone else only sees tickets they created or are assigned to
+            if (ticket.assigned_to !== user.id && ticket.created_by !== user.id) {
+                throw new ForbiddenException('Access denied');
+            }
         }
 
         return ticket;
