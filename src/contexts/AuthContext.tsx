@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { AuthUser, AuthState, LoginCredentials, UserRole } from '@/types';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { AuthState, LoginCredentials, UserRole } from '@/types';
 import { authService } from '@/services/auth.service';
 import { seedDatabase } from '@/services/seed';
 
-interface AuthContextType extends AuthState {
+export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   hasRole: (roles: UserRole | UserRole[]) => boolean;
@@ -13,7 +13,7 @@ interface AuthContextType extends AuthState {
   canManageUsers: () => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canEditTicket = useCallback((ticketCreatorId: string) => {
     if (!state.user) return false;
     if (state.user.role === 'ADMIN') return true;
-    if (state.user.role === 'ACCOUNTING') {
+    if (['ACC_MANAGER', 'ACC_AGENT'].includes(state.user.role)) {
       return state.user.id === ticketCreatorId;
     }
     return false; // CS cannot edit ticket fields
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const canAssignTicket = useCallback(() => {
     if (!state.user) return false;
-    return state.user.role === 'ADMIN' || state.user.role === 'ACCOUNTING';
+    return ['ADMIN', 'ACC_MANAGER', 'CS_MANAGER'].includes(state.user.role);
   }, [state.user]);
 
   const canDeleteTicket = useCallback(() => {
@@ -98,12 +98,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }

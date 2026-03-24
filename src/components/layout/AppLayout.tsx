@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useAuth } from '@/contexts/useAuth';
 import { notificationsService } from '@/services/notifications.service';
 import { Notification, ROLE_LABELS } from '@/types';
+import { useTranslation } from 'react-i18next';
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +14,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
@@ -28,7 +28,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Ticket,
@@ -41,23 +40,55 @@ import {
   User,
   Menu,
   CheckCheck,
+  DollarSign,
+  CreditCard,
+  Banknote,
+  List,
+  ShoppingCart,
+  TrendingUp,
+  Trophy,
+  Target,
+  Award,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-const navItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['ADMIN', 'ACCOUNTING', 'CS'] },
-  { title: 'Tickets', url: '/tickets', icon: Ticket, roles: ['ADMIN', 'ACCOUNTING', 'CS'] },
-  { title: 'Users', url: '/users', icon: Users, roles: ['ADMIN'] },
+const mainNavItems = [
+  { titleKey: 'nav.dashboard', url: '/', icon: LayoutDashboard, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER'] },
+  { titleKey: 'nav.tickets', url: '/tickets', icon: Ticket, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] },
+  { titleKey: 'accounting.purchases', url: '/accounting/purchases', icon: DollarSign, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
+  { titleKey: 'accounting.vendors', url: '/accounting/vendors', icon: Users, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
+  { titleKey: 'accounting.expenses', url: '/accounting/expenses', icon: CreditCard, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
+  { titleKey: 'accounting.deductions', url: '/accounting/review-deductions', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER'] },
+  { titleKey: 'accounting.deposits', url: '/accounting/deposits', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER'] },
+  { titleKey: 'accounting.payroll', url: '/accounting/payroll', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER'] },
+  { titleKey: 'accounting.transfers', url: '/accounting/transfers', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER'] },
+  { titleKey: 'accounting.advances', url: '/accounting/advances', icon: Banknote, roles: ['ADMIN', 'ACC_MANAGER', 'ACC_AGENT'] },
+  { titleKey: 'hr.employees', url: '/hr/employees', icon: Users, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
+  { titleKey: 'hr.adjustments', url: '/hr/adjustments', icon: List, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
+  { titleKey: 'hr.leaves', url: '/hr/leaves', icon: Target, roles: ['ADMIN', 'HR_MANAGER', 'HR_AGENT'] },
+  { titleKey: 'nav.kpi', url: '/kpi', icon: Target, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] },
+  { titleKey: 'nav.team', url: '/team-kpi', icon: TrendingUp, roles: ['ADMIN', 'CS_MANAGER', 'ACC_MANAGER', 'HR_MANAGER', 'WH_MANAGER'] },
+  { titleKey: 'nav.gamification', url: '/gamification', icon: Trophy, roles: ['ADMIN', 'CS_MANAGER', 'CS_AGENT', 'ACC_MANAGER', 'ACC_AGENT', 'HR_MANAGER', 'HR_AGENT', 'WH_MANAGER', 'WH_AGENT'] },
+];
+
+const settingsNavItems = [
+  { titleKey: 'nav.admin.shipping_companies', url: '/shipping', icon: ShoppingCart, roles: ['ADMIN', 'WH_MANAGER'] },
+  { titleKey: 'nav.admin.ticket_reasons', url: '/admin/ticket-reasons', icon: List, roles: ['ADMIN'] },
+  { titleKey: 'nav.admin.kpi_types', url: '/admin/kpi-types', icon: Target, roles: ['ADMIN'] },
 ];
 
 function AppSidebarContent() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
 
-  const filteredNavItems = navItems.filter(
+  const filteredMainNavItems = mainNavItems.filter(
+    item => user && item.roles.includes(user.role)
+  );
+  const filteredSettingsNavItems = settingsNavItems.filter(
     item => user && item.roles.includes(user.role)
   );
 
@@ -78,16 +109,16 @@ function AppSidebarContent() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {filteredMainNavItems.map((item) => (
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location.pathname === item.url || 
+                    isActive={location.pathname === item.url ||
                       (item.url !== '/' && location.pathname.startsWith(item.url))}
                   >
                     <Link to={item.url}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -95,6 +126,30 @@ function AppSidebarContent() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {filteredSettingsNavItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Settings & Configuration</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredSettingsNavItems.map((item) => (
+                  <SidebarMenuItem key={item.titleKey}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.url ||
+                        (item.url !== '/' && location.pathname.startsWith(item.url))}
+                    >
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{t(item.titleKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </>
   );
@@ -207,9 +262,14 @@ function NotificationBell() {
 }
 
 function TopBar({ onSearch }: { onSearch?: (query: string) => void }) {
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'en' ? 'ar' : 'en');
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,6 +291,10 @@ function TopBar({ onSearch }: { onSearch?: (query: string) => void }) {
         <Menu className="h-5 w-5" />
       </SidebarTrigger>
 
+      <div className={cn("px-2 py-0.5 rounded text-xs font-bold border", import.meta.env.VITE_USE_MOCK_API === 'true' ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-green-100 text-green-800 border-green-200")}>
+        {import.meta.env.VITE_USE_MOCK_API === 'true' ? 'MOCK' : 'REAL'}
+      </div>
+
       <form onSubmit={handleSearch} className="flex-1 max-w-md">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -245,6 +309,9 @@ function TopBar({ onSearch }: { onSearch?: (query: string) => void }) {
       </form>
 
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={toggleLanguage} className="font-semibold text-sm">
+          {i18n.language === 'en' ? 'عربي' : 'EN'}
+        </Button>
         <NotificationBell />
 
         <DropdownMenu>
@@ -282,21 +349,22 @@ function TopBar({ onSearch }: { onSearch?: (query: string) => void }) {
 }
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onSearch?: (query: string) => void;
 }
 
 export function AppLayout({ children, onSearch }: AppLayoutProps) {
+  const { i18n } = useTranslation();
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <Sidebar collapsible="icon">
+      <div className="flex min-h-screen w-full" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+        <Sidebar collapsible="icon" side={i18n.language === 'ar' ? 'right' : 'left'}>
           <AppSidebarContent />
         </Sidebar>
         <div className="flex-1 flex flex-col">
           <TopBar onSearch={onSearch} />
           <main className="flex-1 overflow-auto p-6">
-            {children}
+            {children || <Outlet />}
           </main>
         </div>
       </div>
