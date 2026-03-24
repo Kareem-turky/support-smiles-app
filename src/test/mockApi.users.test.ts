@@ -47,6 +47,6 @@ describe('Mock API - Users', () => {
         await expect(mockApiAdapter.request({
             method: 'GET',
             url: '/users',
-        })).rejects.toThrow('Not authenticated');
+        })).rejects.toThrow('Unauthorized');
     });
 });

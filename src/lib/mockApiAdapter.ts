@@ -113,7 +113,7 @@ export const mockApiAdapter = {
         if (url === '/auth/me' && method === 'GET') {
             const user = getCurrentUserFromMock();
             if (!user) {
-                throw mockError('Not authenticated', 401);
+                throw mockError('Unauthorized', 401);
             }
             return mockResponse({ ...user, password_hash: undefined });
         }
@@ -306,7 +306,7 @@ export const mockApiAdapter = {
             const currentUser = getCurrentUserFromMock();
 
             if (!currentUser) {
-                throw mockError('Not authenticated', 401);
+                throw mockError('Unauthorized', 401);
             }
             if (currentUser.role !== 'ADMIN') {
                 throw mockError('Admin access required', 403);
@@ -357,7 +357,7 @@ export const mockApiAdapter = {
             const currentUser = getCurrentUserFromMock();
 
             if (!currentUser) {
-                throw mockError('Not authenticated', 401);
+                throw mockError('Unauthorized', 401);
             }
 
             const notifications = mockDb.getNotificationsByUserId(currentUser.id);
@@ -366,6 +366,13 @@ export const mockApiAdapter = {
 
         if (url.match(/^\/notifications\/[^/]+\/read$/) && method === 'POST') {
             const id = url.split('/')[2];
+            const currentUser = getCurrentUserFromMock();
+            const notification = mockDb.getNotificationById(id);
+
+            if (!notification || (currentUser && notification.user_id !== currentUser.id)) {
+                throw mockError('Notification not found', 404);
+            }
+
             const updated = mockDb.updateNotification(id, { is_read: true });
             return mockResponse(updated);
         }
@@ -491,7 +498,7 @@ export const mockApiAdapter = {
 
         if (url === '/gamification/rewards/redeem' && method === 'POST') {
             const currentUser = getCurrentUserFromMock();
-            if (!currentUser) throw mockError('Not authenticated', 401);
+            if (!currentUser) throw mockError('Unauthorized', 401);
             const redemption = mockDb.createRedemption(currentUser.id, data.reward_id);
             return mockResponse(redemption, 201);
         }
