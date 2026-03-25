@@ -685,11 +685,30 @@ export class KpiService {
     });
     if (!managerEmployee) throw new NotFoundException('Manager not found');
 
-    return this.prisma.kPITarget.findMany({
+    const targets = await this.prisma.kPITarget.findMany({
       where: { department_id: managerEmployee.department_id },
       orderBy: { date: 'desc' },
       include: { employee: true },
     });
+
+    return Promise.all(
+      targets.map(async (target) => {
+        const periodKey = target.date.toISOString().slice(0, 7) + '-01';
+        const actual = await this.prisma.kPIActual.findUnique({
+          where: {
+            employee_id_metric_name_period_key: {
+              employee_id: target.employee_id,
+              metric_name: target.metric_name,
+              period_key: periodKey,
+            },
+          },
+        });
+        return {
+          ...target,
+          actual_value: actual ? Number(actual.actual_value) : 0,
+        };
+      }),
+    );
   }
 
   async getMyTargets(userId: string, dateStr?: string) {

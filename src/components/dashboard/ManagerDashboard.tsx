@@ -249,6 +249,7 @@ export function ManagerDashboard() {
                                     <TableHead>Employee</TableHead>
                                     <TableHead>Metric</TableHead>
                                     <TableHead>Target Value</TableHead>
+                                    <TableHead>Actual</TableHead>
                                     <TableHead>Weight</TableHead>
                                     <TableHead>Target Month</TableHead>
                                 </TableRow>
@@ -259,6 +260,9 @@ export function ManagerDashboard() {
                                         <TableCell className="font-medium">{t.employee?.full_name}</TableCell>
                                         <TableCell>{t.metric_name}</TableCell>
                                         <TableCell>{Number(t.target_value).toLocaleString()}</TableCell>
+                                        <TableCell className="font-semibold text-indigo-600">
+                                            {(t.actual_value || 0).toLocaleString()}
+                                        </TableCell>
                                         <TableCell>{t.weight}%</TableCell>
                                         <TableCell>{t.date && !isNaN(new Date(t.date).getTime()) ? new Date(t.date).toISOString().slice(0, 7) : 'N/A'}</TableCell>
                                     </TableRow>
