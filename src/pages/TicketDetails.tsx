@@ -228,9 +228,10 @@ export default function TicketDetails() {
     switch (event.event_type) {
       case 'TICKET_CREATED':
         return t('ticket_details.events.created', { actor: actorName });
-      case 'TICKET_ASSIGNED':
+      case 'TICKET_ASSIGNED': {
         const targetName = event.meta.assigned_to_name || (event.meta.assigned_to ? getUserName(event.meta.assigned_to as string) : 'someone');
         return t('ticket_details.events.assigned', { actor: actorName, target: targetName });
+      }
       case 'STATUS_CHANGED':
         return t('ticket_details.events.changed_status', { actor: actorName, from: event.meta.from, to: event.meta.to });
       case 'MESSAGE_SENT':
