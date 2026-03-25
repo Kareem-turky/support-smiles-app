@@ -132,6 +132,7 @@ export class DashboardService {
       pending_leaves: await this.prisma.hRLeave.count({
         where: { status: 'PENDING' },
       }),
+      avg_response_time: await this.calculateAvgResponseTime(startDate, endDate),
     };
 
     // 4. Gamification
@@ -159,5 +160,24 @@ export class DashboardService {
         leaderboard: leaderboard.slice(0, 3),
       },
     };
+  }
+
+  private async calculateAvgResponseTime(start: Date, end: Date) {
+    const resolved = await this.prisma.ticket.findMany({
+      where: {
+        resolved_at: { gte: start, lt: end },
+        deleted_at: null,
+      },
+      select: { created_at: true, resolved_at: true },
+    });
+
+    if (resolved.length === 0) return 0;
+
+    const totalTime = resolved.reduce((sum, t) => {
+      const duration = (t.resolved_at?.getTime() || 0) - t.created_at.getTime();
+      return sum + duration;
+    }, 0);
+
+    return totalTime / resolved.length / (1000 * 60 * 60); // In hours
   }
 }

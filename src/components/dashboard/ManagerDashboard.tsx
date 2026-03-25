@@ -69,7 +69,13 @@ export function ManagerDashboard() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{teamStats?.avg_response_time?.toFixed(1) || 0}h</div>
+                        <div className="text-3xl font-bold">
+                            {teamStats?.avg_response_time ? (
+                                teamStats.avg_response_time < 1 
+                                    ? `${Math.round(teamStats.avg_response_time * 60)}m` 
+                                    : `${teamStats.avg_response_time.toFixed(1)}h`
+                            ) : '0h'}
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1">Average resolving time</p>
                     </CardContent>
                 </Card>

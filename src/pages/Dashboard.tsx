@@ -23,6 +23,7 @@ interface DashboardData {
   counts: {
     tickets_open: number;
     employees_active: number;
+    avg_response_time?: number;
   };
   recent: {
     purchases: any[];
@@ -138,6 +139,25 @@ export default function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">
               Purchases + Ops + Payroll
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {counts.avg_response_time ? 
+                (counts.avg_response_time < 1 
+                  ? `${Math.round(counts.avg_response_time * 60)}m` 
+                  : `${counts.avg_response_time.toFixed(1)}h`) 
+                : '0h'}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Resolution Time (Avg)
             </p>
           </CardContent>
         </Card>
