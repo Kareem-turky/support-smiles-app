@@ -198,15 +198,20 @@ export class KpiService {
     let employeeIds: string[] = [];
     let userIds: string[] = [];
 
+    console.log('[DEBUG] getTeamStats starting for user:', user.id, user.role);
+
     if (user.role !== UserRole.ADMIN) {
       // Find manager's department
       const managerEmployee = await this.prisma.employee.findUnique({
         where: { user_id: user.id },
       });
 
+      console.log('[DEBUG] managerEmployee found:', managerEmployee?.id, managerEmployee?.department_id);
+
       if (managerEmployee) {
         whereClause.department_id = managerEmployee.department_id;
       } else {
+        console.log('[DEBUG] No managerEmployee found for user, returning empty');
         // If manager has no employee record, they can't see team stats
         return {
           total_tickets: 0,
@@ -217,13 +222,19 @@ export class KpiService {
       }
     }
 
+    console.log('[DEBUG] whereClause:', JSON.stringify(whereClause));
+
     const employees = await this.prisma.employee.findMany({
       where: whereClause,
       include: { user: true },
     });
 
+    console.log('[DEBUG] employees found count:', employees.length);
+    employees.forEach(e => console.log(` - Employee: ${e.full_name}, UserID: ${e.user?.id}`));
+
     employeeIds = employees.map((e) => e.id);
     userIds = employees.map((e) => e.user?.id).filter(Boolean);
+    console.log('[DEBUG] userIds extracted:', JSON.stringify(userIds));
 
     const stats = await Promise.all(
       employees.map(async (emp) => {
