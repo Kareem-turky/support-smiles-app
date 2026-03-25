@@ -8,6 +8,7 @@ import {
   UseGuards,
   Query,
   Request,
+  Delete,
 } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -73,5 +74,11 @@ export class TicketsController {
     @Body('status') status: TicketStatus,
   ) {
     return this.ticketsService.changeStatus(id, status, req.user);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER)
+  remove(@Param('id') id: string, @Request() req) {
+    return this.ticketsService.remove(id, req.user);
   }
 }

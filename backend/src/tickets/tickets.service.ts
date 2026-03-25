@@ -385,4 +385,26 @@ export class TicketsService {
 
     return updated;
   }
+
+  async remove(id: string, user: any) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    // Only Admin can delete tickets, or managers can soft-delete
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.CS_MANAGER) {
+      throw new ForbiddenException(
+        'You do not have permission to delete tickets',
+      );
+    }
+
+    return this.prisma.ticket.update({
+      where: { id },
+      data: { deleted_at: new Date() },
+    });
+  }
 }
