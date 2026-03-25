@@ -10,13 +10,14 @@ interface LoginResponse {
     role: any;
   };
   access_token: string;
+  refresh_token: string;
 }
 
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthUser>> => {
     try {
-      // Clean previous session
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
 
       const response = await api.post<any>('/auth/login', credentials);
@@ -38,6 +39,7 @@ export const authService = {
 
       // Store Auth Data
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, loginData.access_token);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, loginData.refresh_token);
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
 
       return { success: true, data: user };
@@ -69,9 +71,11 @@ export const authService = {
 
       // Destroy previous session explicitly and hook new token in
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
 
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, loginData.access_token);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, loginData.refresh_token);
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
 
       // Force a full React re-mount with the new authentication context
@@ -94,6 +98,7 @@ export const authService = {
       console.warn('Logout API call failed', e);
     } finally {
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       window.location.href = '/login';
     }

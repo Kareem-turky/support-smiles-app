@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
 import { TicketReasonsService } from '../ticket-reasons/ticket-reasons.service';
@@ -22,10 +22,13 @@ export class TicketsService {
             throw new ForbiddenException('CS Agents cannot create tickets');
         }
 
-        // Validate Reason
-        const reason = await this.reasonsService.findOne(createTicketDto.reason_id);
-        if (!reason.is_active) {
-            throw new ForbiddenException('Selected reason is not active');
+        // Validate Reason if provided
+        let reason = null;
+        if (createTicketDto.reason_id) {
+            reason = await this.reasonsService.findOne(createTicketDto.reason_id);
+            if (reason && !reason.is_active) {
+                throw new ForbiddenException('Selected reason is not active');
+            }
         }
 
         // --- Routing Logic ---
@@ -33,16 +36,16 @@ export class TicketsService {
         let priority = createTicketDto.priority;
 
         // Auto-set Priority if not provided or default
-        if (reason.default_priority && !priority) {
+        if (reason?.default_priority && !priority) {
             priority = reason.default_priority;
         }
 
         // Auto-assign Logic
         if (!assignedTo) {
-            let targetRole: UserRole | null = reason.default_assign_role;
+            let targetRole: UserRole | null = reason?.default_assign_role;
 
             // Fallback mapping if no explicit role set on reason
-            if (!targetRole) {
+            if (!targetRole && reason) {
                 switch (reason.category) {
                     case 'ACCOUNTING':
                         targetRole = UserRole.ACC_MANAGER; // Assign to Manager initially? Or Clerk? Let's say Manager to triage.
@@ -133,6 +136,7 @@ export class TicketsService {
 
         return this.prisma.ticket.findMany({
             where,
+            include: { creator: true, assignee: true, reason: true },
             orderBy: { created_at: 'desc' },
             skip: (filters.page - 1) * filters.pageSize || 0,
             take: Number(filters.pageSize) || 10,
@@ -142,7 +146,7 @@ export class TicketsService {
     async findOne(id: string, user: User) {
         const ticket = await this.prisma.ticket.findUnique({
             where: { id },
-            include: { integration_inbox: true, reason: true },
+            include: { integration_inbox: true, reason: true, creator: true, assignee: true },
         });
 
         if (!ticket) throw new NotFoundException('Ticket not found');
@@ -156,6 +160,10 @@ export class TicketsService {
         }
 
         return ticket;
+    }
+
+    async getEvents(id: string) {
+        return this.eventsService.findAllByTicket(id);
     }
 
     async update(id: string, updateTicketDto: UpdateTicketDto, user: User) {
@@ -267,6 +275,44 @@ export class TicketsService {
         if (status === TicketStatus.RESOLVED && ticket.status !== TicketStatus.RESOLVED) {
             await this.gamificationService.awardPoints(user.id, 50, `Resolved Ticket: ${ticket.order_number}`);
             await this.gamificationService.updateMissionProgress(user.id, 'RESOLVED_TICKETS', 1);
+        }
+
+        return updated;
+    }
+
+    async reopen(id: string, user: User) {
+        const ticket = await this.prisma.ticket.findUnique({ where: { id } });
+        if (!ticket) throw new NotFoundException('Ticket not found');
+
+        // Only allow reopening RESOLVED or CLOSED tickets
+        if (ticket.status !== TicketStatus.RESOLVED && ticket.status !== TicketStatus.CLOSED) {
+            throw new BadRequestException('Only resolved or closed tickets can be reopened');
+        }
+
+        const updated = await this.prisma.ticket.update({
+            where: { id },
+            data: {
+                status: TicketStatus.REOPENED,
+                resolved_at: null,
+                closed_at: null,
+            }
+        });
+
+        await this.eventsService.createTicketEvent(id, user.id, EventType.TICKET_REOPENED, {
+            previous_status: ticket.status
+        });
+
+        // Notify assignee if exists
+        if (ticket.assigned_to) {
+            await this.prisma.notification.create({
+                data: {
+                    user_id: ticket.assigned_to,
+                    type: NotificationType.STATUS_CHANGED,
+                    title: 'Ticket Reopened',
+                    body: `Ticket ${ticket.order_number} has been reopened`,
+                    link: `/tickets/${id}`
+                }
+            });
         }
 
         return updated;

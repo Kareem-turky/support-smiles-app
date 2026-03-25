@@ -42,15 +42,27 @@ export class KpiController {
   // --- END KPI Metrics Admin ---
 
   @Get('my-stats')
-  getMyStats(@Request() req) {
-    return this.kpiService.getMetrics(req.user.id);
+  async getMyStats(@Request() req, @Query('period') period?: string) {
+    const employee = await this.kpiService.getEmployeeByUserId(req.user.id);
+    if (!employee) {
+      return { 
+        period: period || new Date().toISOString().slice(0, 7), 
+        user_role: req.user.role, 
+        metrics: [], 
+        issues: [], 
+        total_base_score: 0, 
+        total_deductions: 0, 
+        final_score: 0 
+      };
+    }
+    return this.kpiService.getMetrics(employee.id, period);
   }
 
   @Get('team-stats')
   // @ts-ignore
   @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
-  getTeamStats(@Request() req) {
-    return this.kpiService.getTeamStats(req.user);
+  getTeamStats(@Request() req, @Query('period') period?: string) {
+    return this.kpiService.getTeamStats(req.user, period);
   }
 
   @Post('issues')

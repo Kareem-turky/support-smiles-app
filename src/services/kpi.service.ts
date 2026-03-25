@@ -54,8 +54,8 @@ export interface TeamStats {
 }
 
 export const KPIService = {
-    getMyStats: async () => (await api.get<KPIMetrics>('/kpi/my-stats')).data,
-    getTeamStats: async () => (await api.get<TeamStats>('/kpi/team-stats')).data,
+    getMyStats: async (period?: string) => (await api.get<KPIMetrics>(`/kpi/my-stats${period ? `?period=${period}` : ''}`)).data,
+    getTeamStats: async (period?: string) => (await api.get<TeamStats>(`/kpi/team-stats${period ? `?period=${period}` : ''}`)).data,
     getTeamTargets: async () => (await api.get<any[]>('/kpi/targets/team')).data,
     createTarget: async (data: { employeeId: string, metric: string, targetValue: number, date?: string, weight?: number }) =>
         (await api.post('/kpi/targets', data)).data,

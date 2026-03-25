@@ -66,11 +66,15 @@ export class HRController {
         return this.hrService.resetEmployeePassword(id);
     }
 
-    // --- Adjustments ---
     @Get('adjustments')
     @Roles(UserRole.HR_MANAGER, UserRole.HR_AGENT, UserRole.ADMIN, UserRole.ACC_MANAGER)
-    getAdjustments(@Query('employeeId') employeeId?: string, @Query('from') from?: string, @Query('to') to?: string) {
-        return this.hrService.getAdjustments(employeeId, from, to);
+    getAdjustments(
+        @Query('employeeId') employeeId?: string,
+        @Query('from') from?: string,
+        @Query('to') to?: string,
+        @Query('type') type?: string
+    ) {
+        return this.hrService.getAdjustments(employeeId, from, to, type);
     }
 
     @Post('adjustments')

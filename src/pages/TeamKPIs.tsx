@@ -35,6 +35,7 @@ export default function TeamKPIs() {
     // KPI Metrics Dropdown list
     const [kpiMetrics, setKpiMetrics] = useState<KpiMetric[]>([]);
     const [metricsLoading, setMetricsLoading] = useState(false);
+    const [metricsFetched, setMetricsFetched] = useState(false);
 
     const hasEmployees = employees.length > 0;
     const hasMetrics = kpiMetrics.length > 0;
@@ -48,15 +49,18 @@ export default function TeamKPIs() {
                     .catch(err => console.error("Failed to fetch employees", err))
                     .finally(() => setEmployeesLoading(false));
             }
-            if (!hasMetrics && !metricsLoading && (targetOpened || actualOpened)) {
+            if (!metricsFetched && !metricsLoading && (targetOpened || actualOpened || issueOpened)) {
                 setMetricsLoading(true);
                 KPIService.getMetrics(true) // only active
-                    .then(res => setKpiMetrics(res))
+                    .then(res => {
+                        setKpiMetrics(res);
+                        setMetricsFetched(true);
+                    })
                     .catch(err => console.error("Failed to fetch metrics", err))
                     .finally(() => setMetricsLoading(false));
             }
         }
-    }, [targetOpened, actualOpened, issueOpened, hasEmployees, employeesLoading, hasMetrics, metricsLoading]);
+    }, [targetOpened, actualOpened, issueOpened, hasEmployees, employeesLoading, metricsFetched, metricsLoading]);
 
     const employeeOptions = employees.map(emp => ({
         value: emp.id,
@@ -263,7 +267,7 @@ export default function TeamKPIs() {
                                     {kpiMetrics.map(m => (
                                         <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
                                     ))}
-                                    {kpiMetrics.length === 0 && <SelectItem value="" disabled>No active metrics. Ask Admin to create some.</SelectItem>}
+                                    {kpiMetrics.length === 0 && <SelectItem value="none" disabled>No active metrics. Ask Admin to create some.</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>

@@ -31,7 +31,17 @@ export const usersService = {
   },
 
   getCSUsers: async (): Promise<ApiResponse<User[]>> => {
-    return usersService.getByRole('CS_AGENT');
+    try {
+      const response = await api.get<User[]>('/users');
+      // Filter for roles that can handle tickets
+      const allowedRoles: UserRole[] = ['CS_AGENT', 'CS_MANAGER', 'ADMIN'];
+      const filtered = response.data.filter(u => 
+        allowedRoles.includes(u.role) && u.is_active
+      );
+      return { success: true, data: filtered };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
   },
 
   toggleActive: async (userId: string, currentIsActive: boolean): Promise<ApiResponse<User>> => {

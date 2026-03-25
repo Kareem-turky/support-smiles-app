@@ -52,60 +52,59 @@ export class KpiService {
   }
   // --- END KPI Metrics Admin ---
 
-  async getMetrics(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { employee: true },
+  async getMetrics(employeeId: string, period?: string) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: { user: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!employee) throw new NotFoundException('Employee not found');
 
-    if (!user.employee) return { period: new Date().toISOString().slice(0, 7), user_role: user.role, metrics: [], issues: [], total_base_score: 0, total_deductions: 0, final_score: 0 };
+    const monthKey = period || new Date().toISOString().slice(0, 7); // YYYY-MM
+    const startDate = new Date(monthKey + '-01');
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
 
-    // 1. Get Targets for Employee
+    // 1. Get Targets for Employee (valid for this period)
     const targetsList = await this.prisma.kPITarget.findMany({
-      where: { employee_id: user.employee.id },
+      where: { 
+        employee_id: employee.id,
+        date: { lt: endDate } 
+      },
       orderBy: { date: 'desc' }
     });
+    
     const latestTargetsMap = new Map();
     for (const t of targetsList) {
       if (!latestTargetsMap.has(t.metric_name)) latestTargetsMap.set(t.metric_name, t);
     }
     const targets = Array.from(latestTargetsMap.values());
 
-    // 2. Get Actuals for Current Month (e.g., "2025-02")
-    const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
-    // @ts-ignore
+    // 2. Get Actuals for the period
     const actuals = await this.prisma.kPIActual.findMany({
       where: { 
-        employee_id: user.employee.id, 
+        employee_id: employee.id, 
         period_key: { startsWith: monthKey } 
       },
     });
 
     // 3. Get Issues
-    let issues = [];
-    if (user.employee) {
-      // @ts-ignore
-      issues = await this.prisma.employeeIssue.findMany({
-        where: {
-          employee_id: user.employee.id,
-          date: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-            lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
-          },
+    const issues = await this.prisma.employeeIssue.findMany({
+      where: {
+        employee_id: employee.id,
+        date: {
+          gte: startDate,
+          lt: endDate,
         },
-      });
-    }
+      },
+    });
 
     // 4. Calculate Scores
     const metrics = targets.map((target) => {
-      const metricActuals = actuals.filter((a) => a.metric_name === target.metric_name);
+      const metricActuals = actuals.filter((a) => a.metric_name.toUpperCase() === target.metric_name.toUpperCase());
       const actualVal = metricActuals.reduce((sum, a) => sum + Number(a.actual_value), 0);
       const targetVal = Number(target.target_value);
       const weight = Number(target.weight);
 
       // Score = (Actual / Target) * Weight
-      // Cap at weight? Or allow over-performance? Let's cap at 120% of weight for now.
       let rawScore = targetVal > 0 ? (actualVal / targetVal) * weight : 0;
       if (rawScore > weight * 1.2) rawScore = weight * 1.2;
 
@@ -122,11 +121,14 @@ export class KpiService {
     const totalDeductions = issues.reduce((sum, i) => sum + Number(i.deduction_points), 0);
     const finalScore = Math.max(0, totalBaseScore - totalDeductions);
 
-    // Fetch Last 30 Days Score Trend
+    // Fetch Last 30 Days Score Trend (relative to period end)
+    const trendEndDate = endDate;
+    const trendStartDate = new Date(new Date(trendEndDate).setDate(trendEndDate.getDate() - 30));
+
     const recentScores = await this.prisma.kPIScore.findMany({
       where: {
-        employee_id: user.employee.id,
-        date: { gte: new Date(new Date().setDate(new Date().getDate() - 30)) }
+        employee_id: employee.id,
+        date: { gte: trendStartDate, lt: trendEndDate }
       },
       orderBy: { date: 'asc' }
     });
@@ -137,10 +139,10 @@ export class KpiService {
     }));
 
     // Fetch Gamification Badges
-    const badges = await this.prisma.userBadge.findMany({
-      where: { user_id: userId },
+    const badges = employee.user_id ? await this.prisma.userBadge.findMany({
+      where: { user_id: employee.user_id },
       include: { badge: true }
-    });
+    }) : [];
 
     const gamificationBadges = badges.map(b => ({
       name: b.badge.name,
@@ -150,7 +152,7 @@ export class KpiService {
 
     return {
       period: monthKey,
-      user_role: user.role,
+      user_role: employee.user?.role || 'Employee',
       metrics,
       issues: issues.map(i => ({ type: i.type, deduction: Number(i.deduction_points), date: i.date })),
       total_base_score: Math.round(totalBaseScore * 100) / 100,
@@ -161,8 +163,10 @@ export class KpiService {
     };
   }
 
-  async getTeamStats(user: any) {
+  async getTeamStats(user: any, period?: string) {
     let whereClause: any = {};
+    let employeeIds: string[] = [];
+    let userIds: string[] = [];
 
     if (user.role !== UserRole.ADMIN) {
       // Find manager's department
@@ -180,15 +184,13 @@ export class KpiService {
       include: { user: true },
     });
 
-    const stats = await Promise.all(employees.map(async (emp) => {
-      let score = 0;
-      let issuesCount = 0;
+    employeeIds = employees.map(e => e.id);
+    userIds = employees.map(e => e.user?.id).filter(Boolean) as string[];
 
-      if (emp.user) {
-        const metrics = await this.getMetrics(emp.user.id);
-        score = metrics.final_score;
-        issuesCount = metrics.issues.length;
-      }
+    const stats = await Promise.all(employees.map(async (emp) => {
+      const metrics = await this.getMetrics(emp.id, period);
+      const score = metrics.final_score;
+      const issuesCount = metrics.issues.length;
 
       return {
         id: emp.id,
@@ -202,21 +204,45 @@ export class KpiService {
     }));
 
     // Aggregate Team Stats
+    const startDate = new Date((period || new Date().toISOString().slice(0, 7)) + '-01');
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
+
+    // 1. Total Tickets for the team (resolved in this period)
     const totalTickets = await this.prisma.ticket.count({
-      where: user.role !== UserRole.ADMIN ? { assignee: { email: user.email } } : undefined // Simplified: Manager sees their own team's tickets? 
-      // Real logic: tickets assigned to employees in the department.
-      // For now, let's just return a placeholder or simple count.
+      where: {
+        AND: [
+          userIds.length > 0 ? { assigned_to: { in: userIds } } : { id: 'none' },
+          { resolved_at: { gte: startDate, lt: endDate } }
+        ]
+      }
     });
 
+    // 2. Average Resolution Time (resolved in this period)
+    const resolvedTickets = await this.prisma.ticket.findMany({
+      where: {
+        assigned_to: { in: userIds },
+        resolved_at: { gte: startDate, lt: endDate }
+      },
+      select: { created_at: true, resolved_at: true }
+    });
+
+    let avgResponseTime = 0;
+    if (resolvedTickets.length > 0) {
+      const totalTime = resolvedTickets.reduce((sum, t) => {
+        const duration = t.resolved_at.getTime() - t.created_at.getTime();
+        return sum + duration;
+      }, 0);
+      avgResponseTime = (totalTime / resolvedTickets.length) / (1000 * 60 * 60); // In hours
+    }
+
     // Calculate summaries from individual stats
-    const avgScore = stats.reduce((sum, s) => sum + s.score, 0) / (stats.length || 1);
     const totalIssues = stats.reduce((sum, s) => sum + s.issuesCount, 0);
 
     return {
       total_tickets: totalTickets,
-      avg_response_time: 0, // Placeholder, requires complex query on TicketEvents
+      avg_response_time: avgResponseTime,
       open_issues: totalIssues,
-      member_performance: stats.sort((a, b) => a.score - b.score)
+      member_performance: stats.sort((a, b) => b.score - a.score) // Best first
     };
   }
 
@@ -416,7 +442,11 @@ export class KpiService {
   }
 
   async logIssue(dto: any, creatorId: string) {
+    console.log('logIssue DTO:', JSON.stringify(dto, null, 2));
+    console.log('logIssue Creator:', creatorId);
     const { employeeId, type, description, date, severity, deductionPoints } = dto;
+
+    if (!employeeId) throw new BadRequestException('Employee ID is required');
 
     // Validate employee exists
     const emp = await this.prisma.employee.findUnique({ where: { id: employeeId } });
@@ -427,6 +457,7 @@ export class KpiService {
       const issue = await tx.employeeIssue.create({
         data: {
           employee_id: employeeId,
+          department_id: emp.department_id,
           type,
           description,
           date: new Date(date),
@@ -481,7 +512,7 @@ export class KpiService {
         manager_id: managerId,
         department_id: targetEmployee.department_id,
         date: new Date(date || new Date()),
-        metric_name: metric,
+        metric_name: metric.toUpperCase().trim(),
         target_value: targetValue,
         weight: weight || 100,
       }
@@ -539,7 +570,7 @@ export class KpiService {
       where: {
         employee_id_metric_name_period_key: {
           employee_id: targetEmployee.id,
-          metric_name: metric,
+          metric_name: metric.toUpperCase().trim(),
           period_key: periodKey
         }
       },
@@ -548,11 +579,15 @@ export class KpiService {
       },
       create: {
         employee_id: targetEmployee.id,
-        metric_name: metric,
+        metric_name: metric.toUpperCase().trim(),
         period_key: periodKey,
         actual_value: actualValue,
       }
     });
+  }
+
+  async getEmployeeByUserId(userId: string) {
+    return this.prisma.employee.findUnique({ where: { user_id: userId } });
   }
 }
 

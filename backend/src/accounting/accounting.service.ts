@@ -119,15 +119,20 @@ export class AccountingService {
         }
 
         return this.prisma.$transaction(async (tx) => {
-            const hrAdj = await tx.hRAdjustment.create({
-                data: {
-                    employee_id: deduction.employee_id,
-                    type: 'DEDUCTION',
-                    amount: deduction.suggested_amount,
-                    date: new Date(),
-                    reason: `Approved Review Deduction: ${deduction.reason_key}`
-                }
-            });
+            let hrAdjId = deduction.hr_adjustment_id;
+
+            if (!hrAdjId) {
+                const hrAdj = await tx.hRAdjustment.create({
+                    data: {
+                        employee_id: deduction.employee_id,
+                        type: 'DEDUCTION',
+                        amount: deduction.suggested_amount,
+                        date: new Date(),
+                        reason: `Approved Review Deduction: ${deduction.reason_key}`
+                    }
+                });
+                hrAdjId = hrAdj.id;
+            }
 
             return tx.reviewDeduction.update({
                 where: { id },
@@ -135,7 +140,7 @@ export class AccountingService {
                     status: 'APPROVED',
                     reviewed_by_user_id: user.id,
                     reviewed_at: new Date(),
-                    hr_adjustment_id: hrAdj.id
+                    hr_adjustment_id: hrAdjId
                 }
             });
         });

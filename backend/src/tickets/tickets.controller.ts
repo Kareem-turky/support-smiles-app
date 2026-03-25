@@ -4,7 +4,8 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
-import { TicketStatus } from '@prisma/client';
+import { Roles } from '../common/decorators/roles.decorator';
+import { TicketStatus, UserRole } from '@prisma/client';
 
 @Controller('tickets')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -26,6 +27,17 @@ export class TicketsController {
         return this.ticketsService.findOne(id, req.user);
     }
 
+    @Get(':id/events')
+    getEvents(@Param('id') id: string) {
+        return this.ticketsService.getEvents(id);
+    }
+
+    @Patch(':id/reopen')
+    @Roles(UserRole.ADMIN, UserRole.CS_MANAGER)
+    reopen(@Param('id') id: string, @Request() req) {
+        return this.ticketsService.reopen(id, req.user);
+    }
+
     @Patch(':id')
     update(@Request() req, @Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto) {
         return this.ticketsService.update(id, updateTicketDto, req.user);
@@ -40,4 +52,5 @@ export class TicketsController {
     changeStatus(@Request() req, @Param('id') id: string, @Body('status') status: TicketStatus) {
         return this.ticketsService.changeStatus(id, status, req.user);
     }
+
 }

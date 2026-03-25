@@ -18,12 +18,14 @@ export function ManagerDashboard() {
     const [pendingReviews, setPendingReviews] = useState<ReviewDeduction[]>([]);
     const [targets, setTargets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
 
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
             try {
                 const [teamRes, lbRes, reviewRes, targetsRes] = await Promise.all([
-                    KPIService.getTeamStats(),
+                    KPIService.getTeamStats(period),
                     GamificationService.getLeaderboard(),
                     AccountingService.getReviewDeductions(),
                     KPIService.getTeamTargets()
@@ -39,7 +41,7 @@ export function ManagerDashboard() {
             }
         };
         fetchData();
-    }, []);
+    }, [period]);
 
     if (loading) return <div>Loading team data...</div>;
 
@@ -88,11 +90,20 @@ export function ManagerDashboard() {
             <div className="grid gap-6 md:grid-cols-2">
                 {/* Team Performance */}
                 <Card className="col-span-1 border-t-4 border-t-primary shadow-sm bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="pb-3 border-b">
+                    <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <Users className="h-5 w-5 text-primary" />
                             Team Performance
                         </CardTitle>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-muted-foreground font-medium">Month:</label>
+                            <input
+                                type="month"
+                                value={period}
+                                onChange={(e) => setPeriod(e.target.value)}
+                                className="text-xs bg-muted p-1 rounded border border-input focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                        </div>
                     </CardHeader>
                     <CardContent className="grid gap-6 pt-6">
                         {(teamStats?.member_performance || []).map((member: any) => (

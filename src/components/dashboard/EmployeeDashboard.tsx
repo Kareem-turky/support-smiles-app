@@ -24,12 +24,14 @@ export function EmployeeDashboard() {
     const [metrics, setMetrics] = useState<KPIMetrics | null>(null);
     const [gamification, setGamification] = useState<GamificationProgress | null>(null);
     const [loading, setLoading] = useState(true);
+    const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
             try {
                 const [metricsRes, gameRes] = await Promise.all([
-                    KPIService.getMyStats(),
+                    KPIService.getMyStats(period),
                     GamificationService.getMyProgress(),
                 ]);
                 setMetrics(metricsRes);
@@ -41,7 +43,7 @@ export function EmployeeDashboard() {
             }
         };
         fetchData();
-    }, []);
+    }, [period]);
 
     if (loading) return <div>Loading statistics...</div>;
 
@@ -89,27 +91,84 @@ export function EmployeeDashboard() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* KPI Chart */}
-                <Card className="col-span-1 lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Performance Metrics ({metrics?.period})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RadialBarChart cx="50%" cy="50%" innerRadius="10%" outerRadius="80%" barSize={20} data={chartData}>
-                                    <RadialBar
-                                        label={{ position: 'insideStart', fill: '#fff' }}
-                                        background
-                                        dataKey="value"
-                                    />
-                                    <Legend iconSize={10} layout="vertical" verticalAlign="middle" wrapperStyle={{ right: 0 }} />
-                                    <Tooltip />
-                                </RadialBarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* KPI Chart & Breakdown */}
+                <div className="col-span-1 lg:col-span-2 space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Performance Metrics ({metrics?.period})</CardTitle>
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs text-muted-foreground">Month:</label>
+                                <input
+                                    type="month"
+                                    value={period}
+                                    onChange={(e) => setPeriod(e.target.value)}
+                                    className="text-xs bg-muted p-1 rounded border border-input focus:outline-none focus:ring-1 focus:ring-primary"
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadialBarChart cx="50%" cy="50%" innerRadius="10%" outerRadius="80%" barSize={20} data={chartData}>
+                                        <RadialBar
+                                            label={{ position: 'insideStart', fill: '#fff' }}
+                                            background
+                                            dataKey="value"
+                                        />
+                                        <Legend iconSize={10} layout="vertical" verticalAlign="middle" wrapperStyle={{ right: 0 }} />
+                                        <Tooltip />
+                                    </RadialBarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">Metrics Breakdown</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b text-muted-foreground text-left">
+                                            <th className="pb-2 font-medium">Metric</th>
+                                            <th className="pb-2 font-medium text-right">Target</th>
+                                            <th className="pb-2 font-medium text-right">Actual</th>
+                                            <th className="pb-2 font-medium text-right">Efficiency</th>
+                                            <th className="pb-2 font-medium text-right underline decoration-primary/30">Weight Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {metrics?.metrics.map((m, i) => {
+                                            const efficiency = m.target > 0 ? (m.actual / m.target) * 100 : 0;
+                                            return (
+                                                <tr key={i} className="hover:bg-muted/30 transition-colors">
+                                                    <td className="py-3 font-medium">{m.name}</td>
+                                                    <td className="py-3 text-right">{m.target}</td>
+                                                    <td className="py-3 text-right font-semibold">{m.actual}</td>
+                                                    <td className="py-3 text-right">
+                                                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${efficiency >= 100 ? 'bg-green-100 text-green-700' : efficiency >= 80 ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                            {efficiency.toFixed(1)}%
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 text-right font-bold text-primary">{m.score}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                        {(!metrics?.metrics || metrics.metrics.length === 0) && (
+                                            <tr>
+                                                <td colSpan={5} className="py-8 text-center text-muted-foreground italic">
+                                                    No targets assigned for this period.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* Stats Cards */}
                 <div className="space-y-6">

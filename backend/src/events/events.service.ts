@@ -21,4 +21,12 @@ export class EventsService {
             },
         });
     }
+
+    async findAllByTicket(ticketId: string) {
+        return this.prisma.ticketEvent.findMany({
+            where: { ticket_id: ticketId },
+            include: { actor: true },
+            orderBy: { created_at: 'desc' },
+        });
+    }
 }

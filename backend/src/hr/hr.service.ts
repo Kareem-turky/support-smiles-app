@@ -7,7 +7,7 @@ import { CreateLeaveDto } from './dto/create-leave.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
-import { HRMonthStatus, User, HRAttendance, EmployeeSalaryType, AttendanceStatus, UserRole } from '@prisma/client';
+import { HRMonthStatus, User, HRAttendance, EmployeeSalaryType, AttendanceStatus, UserRole, ReviewDeductionStatus } from '@prisma/client';
 
 @Injectable()
 export class HRService {
@@ -226,9 +226,10 @@ export class HRService {
     }
 
     // --- Adjustments (Bonus/Deduction/Advance) ---
-    async getAdjustments(employeeId?: string, from?: string, to?: string) {
+    async getAdjustments(employeeId?: string, from?: string, to?: string, type?: string) {
         const where: any = {};
         if (employeeId) where.employee_id = employeeId;
+        if (type) where.type = type;
         if (from && to) {
             where.date = { gte: new Date(from), lte: new Date(to) };
         }
@@ -243,7 +244,8 @@ export class HRService {
         const { year, month } = this.getDateYearMonth(dto.date);
         await this.ensureMonthEditable(year, month);
 
-        return this.prisma.hRAdjustment.create({
+        // 1. Create the HR Adjustment record (always visible in HR history)
+        const adjustment = await this.prisma.hRAdjustment.create({
             data: {
                 employee_id: dto.employee_id,
                 type: dto.type,
@@ -252,6 +254,36 @@ export class HRService {
                 reason: dto.reason,
             }
         });
+
+        // 2. If it's a deduction, create a ReviewDeduction for Accounting
+        if (dto.type === 'DEDUCTION') {
+            const emp = await this.prisma.employee.findUnique({
+                where: { id: dto.employee_id },
+                select: { department_id: true }
+            });
+            if (!emp) throw new NotFoundException('Employee not found');
+
+            await this.prisma.reviewDeduction.create({
+                data: {
+                    employee_id: dto.employee_id,
+                    department_id: emp.department_id,
+                    period_key: `${year}-${String(month).padStart(2, '0')}`,
+                    reason_key: `HR_ADJUSTMENT: ${dto.reason}`,
+                    suggested_amount: dto.amount,
+                    status: ReviewDeductionStatus.REVIEW_NEEDED,
+                    created_by_system: false,
+                    details_json: JSON.stringify({
+                        original_date: dto.date,
+                        manual_hr_entry: true,
+                        creator_id: user.id,
+                        adjustment_id: adjustment.id
+                    }),
+                    hr_adjustment_id: adjustment.id
+                }
+            });
+        }
+
+        return adjustment;
     }
 
     // --- Months ---
