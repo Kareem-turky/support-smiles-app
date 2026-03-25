@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
-import { User, UserRole, AttendanceStatus, TicketStatus } from '@prisma/client';
+import { User, UserRole, AttendanceStatus, TicketStatus, TicketReasonCategory } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -200,10 +200,13 @@ export class KpiService {
 
     console.log('[DEBUG] getTeamStats starting for user:', user.id, user.role);
 
+    let managerEmployee = null;
+
     if (user.role !== UserRole.ADMIN) {
       // Find manager's department
-      const managerEmployee = await this.prisma.employee.findUnique({
+      managerEmployee = await this.prisma.employee.findUnique({
         where: { user_id: user.id },
+        include: { department: true },
       });
 
       console.log('[DEBUG] managerEmployee found:', managerEmployee?.id, managerEmployee?.department_id);
@@ -236,6 +239,17 @@ export class KpiService {
     userIds = employees.map((e) => e.user?.id).filter(Boolean);
     console.log('[DEBUG] userIds extracted:', JSON.stringify(userIds));
 
+    // Map Department to Ticket Category for unassigned tickets
+    const deptName = managerEmployee?.department?.name?.toLowerCase() || '';
+    let categoryFilter: TicketReasonCategory | null = null;
+    if (deptName.includes('cs')) categoryFilter = TicketReasonCategory.CS;
+    else if (deptName.includes('accounting'))
+      categoryFilter = TicketReasonCategory.ACCOUNTING;
+    else if (deptName.includes('shipping'))
+      categoryFilter = TicketReasonCategory.SHIPPING;
+
+    console.log('[DEBUG] categoryFilter:', categoryFilter);
+
     const stats = await Promise.all(
       employees.map(async (emp) => {
         const metrics = await this.getMetrics(emp.id, period);
@@ -267,7 +281,12 @@ export class KpiService {
     // 1. Total Tickets for the team (resolved in this period)
     const totalTickets = await this.prisma.ticket.count({
       where: {
-        assigned_to: { in: userIds },
+        OR: [
+          { assigned_to: { in: userIds } },
+          categoryFilter
+            ? { assigned_to: null, reason: { category: categoryFilter } }
+            : (undefined as any),
+        ].filter(Boolean),
         resolved_at: { gte: startDate, lt: endDate },
         deleted_at: null,
       },
@@ -276,7 +295,12 @@ export class KpiService {
     // 2. Average Resolution Time (resolved in this period)
     const resolvedTickets = await this.prisma.ticket.findMany({
       where: {
-        assigned_to: { in: userIds },
+        OR: [
+          { assigned_to: { in: userIds } },
+          categoryFilter
+            ? { assigned_to: null, reason: { category: categoryFilter } }
+            : (undefined as any),
+        ].filter(Boolean),
         resolved_at: { gte: startDate, lt: endDate },
         deleted_at: null,
       },
@@ -296,7 +320,12 @@ export class KpiService {
     // 3. Open Tickets (Unresolved problems)
     const openTicketsCount = await this.prisma.ticket.count({
       where: {
-        assigned_to: { in: userIds },
+        OR: [
+          { assigned_to: { in: userIds } },
+          categoryFilter
+            ? { assigned_to: null, reason: { category: categoryFilter } }
+            : (undefined as any),
+        ].filter(Boolean),
         status: {
           in: [
             TicketStatus.NEW,

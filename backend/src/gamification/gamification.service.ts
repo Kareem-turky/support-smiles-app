@@ -109,6 +109,23 @@ export class GamificationService {
       take: 20,
     });
 
+    // If leaderboard is empty, return all active employees with 0 points
+    if (grouped.length === 0) {
+      const activeEmployees = await this.prisma.employee.findMany({
+        where: departmentId ? { department_id: departmentId } : {},
+        include: { department: true, user: true },
+        take: 10,
+      });
+      return activeEmployees.map((e) => ({
+        user_id: e.user?.id || e.id,
+        user: e.full_name,
+        role: e.user?.role || 'Employee',
+        department: e.department?.name,
+        points: 0,
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (e.user?.id || e.id),
+      }));
+    }
+
     const leaderboard = [];
     for (const entry of grouped) {
       const user = await this.prisma.user.findUnique({
