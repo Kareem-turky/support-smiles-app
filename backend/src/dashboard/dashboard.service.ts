@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
-import { AdjustmentType } from '@prisma/client';
+import { AdjustmentType, TicketStatus } from '@prisma/client';
 
 @Injectable()
 export class DashboardService {
@@ -110,7 +110,18 @@ export class DashboardService {
     // 3. KPI / Action Counts
     const counts = {
       tickets_open: await this.prisma.ticket.count({
-        where: { status: { not: 'CLOSED' } },
+        where: {
+          status: {
+            in: [
+              TicketStatus.NEW,
+              TicketStatus.ASSIGNED,
+              TicketStatus.IN_PROGRESS,
+              TicketStatus.WAITING,
+              TicketStatus.REOPENED,
+            ],
+          },
+          deleted_at: null,
+        },
       }),
       orders_pending: await this.prisma.order.count({
         where: { status: 'PENDING' },
