@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Query, Param, Patch, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Query,
+  Param,
+  Patch,
+  Delete,
+} from '@nestjs/common';
 import { KpiService } from './kpi.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { CreateTargetDto } from './dto/create-target.dto';
@@ -11,7 +22,7 @@ import { UserRole } from '@prisma/client';
 @Controller('kpi')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class KpiController {
-  constructor(private readonly kpiService: KpiService) { }
+  constructor(private readonly kpiService: KpiService) {}
 
   // --- KPI Metrics Admin ---
   @Get('metrics')
@@ -45,14 +56,14 @@ export class KpiController {
   async getMyStats(@Request() req, @Query('period') period?: string) {
     const employee = await this.kpiService.getEmployeeByUserId(req.user.id);
     if (!employee) {
-      return { 
-        period: period || new Date().toISOString().slice(0, 7), 
-        user_role: req.user.role, 
-        metrics: [], 
-        issues: [], 
-        total_base_score: 0, 
-        total_deductions: 0, 
-        final_score: 0 
+      return {
+        period: period || new Date().toISOString().slice(0, 7),
+        user_role: req.user.role,
+        metrics: [],
+        issues: [],
+        total_base_score: 0,
+        total_deductions: 0,
+        final_score: 0,
       };
     }
     return this.kpiService.getMetrics(employee.id, period);
@@ -60,20 +71,38 @@ export class KpiController {
 
   @Get('team-stats')
   // @ts-ignore
-  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
   getTeamStats(@Request() req, @Query('period') period?: string) {
     return this.kpiService.getTeamStats(req.user, period);
   }
 
   @Post('issues')
   // @ts-ignore
-  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
   logIssue(@Body() createIssueDto: CreateIssueDto, @Request() req) {
     return this.kpiService.logIssue(createIssueDto, req.user.id);
   }
 
   @Get('targets/team')
-  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
   getTeamTargets(@Request() req, @Query('date') date: string) {
     return this.kpiService.getTeamTargets(req.user, date);
   }
@@ -85,7 +114,13 @@ export class KpiController {
 
   @Post('targets')
   // @ts-ignore
-  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
   createTarget(@Body() createTargetDto: CreateTargetDto, @Request() req) {
     return this.kpiService.createTarget(createTargetDto, req.user.id, req.user);
   }
@@ -97,14 +132,22 @@ export class KpiController {
 
   @Post('calculate-daily')
   // @ts-ignore
-  @Roles(UserRole.ADMIN, UserRole.CS_MANAGER, UserRole.ACC_MANAGER, UserRole.HR_MANAGER, UserRole.WH_MANAGER)
-  async calculateDaily(@Body() body: { employeeId: string, date: string }) {
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
+  async calculateDaily(@Body() body: { employeeId: string; date: string }) {
     try {
-      return await this.kpiService.calculateDailyScore(body.employeeId, new Date(body.date));
+      return await this.kpiService.calculateDailyScore(
+        body.employeeId,
+        new Date(body.date),
+      );
     } catch (e: any) {
-      console.error("CALC DAILY ERROR:", e);
+      console.error('CALC DAILY ERROR:', e);
       return { error: e.message, stack: e.stack };
     }
   }
 }
-

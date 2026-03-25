@@ -7,8 +7,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { GamificationModule } from '../gamification/gamification.module';
 
 @Module({
-    imports: [PrismaModule, TicketReasonsModule, GamificationModule],
-    controllers: [TicketsController],
-    providers: [TicketsService, EventsService],
+  imports: [PrismaModule, TicketReasonsModule, GamificationModule],
+  controllers: [TicketsController],
+  providers: [TicketsService, EventsService],
 })
-export class TicketsModule { }
+export class TicketsModule {}

@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { MissionStatus, RedemptionStatus, MissionFrequency, UserRole } from '@prisma/client';
+import {
+  MissionStatus,
+  RedemptionStatus,
+  MissionFrequency,
+  UserRole,
+} from '@prisma/client';
 
 @Injectable()
 export class GamificationService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async awardPoints(userId: string, amount: number, reason: string) {
     // 1. Create Point Record
@@ -35,7 +45,9 @@ export class GamificationService {
   }
 
   async awardBadge(userId: string, badgeName: string) {
-    const badge = await this.prisma.gamificationBadge.findUnique({ where: { name: badgeName } });
+    const badge = await this.prisma.gamificationBadge.findUnique({
+      where: { name: badgeName },
+    });
     if (!badge) return;
 
     // Check if already awarded
@@ -69,7 +81,7 @@ export class GamificationService {
     const next_level_points = level * 1000;
 
     const streaks = await this.prisma.streak.findMany({
-      where: { user_id: userId }
+      where: { user_id: userId },
     });
 
     return {
@@ -78,7 +90,7 @@ export class GamificationService {
       next_level_points,
       streaks,
       badges,
-      history
+      history,
     };
   }
 
@@ -101,7 +113,7 @@ export class GamificationService {
     for (const entry of grouped) {
       const user = await this.prisma.user.findUnique({
         where: { id: entry.user_id },
-        include: { employee: { include: { department: true } } }
+        include: { employee: { include: { department: true } } },
       });
       if (user) {
         leaderboard.push({
@@ -110,7 +122,7 @@ export class GamificationService {
           role: user.role,
           department: user.employee?.department?.name,
           points: Number(entry._sum.amount),
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.id
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.id,
         });
       }
     }
@@ -120,7 +132,10 @@ export class GamificationService {
   // --- Missions ---
 
   async getMyMissions(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { employee: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { employee: true },
+    });
     if (!user) throw new NotFoundException('User not found');
 
     // 1. Fetch relevant missions (Role/Dept scope)
@@ -129,14 +144,14 @@ export class GamificationService {
         OR: [
           { role_scope: user.role },
           { department_id: user.employee?.department_id },
-          { role_scope: null, department_id: null }
+          { role_scope: null, department_id: null },
         ],
       },
       include: {
         assignments: {
-          where: { user_id: userId }
-        }
-      }
+          where: { user_id: userId },
+        },
+      },
     });
 
     return missions;
@@ -147,15 +162,15 @@ export class GamificationService {
       data: {
         ...dto,
         created_by: creatorId,
-      }
+      },
     });
   }
 
   async assignMission(missionId: string, userIds: string[]) {
-    const assignments = userIds.map(userId => ({
+    const assignments = userIds.map((userId) => ({
       mission_id: missionId,
       user_id: userId,
-      status: MissionStatus.ACTIVE
+      status: MissionStatus.ACTIVE,
     }));
 
     return this.prisma.missionAssignment.createMany({
@@ -163,16 +178,20 @@ export class GamificationService {
     });
   }
 
-  async updateMissionProgress(userId: string, metricKey: string, increment: number) {
+  async updateMissionProgress(
+    userId: string,
+    metricKey: string,
+    increment: number,
+  ) {
     const assignments = await this.prisma.missionAssignment.findMany({
       where: {
         user_id: userId,
         status: MissionStatus.ACTIVE,
         mission: {
-          metric_key: metricKey
-        }
+          metric_key: metricKey,
+        },
       },
-      include: { mission: true }
+      include: { mission: true },
     });
 
     for (const assignment of assignments) {
@@ -185,15 +204,19 @@ export class GamificationService {
           data: {
             progress_value: target,
             status: MissionStatus.DONE,
-            completed_at: new Date()
-          }
+            completed_at: new Date(),
+          },
         });
         // Award points
-        await this.awardPoints(userId, assignment.mission.points, `Completed Mission: ${assignment.mission.title}`);
+        await this.awardPoints(
+          userId,
+          assignment.mission.points,
+          `Completed Mission: ${assignment.mission.title}`,
+        );
       } else {
         await this.prisma.missionAssignment.update({
           where: { id: assignment.id },
-          data: { progress_value: newProgress }
+          data: { progress_value: newProgress },
         });
       }
     }
@@ -205,17 +228,17 @@ export class GamificationService {
     return this.prisma.reward.findMany({
       where: {
         active: true,
-        OR: [
-          { role_scope: role },
-          { role_scope: null }
-        ]
-      }
+        OR: [{ role_scope: role }, { role_scope: null }],
+      },
     });
   }
 
   async redeemReward(userId: string, rewardId: string) {
-    const reward = await this.prisma.reward.findUnique({ where: { id: rewardId } });
-    if (!reward || !reward.active) throw new NotFoundException('Reward not found');
+    const reward = await this.prisma.reward.findUnique({
+      where: { id: rewardId },
+    });
+    if (!reward || !reward.active)
+      throw new NotFoundException('Reward not found');
 
     const totalPoints = await this.getTotalPoints(userId);
     if (totalPoints < reward.cost_points) {
@@ -223,14 +246,18 @@ export class GamificationService {
     }
 
     // Deduct points (by adding a negative record)
-    await this.awardPoints(userId, -reward.cost_points, `Redeemed Reward: ${reward.name}`);
+    await this.awardPoints(
+      userId,
+      -reward.cost_points,
+      `Redeemed Reward: ${reward.name}`,
+    );
 
     return this.prisma.rewardRedemption.create({
       data: {
         user_id: userId,
         reward_id: rewardId,
-        status: RedemptionStatus.REQUESTED
-      }
+        status: RedemptionStatus.REQUESTED,
+      },
     });
   }
 
@@ -238,22 +265,28 @@ export class GamificationService {
     return this.prisma.rewardRedemption.findMany({
       include: {
         user: { select: { name: true, role: true } },
-        reward: true
+        reward: true,
       },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
     });
   }
 
   async approveRedemption(id: string, status: RedemptionStatus) {
     const redemption = await this.prisma.rewardRedemption.update({
       where: { id },
-      data: { status }
+      data: { status },
     });
     // If rejected, refund points?
     if (status === RedemptionStatus.REJECTED) {
-      const reward = await this.prisma.reward.findUnique({ where: { id: redemption.reward_id } });
+      const reward = await this.prisma.reward.findUnique({
+        where: { id: redemption.reward_id },
+      });
       if (reward) {
-        await this.awardPoints(redemption.user_id, reward.cost_points, `Refund for rejected reward: ${reward.name}`);
+        await this.awardPoints(
+          redemption.user_id,
+          reward.cost_points,
+          `Refund for rejected reward: ${reward.name}`,
+        );
       }
     }
     return redemption;
@@ -261,14 +294,19 @@ export class GamificationService {
 
   // --- Actions & Events ---
 
-  async logEvent(userId: string, type: string, points: number = 0, meta: any = {}) {
+  async logEvent(
+    userId: string,
+    type: string,
+    points: number = 0,
+    meta: any = {},
+  ) {
     return this.prisma.gamificationEvent.create({
       data: {
         user_id: userId,
         type,
         points,
-        meta_json: JSON.stringify(meta)
-      }
+        meta_json: JSON.stringify(meta),
+      },
     });
   }
 
@@ -281,7 +319,7 @@ export class GamificationService {
 
   async updateStreak(userId: string, key: string) {
     const streak = await this.prisma.streak.findUnique({
-      where: { user_id_key: { user_id: userId, key } }
+      where: { user_id_key: { user_id: userId, key } },
     });
 
     const now = new Date();
@@ -294,13 +332,15 @@ export class GamificationService {
           key,
           current_count: 1,
           best_count: 1,
-          last_hit_date: today
-        }
+          last_hit_date: today,
+        },
       });
       return;
     }
 
-    const lastHit = streak.last_hit_date ? new Date(streak.last_hit_date) : null;
+    const lastHit = streak.last_hit_date
+      ? new Date(streak.last_hit_date)
+      : null;
     if (lastHit && lastHit.getTime() === today.getTime()) {
       return; // Already hit today
     }
@@ -316,8 +356,8 @@ export class GamificationService {
         data: {
           current_count: newCount,
           best_count: Math.max(streak.best_count, newCount),
-          last_hit_date: today
-        }
+          last_hit_date: today,
+        },
       });
 
       // Bonus points for milestones
@@ -330,8 +370,8 @@ export class GamificationService {
         where: { id: streak.id },
         data: {
           current_count: 1,
-          last_hit_date: today
-        }
+          last_hit_date: today,
+        },
       });
     }
   }

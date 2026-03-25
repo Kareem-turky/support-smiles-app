@@ -10,28 +10,28 @@ import { Param } from '@nestjs/common';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
-    @Post('login')
-    login(@Body() loginDto: LoginDto) {
-        return this.authService.login(loginDto);
-    }
+  @Post('login')
+  login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
+  }
 
-    @Post('refresh')
-    refresh(@Body() refreshTokenDto: RefreshTokenDto) {
-        return this.authService.refresh(refreshTokenDto.refresh_token);
-    }
+  @Post('refresh')
+  refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refresh(refreshTokenDto.refresh_token);
+  }
 
-    @Post('logout')
-    @UseGuards(JwtAuthGuard)
-    logout(@Request() req) {
-        return this.authService.logout(req.user.id);
-    }
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  logout(@Request() req) {
+    return this.authService.logout(req.user.id);
+  }
 
-    @Post('impersonate/:id')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.ADMIN)
-    impersonate(@Param('id') targetUserId: string) {
-        return this.authService.impersonate(targetUserId);
-    }
+  @Post('impersonate/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  impersonate(@Param('id') targetUserId: string) {
+    return this.authService.impersonate(targetUserId);
+  }
 }

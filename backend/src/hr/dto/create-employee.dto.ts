@@ -1,36 +1,45 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsBoolean, IsDateString, IsNumber, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEmail,
+  IsOptional,
+  IsBoolean,
+  IsDateString,
+  IsNumber,
+  IsEnum,
+} from 'class-validator';
 import { EmployeeSalaryType } from '@prisma/client';
 
 export class CreateEmployeeDto {
-    @IsString()
-    @IsNotEmpty()
-    full_name: string;
+  @IsString()
+  @IsNotEmpty()
+  full_name: string;
 
-    @IsEmail()
-    @IsNotEmpty()
-    email: string;
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 
-    @IsString()
-    @IsOptional()
-    department_id?: string;
+  @IsString()
+  @IsOptional()
+  department_id?: string;
 
-    @IsDateString()
-    @IsNotEmpty()
-    start_date: string;
+  @IsDateString()
+  @IsNotEmpty()
+  start_date: string;
 
-    @IsNumber()
-    @IsNotEmpty()
-    base_salary: number;
+  @IsNumber()
+  @IsNotEmpty()
+  base_salary: number;
 
-    @IsEnum(EmployeeSalaryType)
-    @IsOptional()
-    salary_type?: EmployeeSalaryType;
+  @IsEnum(EmployeeSalaryType)
+  @IsOptional()
+  salary_type?: EmployeeSalaryType;
 
-    @IsBoolean()
-    @IsOptional()
-    is_active?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  is_active?: boolean;
 
-    @IsString()
-    @IsOptional()
-    role?: string;
+  @IsString()
+  @IsOptional()
+  role?: string;
 }

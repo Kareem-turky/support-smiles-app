@@ -1,19 +1,25 @@
-import { IsNotEmpty, IsString, IsNumber, IsDateString, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsDateString,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateExpenseDto {
-    @IsNotEmpty()
-    @IsString()
-    category: string;
+  @IsNotEmpty()
+  @IsString()
+  category: string;
 
-    @IsNotEmpty()
-    @IsDateString()
-    date: string;
+  @IsNotEmpty()
+  @IsDateString()
+  date: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    amount: number;
+  @IsNotEmpty()
+  @IsNumber()
+  amount: number;
 
-    @IsOptional()
-    @IsString()
-    notes?: string;
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

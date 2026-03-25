@@ -4,8 +4,8 @@ import { AdminTicketReasonsController } from './admin-ticket-reasons.controller'
 import { TicketReasonsService } from './ticket-reasons.service';
 
 @Module({
-    controllers: [TicketReasonsController, AdminTicketReasonsController],
-    providers: [TicketReasonsService],
-    exports: [TicketReasonsService],
+  controllers: [TicketReasonsController, AdminTicketReasonsController],
+  providers: [TicketReasonsService],
+  exports: [TicketReasonsService],
 })
-export class TicketReasonsModule { }
+export class TicketReasonsModule {}

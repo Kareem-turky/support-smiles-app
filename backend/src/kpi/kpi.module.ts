@@ -9,6 +9,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   imports: [PrismaModule, GamificationModule, NotificationsModule],
   controllers: [KpiController],
   providers: [KpiService],
-  exports: [KpiService]
+  exports: [KpiService],
 })
-export class KpiModule { }
+export class KpiModule {}

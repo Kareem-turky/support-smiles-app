@@ -5,10 +5,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 @Controller('ticket-reasons')
 @UseGuards(JwtAuthGuard)
 export class TicketReasonsController {
-    constructor(private service: TicketReasonsService) { }
+  constructor(private service: TicketReasonsService) {}
 
-    @Get()
-    async findAll(@Query('activeOnly') activeOnly: string) {
-        return this.service.findAll(activeOnly === 'true');
-    }
+  @Get()
+  async findAll(@Query('activeOnly') activeOnly: string) {
+    return this.service.findAll(activeOnly === 'true');
+  }
 }

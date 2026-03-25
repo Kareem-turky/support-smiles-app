@@ -9,10 +9,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
+      if (
+        !origin ||
+        /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)
+      ) {
         callback(null, true);
       } else {
-        const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
+        const allowedOrigins = process.env.CORS_ORIGINS
+          ? process.env.CORS_ORIGINS.split(',')
+          : [];
         if (allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
@@ -22,20 +28,24 @@ async function bootstrap() {
     },
     credentials: true,
   });
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-    exceptionFactory: (errors) => {
-      console.error('Validation Errors:', JSON.stringify(errors, null, 2));
-      return new BadRequestException(errors);
-    },
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      exceptionFactory: (errors) => {
+        console.error('Validation Errors:', JSON.stringify(errors, null, 2));
+        return new BadRequestException(errors);
+      },
+    }),
+  );
 
   // Simple global error logging
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
 
-  app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapterHost.httpAdapter));
+  app.useGlobalFilters(
+    new PrismaClientExceptionFilter(httpAdapterHost.httpAdapter),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('Support Smiles API')

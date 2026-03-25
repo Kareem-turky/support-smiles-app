@@ -5,8 +5,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { EventsService } from '../events/events.service';
 
 @Module({
-    imports: [PrismaModule],
-    controllers: [MessagesController],
-    providers: [MessagesService, EventsService],
+  imports: [PrismaModule],
+  controllers: [MessagesController],
+  providers: [MessagesService, EventsService],
 })
-export class MessagesModule { }
+export class MessagesModule {}

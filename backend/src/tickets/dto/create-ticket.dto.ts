@@ -1,32 +1,38 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { IssueType, Priority } from '@prisma/client';
 
 export class CreateTicketDto {
-    @IsNotEmpty()
-    @IsString()
-    order_number: string;
+  @IsNotEmpty()
+  @IsString()
+  order_number: string;
 
-    @IsNotEmpty()
-    @IsString()
-    courier_company: string;
+  @IsNotEmpty()
+  @IsString()
+  courier_company: string;
 
-    @IsNotEmpty()
-    @IsEnum(IssueType)
-    issue_type: IssueType;
+  @IsNotEmpty()
+  @IsEnum(IssueType)
+  issue_type: IssueType;
 
-    @IsOptional()
-    @IsEnum(Priority)
-    priority?: Priority;
+  @IsOptional()
+  @IsEnum(Priority)
+  priority?: Priority;
 
-    @IsNotEmpty()
-    @IsString()
-    description: string;
+  @IsNotEmpty()
+  @IsString()
+  description: string;
 
-    @IsOptional()
-    @IsUUID()
-    assigned_to?: string;
+  @IsOptional()
+  @IsUUID()
+  assigned_to?: string;
 
-    @IsOptional()
-    @IsUUID()
-    reason_id?: string;
+  @IsOptional()
+  @IsUUID()
+  reason_id?: string;
 }

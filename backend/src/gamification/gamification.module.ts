@@ -8,6 +8,6 @@ import { PrismaModule } from '../prisma/prisma.module';
   imports: [PrismaModule],
   controllers: [GamificationController, GamificationActionsController],
   providers: [GamificationService],
-  exports: [GamificationService]
+  exports: [GamificationService],
 })
-export class GamificationModule { }
+export class GamificationModule {}

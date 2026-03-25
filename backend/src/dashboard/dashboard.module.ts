@@ -6,6 +6,6 @@ import { GamificationModule } from '../gamification/gamification.module';
 @Module({
   imports: [GamificationModule],
   controllers: [DashboardController],
-  providers: [DashboardService]
+  providers: [DashboardService],
 })
-export class DashboardModule { }
+export class DashboardModule {}

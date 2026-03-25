@@ -16,7 +16,7 @@ describe('AppController (e2e)', () => {
   });
 
   // Note: These tests require a running database (Docker).
-  // Since Docker is not available in the current environment, these are placeholder tests 
+  // Since Docker is not available in the current environment, these are placeholder tests
   // that would pass if the DB was up.
 
   it('/ (GET)', () => {

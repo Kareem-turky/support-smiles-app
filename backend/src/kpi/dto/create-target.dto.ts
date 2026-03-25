@@ -1,25 +1,25 @@
 import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateTargetDto {
-    @IsString()
-    @IsOptional()
-    employeeId?: string;
+  @IsString()
+  @IsOptional()
+  employeeId?: string;
 
-    @IsString()
-    @IsOptional()
-    employee_code?: string;
+  @IsString()
+  @IsOptional()
+  employee_code?: string;
 
-    @IsString()
-    metric: string;
+  @IsString()
+  metric: string;
 
-    @IsNumber()
-    targetValue: number;
+  @IsNumber()
+  targetValue: number;
 
-    @IsOptional()
-    @IsString()
-    date?: string;
+  @IsOptional()
+  @IsString()
+  date?: string;
 
-    @IsOptional()
-    @IsNumber()
-    weight?: number;
+  @IsOptional()
+  @IsNumber()
+  weight?: number;
 }

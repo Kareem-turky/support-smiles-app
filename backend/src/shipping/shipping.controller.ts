@@ -9,16 +9,16 @@ import { UserRole } from '@prisma/client';
 @Controller('shipping')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ShippingController {
-    constructor(private readonly shippingService: ShippingService) { }
+  constructor(private readonly shippingService: ShippingService) {}
 
-    @Post('companies')
-    @Roles(UserRole.ADMIN, UserRole.WH_MANAGER)
-    create(@Body() dto: CreateShippingCompanyDto) {
-        return this.shippingService.create(dto);
-    }
+  @Post('companies')
+  @Roles(UserRole.ADMIN, UserRole.WH_MANAGER)
+  create(@Body() dto: CreateShippingCompanyDto) {
+    return this.shippingService.create(dto);
+  }
 
-    @Get('companies')
-    findAll() {
-        return this.shippingService.findAll();
-    }
+  @Get('companies')
+  findAll() {
+    return this.shippingService.findAll();
+  }
 }

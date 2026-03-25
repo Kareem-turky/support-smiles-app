@@ -8,6 +8,6 @@ import { IntegrationsAdminController } from './integrations-admin.controller';
 
 @Module({
   controllers: [IntegrationsController, IntegrationsAdminController],
-  providers: [IntegrationsService, WebhooksService, IntegrationAuthService]
+  providers: [IntegrationsService, WebhooksService, IntegrationAuthService],
 })
-export class IntegrationsModule { }
+export class IntegrationsModule {}

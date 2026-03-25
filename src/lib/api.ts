@@ -68,9 +68,9 @@ const processQueue = (error: any, token: string | null = null) => {
 api.interceptors.response.use(
     (response) => response,
     async (error: any) => {
-        const originalRequest = error.config;
+        const originalRequest = error?.config;
 
-        if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+        if (error?.response?.status === 401 && originalRequest && !originalRequest._retry) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
@@ -82,7 +82,9 @@ api.interceptors.response.use(
                     .catch((err) => Promise.reject(err));
             }
 
-            originalRequest._retry = true;
+            if (originalRequest) {
+                originalRequest._retry = true;
+            }
             isRefreshing = true;
 
             const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
@@ -102,10 +104,14 @@ api.interceptors.response.use(
                 localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
 
                 api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-                originalRequest.headers.Authorization = `Bearer ${access_token}`;
+                if (originalRequest && originalRequest.headers) {
+                    originalRequest.headers.Authorization = `Bearer ${access_token}`;
+                }
 
                 processQueue(null, access_token);
-                return api(originalRequest);
+                if (originalRequest) {
+                    return api(originalRequest);
+                }
             } catch (refreshError) {
                 processQueue(refreshError, null);
                 localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
