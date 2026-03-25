@@ -217,7 +217,8 @@ export default function TicketDetails() {
     }
   };
 
-  const getUserName = (userId: string) => {
+  const getUserName = (userId: string, userObj?: User) => {
+    if (userObj?.name) return userObj.name;
     const u = allUsers.find(usr => usr.id === userId);
     return u?.name || t('ticket_details.unknown_user');
   };
@@ -228,7 +229,8 @@ export default function TicketDetails() {
       case 'TICKET_CREATED':
         return t('ticket_details.events.created', { actor: actorName });
       case 'TICKET_ASSIGNED':
-        return t('ticket_details.events.assigned', { actor: actorName, target: event.meta.assigned_to_name || 'someone' });
+        const targetName = event.meta.assigned_to_name || (event.meta.assigned_to ? getUserName(event.meta.assigned_to as string) : 'someone');
+        return t('ticket_details.events.assigned', { actor: actorName, target: targetName });
       case 'STATUS_CHANGED':
         return t('ticket_details.events.changed_status', { actor: actorName, from: event.meta.from, to: event.meta.to });
       case 'MESSAGE_SENT':
@@ -397,12 +399,16 @@ export default function TicketDetails() {
                 <div>
                   <p className="text-sm text-muted-foreground">{t('ticket_details.cards.assigned_to')}</p>
                   <p className="font-medium">
-                    {ticket.assigned_to ? getUserName(ticket.assigned_to) : t('ticket_details.unassigned')}
+                    {ticket.assignee 
+                      ? ticket.assignee.name 
+                      : (ticket.assigned_to ? getUserName(ticket.assigned_to) : t('ticket_details.unassigned'))}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('ticket_details.cards.created_by')}</p>
-                  <p className="font-medium">{getUserName(ticket.created_by)}</p>
+                  <p className="font-medium">
+                    {ticket.creator ? ticket.creator.name : getUserName(ticket.created_by)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('ticket_details.cards.created')}</p>

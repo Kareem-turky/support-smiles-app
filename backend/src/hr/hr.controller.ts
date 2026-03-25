@@ -47,8 +47,14 @@ export class HRController {
   // --- Employees ---
   @Get('employees')
   // Open to all authenticated users for dropdowns
-  getEmployees(@Request() req: any) {
-    return this.hrService.getEmployees(req.user);
+  async getEmployees(@Request() req: any) {
+    if (req.user.role === UserRole.ADMIN) {
+      return this.hrService.getEmployees();
+    }
+
+    // Find the calling user's department
+    const employee = await this.hrService.getEmployeeByUserId(req.user.id);
+    return this.hrService.getEmployees(employee?.department_id);
   }
 
   @Post('employees')

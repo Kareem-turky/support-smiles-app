@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
-import { User, UserRole, AttendanceStatus } from '@prisma/client';
+import { User, UserRole, AttendanceStatus, TicketStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -201,11 +201,19 @@ export class KpiService {
     if (user.role !== UserRole.ADMIN) {
       // Find manager's department
       const managerEmployee = await this.prisma.employee.findUnique({
-        where: { email: user.email },
+        where: { user_id: user.id },
       });
 
       if (managerEmployee) {
         whereClause.department_id = managerEmployee.department_id;
+      } else {
+        // If manager has no employee record, they can't see team stats
+        return {
+          total_tickets: 0,
+          avg_response_time: 0,
+          open_issues: 0,
+          member_performance: [],
+        };
       }
     }
 
@@ -248,12 +256,9 @@ export class KpiService {
     // 1. Total Tickets for the team (resolved in this period)
     const totalTickets = await this.prisma.ticket.count({
       where: {
-        AND: [
-          userIds.length > 0
-            ? { assigned_to: { in: userIds } }
-            : { id: 'none' },
-          { resolved_at: { gte: startDate, lt: endDate } },
-        ],
+        assigned_to: { in: userIds },
+        resolved_at: { gte: startDate, lt: endDate },
+        deleted_at: null,
       },
     });
 
@@ -262,6 +267,7 @@ export class KpiService {
       where: {
         assigned_to: { in: userIds },
         resolved_at: { gte: startDate, lt: endDate },
+        deleted_at: null,
       },
       select: { created_at: true, resolved_at: true },
     });
@@ -269,19 +275,34 @@ export class KpiService {
     let avgResponseTime = 0;
     if (resolvedTickets.length > 0) {
       const totalTime = resolvedTickets.reduce((sum, t) => {
-        const duration = t.resolved_at.getTime() - t.created_at.getTime();
+        const duration =
+          (t.resolved_at?.getTime() || 0) - t.created_at.getTime();
         return sum + duration;
       }, 0);
       avgResponseTime = totalTime / resolvedTickets.length / (1000 * 60 * 60); // In hours
     }
 
-    // Calculate summaries from individual stats
-    const totalIssues = stats.reduce((sum, s) => sum + s.issuesCount, 0);
+    // 3. Open Tickets (Unresolved problems)
+    const openTicketsCount = await this.prisma.ticket.count({
+      where: {
+        assigned_to: { in: userIds },
+        status: {
+          in: [
+            TicketStatus.NEW,
+            TicketStatus.ASSIGNED,
+            TicketStatus.IN_PROGRESS,
+            TicketStatus.WAITING,
+            TicketStatus.REOPENED,
+          ],
+        },
+        deleted_at: null,
+      },
+    });
 
     return {
       total_tickets: totalTickets,
       avg_response_time: avgResponseTime,
-      open_issues: totalIssues,
+      open_issues: openTicketsCount,
       member_performance: stats.sort((a, b) => b.score - a.score), // Best first
     };
   }
@@ -620,7 +641,7 @@ export class KpiService {
     }
 
     const managerEmployee = await this.prisma.employee.findUnique({
-      where: { email: user.email },
+      where: { user_id: user.id },
     });
     if (!managerEmployee) throw new NotFoundException('Manager not found');
 

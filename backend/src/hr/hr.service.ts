@@ -67,9 +67,14 @@ export class HRService {
   }
 
   // --- Employees ---
-  async getEmployees(user?: any) {
-    // Tickets need to be routed cross-department, so all internal staff must be able to see the full directory.
+  async getEmployees(departmentId?: string) {
+    const where: any = { is_active: true };
+    if (departmentId) {
+      where.department_id = departmentId;
+    }
+
     const employees = await this.prisma.employee.findMany({
+      where,
       include: {
         department: true,
         user: { select: { email: true, role: true } },
@@ -81,6 +86,12 @@ export class HRService {
       ...emp,
       role: emp.user?.role,
     }));
+  }
+
+  async getEmployeeByUserId(userId: string) {
+    return this.prisma.employee.findUnique({
+      where: { user_id: userId },
+    });
   }
 
   async createEmployee(dto: CreateEmployeeDto) {

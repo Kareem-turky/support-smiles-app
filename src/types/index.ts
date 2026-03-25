@@ -126,6 +126,8 @@ export interface Ticket {
   updated_at: string;
   deleted_at: string | null;
   integration_inbox?: { source: string; external_id: string };
+  creator?: User;
+  assignee?: User;
 }
 
 // Ticket message model

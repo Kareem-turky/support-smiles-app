@@ -21,7 +21,13 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
   findAll() {
     return this.usersService.findAll();
   }
