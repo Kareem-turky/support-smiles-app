@@ -4,7 +4,8 @@ import { STORAGE_KEYS } from '@/services/storage';
 import { mockApiAdapter } from './mockApiAdapter';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
+// Force real API to avoid environment configuration confusion
+const USE_MOCK = false;
 
 export const api = axios.create({
     baseURL: API_BASE_URL,

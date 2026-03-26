@@ -24,16 +24,18 @@ export function ManagerDashboard() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [teamRes, lbRes, reviewRes, targetsRes] = await Promise.all([
+                const results = await Promise.allSettled([
                     KPIService.getTeamStats(period),
                     GamificationService.getLeaderboard(),
                     AccountingService.getReviewDeductions(),
                     KPIService.getTeamTargets()
                 ]);
-                setTeamStats(teamRes);
-                setLeaderboard(Array.isArray(lbRes) ? lbRes : []);
-                setPendingReviews(Array.isArray(reviewRes) ? reviewRes.filter(r => r.status === 'REVIEW_NEEDED') : []);
-                setTargets(Array.isArray(targetsRes) ? targetsRes : []);
+
+                if (results[0].status === 'fulfilled') setTeamStats(results[0].value);
+                if (results[1].status === 'fulfilled') setLeaderboard(Array.isArray(results[1].value) ? results[1].value : []);
+                const reviewsRes = results[2].status === 'fulfilled' ? results[2].value : [];
+                setPendingReviews(Array.isArray(reviewsRes) ? reviewsRes.filter((r: any) => r.status === 'REVIEW_NEEDED') : []);
+                if (results[3].status === 'fulfilled') setTargets(Array.isArray(results[3].value) ? results[3].value : []);
             } catch (error) {
                 console.error('Failed to load manager dashboard', error);
             } finally {

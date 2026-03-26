@@ -142,9 +142,15 @@ export class AccountingController {
 
   // --- Review Deductions ---
   @Get('review-deductions')
-  @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
-  getReviewDeductions() {
-    return this.accountingService.getReviewDeductions();
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.ACC_MANAGER,
+    UserRole.CS_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
+  getReviewDeductions(@Request() req) {
+    return this.accountingService.getReviewDeductions(req.user);
   }
 
   @Patch('review-deductions/:id/approve')

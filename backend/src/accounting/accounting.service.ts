@@ -12,7 +12,7 @@ import { CreateDepositDto } from './dto/create-deposit.dto';
 import { CalculatePayrollDto } from './dto/calculate-payroll.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { CreateClosingDto } from './dto/create-closing.dto';
-import { HRMonthStatus, PayrollStatus, User } from '@prisma/client';
+import { HRMonthStatus, PayrollStatus, User, UserRole } from '@prisma/client';
 
 @Injectable()
 export class AccountingService {
@@ -115,8 +115,19 @@ export class AccountingService {
   }
 
   // --- Review Deductions ---
-  async getReviewDeductions() {
+  async getReviewDeductions(user: any) {
+    const where: any = {};
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.ACC_MANAGER) {
+      const employee = await this.prisma.employee.findUnique({
+        where: { user_id: user.id },
+      });
+      if (employee) {
+        where.department_id = employee.department_id;
+      }
+    }
+
     return this.prisma.reviewDeduction.findMany({
+      where,
       orderBy: { created_at: 'desc' },
       include: { employee: true, department: true, reviewer: true },
     });

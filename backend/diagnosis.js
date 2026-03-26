@@ -3,22 +3,41 @@ const { PrismaClient } = require('@prisma/client');
 async function main() {
   const prisma = new PrismaClient();
   try {
-    const ticket = await prisma.ticket.findFirst({
-        where: { order_number: { contains: 'ds-011' } },
-        include: {
-            assignee: { include: { employee: { include: { department: true } } } },
-            reason: true
-        }
-    });
+    const dinaUserId = '898998e2-3f81-4a69-a6a9-73b8fb916757';
     
-    if (ticket) {
-        console.log(`Ticket: ${ticket.order_number}`);
-        console.log(`Assignee: ${ticket.assignee?.name} (${ticket.assigned_to})`);
-        console.log(`Assignee Dept: ${ticket.assignee?.employee?.department?.name}`);
-        console.log(`Reason Category: ${ticket.reason?.category}`);
-    } else {
-        console.log('Ticket not found');
-    }
+    // Find manager's department
+    const managerEmployee = await prisma.employee.findUnique({
+      where: { user_id: dinaUserId },
+      include: { department: true }
+    });
+    const deptId = managerEmployee.department_id;
+    const categoryFilter = managerEmployee.department?.name?.toUpperCase() === 'CS' ? 'CS' : null;
+    
+    console.log('Manager:', managerEmployee.full_name, 'Dept:', managerEmployee.department?.name, 'Category Filter:', categoryFilter);
+
+    const employees = await prisma.employee.findMany({
+      where: { department_id: deptId },
+      include: { user: true },
+    });
+    const userIds = employees.map(e => e.user?.id).filter(Boolean);
+
+    const openCount = await prisma.ticket.count({
+      where: {
+        OR: [
+          { assigned_to: { in: userIds } },
+          categoryFilter
+            ? { assigned_to: null, reason: { category: categoryFilter } }
+            : undefined,
+        ].filter(Boolean),
+        status: {
+          in: ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'WAITING', 'REOPENED'],
+        },
+        deleted_at: null,
+      },
+    });
+
+    console.log('Open Issues for Dina Team:', openCount);
+
   } catch (err) {
     console.error(err);
   } finally {

@@ -176,8 +176,8 @@ export default function TeamKPIs() {
                             )}
                         </div>
                         <div className="space-y-2">
-                            <Label>Target Month</Label>
-                            <Input required type="month" value={targetForm.date.slice(0, 7)} onChange={e => setTargetForm({ ...targetForm, date: new Date(e.target.value).toISOString() })} />
+                            <Label htmlFor="target_date">Target Month</Label>
+                            <Input id="target_date" required type="month" value={targetForm.date.slice(0, 7)} onChange={e => setTargetForm({ ...targetForm, date: new Date(e.target.value).toISOString() })} />
                         </div>
                         <div className="space-y-2">
                             <Label>Metric Name</Label>
@@ -195,12 +195,12 @@ export default function TeamKPIs() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Target Value</Label>
-                                <Input required type="number" value={targetForm.targetValue} onChange={e => setTargetForm({ ...targetForm, targetValue: e.target.value })} />
+                                <Label htmlFor="target_value">Target Value</Label>
+                                <Input id="target_value" required type="number" value={targetForm.targetValue} onChange={e => setTargetForm({ ...targetForm, targetValue: e.target.value })} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Weight (%)</Label>
-                                <Input required type="number" value={targetForm.weight} onChange={e => setTargetForm({ ...targetForm, weight: e.target.value })} />
+                                <Label htmlFor="weight">Weight (%)</Label>
+                                <Input id="weight" required type="number" value={targetForm.weight} onChange={e => setTargetForm({ ...targetForm, weight: e.target.value })} />
                             </div>
                         </div>
                     </div>
