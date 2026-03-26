@@ -18,20 +18,22 @@ import {
     CartesianGrid,
 } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function EmployeeDashboard() {
     const { t } = useTranslation();
     const [metrics, setMetrics] = useState<KPIMetrics | null>(null);
     const [gamification, setGamification] = useState<GamificationProgress | null>(null);
     const [loading, setLoading] = useState(true);
-    const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [frequency, setFrequency] = useState('DAILY');
+    const [period, setPeriod] = useState(new Date().toISOString().slice(0, 10));
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
                 const [metricsRes, gameRes] = await Promise.all([
-                    KPIService.getMyStats(period),
+                    KPIService.getMyStats({ period, frequency }),
                     GamificationService.getMyProgress(),
                 ]);
                 setMetrics(metricsRes);
@@ -43,7 +45,7 @@ export function EmployeeDashboard() {
             }
         };
         fetchData();
-    }, [period]);
+    }, [period, frequency]);
 
     if (loading) return <div>Loading statistics...</div>;
 
@@ -97,12 +99,23 @@ export function EmployeeDashboard() {
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Performance Metrics ({metrics?.period})</CardTitle>
                             <div className="flex items-center gap-2">
-                                <label className="text-xs text-muted-foreground">Month:</label>
+                                <Select value={frequency} onValueChange={(v) => {
+                                    setFrequency(v);
+                                    setPeriod(v === 'DAILY' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7));
+                                }}>
+                                    <SelectTrigger className="w-[110px] h-8 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="DAILY">Daily</SelectItem>
+                                        <SelectItem value="MONTHLY">Monthly</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <input
-                                    type="month"
+                                    type={frequency === 'DAILY' ? 'date' : 'month'}
                                     value={period}
                                     onChange={(e) => setPeriod(e.target.value)}
-                                    className="text-xs bg-muted p-1 rounded border border-input focus:outline-none focus:ring-1 focus:ring-primary"
+                                    className="text-xs bg-muted p-1 rounded border border-input focus:outline-none focus:ring-1 focus:ring-primary h-8"
                                 />
                             </div>
                         </CardHeader>
@@ -140,13 +153,16 @@ export function EmployeeDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
-                                        {metrics?.metrics.map((m, i) => {
+                                        {(metrics?.metrics || []).map((m, i) => {
                                             const efficiency = m.target > 0 ? (m.actual / m.target) * 100 : 0;
                                             return (
                                                 <tr key={i} className="hover:bg-muted/30 transition-colors">
-                                                    <td className="py-3 font-medium">{m.name}</td>
-                                                    <td className="py-3 text-right">{m.target}</td>
-                                                    <td className="py-3 text-right font-semibold">{m.actual}</td>
+                                                    <td className="py-3">
+                                                        <div className="font-medium">{m.name}</div>
+                                                        <div className="text-[10px] text-muted-foreground uppercase">{m.frequency} • {m.weight}% weight</div>
+                                                    </td>
+                                                    <td className="py-3 text-right font-mono">{Number(m.target).toLocaleString()}</td>
+                                                    <td className="py-3 text-right font-semibold font-mono">{Number(m.actual).toLocaleString()}</td>
                                                     <td className="py-3 text-right">
                                                         <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${efficiency >= 100 ? 'bg-green-100 text-green-700' : efficiency >= 80 ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
                                                             {efficiency.toFixed(1)}%
@@ -159,7 +175,7 @@ export function EmployeeDashboard() {
                                         {(!metrics?.metrics || metrics.metrics.length === 0) && (
                                             <tr>
                                                 <td colSpan={5} className="py-8 text-center text-muted-foreground italic">
-                                                    No targets assigned for this period.
+                                                    No targets assigned for this frequency and period.
                                                 </td>
                                             </tr>
                                         )}

@@ -122,7 +122,9 @@ export class GamificationService {
         role: e.user?.role || 'Employee',
         department: e.department?.name,
         points: 0,
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (e.user?.id || e.id),
+        avatar:
+          'https://api.dicebear.com/7.x/avataaars/svg?seed=' +
+          (e.user?.id || e.id),
       }));
     }
 

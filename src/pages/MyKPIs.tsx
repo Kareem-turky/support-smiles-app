@@ -18,7 +18,12 @@ export default function MyKPIs() {
     // Modals
     const [actualOpened, setActualOpened] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [actualForm, setActualForm] = useState({ metricName: '', actualValue: '' });
+    const [actualForm, setActualForm] = useState({ 
+        metric_key: '', 
+        frequency: 'DAILY', 
+        period_key: new Date().toISOString().slice(0, 10), 
+        delta_value: '' 
+    });
 
     const [kpiMetrics, setKpiMetrics] = useState<KpiMetric[]>([]);
     const [metricsLoading, setMetricsLoading] = useState(false);
@@ -39,16 +44,22 @@ export default function MyKPIs() {
     const reloadDashboard = () => setRefreshKey(prev => prev + 1);
 
     const handleLogActual = async (e: React.FormEvent) => {
+        if (!actualForm.metric_key) {
+            toast({ title: 'Validation Error', description: 'Please select a metric.', variant: 'destructive' });
+            return;
+        }
         setLoading(true);
         try {
             await KPIService.logActual({
-                employeeId: (user as any)?.employee?.id || user?.id || '',
-                metric: actualForm.metricName,
-                periodKey: new Date().toISOString().split('T')[0],
-                actualValue: Number(actualForm.actualValue)
+                employee_id: (user as any)?.employee?.id || user?.id || '',
+                metric_key: actualForm.metric_key,
+                frequency: actualForm.frequency,
+                period_key: actualForm.period_key,
+                delta_value: Number(actualForm.delta_value)
             });
-            toast({ title: 'Success', description: 'Actual logged.' });
+            toast({ title: 'Success', description: 'Actual logged (additive).' });
             setActualOpened(false);
+            setActualForm(prev => ({ ...prev, delta_value: '' }));
             reloadDashboard();
         } catch (err: any) {
             toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -78,23 +89,42 @@ export default function MyKPIs() {
                 {/* Actual Modal */}
                 <EntityModal open={actualOpened} onOpenChange={setActualOpened} title="Log KPI Actual" onSubmit={handleLogActual} loading={loading}>
                     <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Frequency</Label>
+                                <Select value={actualForm.frequency} onValueChange={v => setActualForm({ ...actualForm, frequency: v, period_key: v === 'DAILY' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7) })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="DAILY">DAILY</SelectItem>
+                                        <SelectItem value="MONTHLY">MONTHLY</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>For Period</Label>
+                                <Input 
+                                    type={actualForm.frequency === 'DAILY' ? 'date' : 'month'} 
+                                    value={actualForm.period_key} 
+                                    onChange={e => setActualForm({ ...actualForm, period_key: e.target.value })} 
+                                />
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             <Label>Metric Name</Label>
-                            <Select value={actualForm.metricName} onValueChange={v => setActualForm({ ...actualForm, metricName: v })}>
+                            <Select value={actualForm.metric_key} onValueChange={v => setActualForm({ ...actualForm, metric_key: v })}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select a preset metric" />
+                                    <SelectValue placeholder="Select metric" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {kpiMetrics.map(m => (
                                         <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
                                     ))}
-                                    {kpiMetrics.length === 0 && <SelectItem value="none" disabled>No active metrics. Ask Admin to create some.</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Actual Value Achieved</Label>
-                            <Input required type="number" value={actualForm.actualValue} onChange={e => setActualForm({ ...actualForm, actualValue: e.target.value })} />
+                            <Label>Value to Add (Delta)</Label>
+                            <Input required type="number" placeholder="Enter amount to add" value={actualForm.delta_value} onChange={e => setActualForm({ ...actualForm, delta_value: e.target.value })} />
                         </div>
                     </div>
                 </EntityModal>

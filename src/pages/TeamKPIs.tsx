@@ -25,8 +25,23 @@ export default function TeamKPIs() {
     const [loading, setLoading] = useState(false);
 
     // Form states
-    const [targetForm, setTargetForm] = useState({ employeeId: '', metric: '', targetValue: '', date: new Date().toISOString(), weight: '10' });
-    const [actualForm, setActualForm] = useState({ employeeId: '', metric: '', actualValue: '', date: '' });
+    const [targetForm, setTargetForm] = useState({ 
+        employeeId: '', 
+        metric_key: '', 
+        metric_label: '', 
+        frequency: 'DAILY', 
+        target_value: '', 
+        weight: '10' 
+    });
+    
+    const [actualForm, setActualForm] = useState({ 
+        employee_id: '', 
+        metric_key: '', 
+        frequency: 'DAILY', 
+        period_key: new Date().toISOString().slice(0, 10), 
+        delta_value: '' 
+    });
+
     const [issueForm, setIssueForm] = useState({ employeeId: '', type: 'PRODUCTIVITY', description: '', severity: 'LOW', deductionPoints: '0' });
 
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -74,21 +89,22 @@ export default function TeamKPIs() {
     const [refreshKey, setRefreshKey] = useState(0);
 
     const handleCreateTarget = async (e: React.FormEvent) => {
-        if (!targetForm.employeeId) {
-            toast({ title: 'Validation Error', description: 'Please select an employee.', variant: 'destructive' });
+        if (!targetForm.employeeId || !targetForm.metric_key) {
+            toast({ title: 'Validation Error', description: 'Please select an employee and metric.', variant: 'destructive' });
             return;
         }
         setLoading(true);
         try {
             await KPIService.createTarget({
                 employeeId: targetForm.employeeId,
-                metric: targetForm.metric,
-                targetValue: Number(targetForm.targetValue),
-                date: targetForm.date || new Date().toISOString(),
-                weight: Number(targetForm.weight)
+                metric_key: targetForm.metric_key,
+                metric_label: targetForm.metric_label,
+                target_value: Number(targetForm.target_value),
+                frequency: targetForm.frequency,
+                weight: Number(targetForm.weight),
             });
             toast({ title: 'Success', description: 'Target created.' });
-            setTargetForm({ employeeId: '', metric: '', targetValue: '', date: new Date().toISOString(), weight: '10' });
+            setTargetForm({ employeeId: '', metric_key: '', metric_label: '', frequency: 'DAILY', target_value: '', weight: '10' });
             setTargetOpened(false);
             reloadDashboard();
         } catch (err: any) {
@@ -99,20 +115,22 @@ export default function TeamKPIs() {
     };
 
     const handleLogActual = async (e: React.FormEvent) => {
-        if (!actualForm.employeeId) {
-            toast({ title: 'Validation Error', description: 'Please select an employee.', variant: 'destructive' });
+        if (!actualForm.employee_id || !actualForm.metric_key) {
+            toast({ title: 'Validation Error', description: 'Please select an employee and metric.', variant: 'destructive' });
             return;
         }
         setLoading(true);
         try {
             await KPIService.logActual({
-                employeeId: actualForm.employeeId,
-                metric: actualForm.metric,
-                date: actualForm.date || new Date().toISOString(),
-                actualValue: Number(actualForm.actualValue)
+                employee_id: actualForm.employee_id,
+                metric_key: actualForm.metric_key,
+                frequency: actualForm.frequency,
+                period_key: actualForm.period_key,
+                delta_value: Number(actualForm.delta_value)
             });
-            toast({ title: 'Success', description: 'Actual logged.' });
+            toast({ title: 'Success', description: 'Actual logged (additive).' });
             setActualOpened(false);
+            setActualForm(prev => ({ ...prev, delta_value: '' }));
             reloadDashboard();
         } catch (err: any) {
             toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -175,13 +193,28 @@ export default function TeamKPIs() {
                                 />
                             )}
                         </div>
-                        <div className="space-y-2">
-                            <Label>Target Month</Label>
-                            <Input required type="month" value={targetForm.date.slice(0, 7)} onChange={e => setTargetForm({ ...targetForm, date: new Date(e.target.value).toISOString() })} />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Frequency</Label>
+                                <Select value={targetForm.frequency} onValueChange={v => setTargetForm({ ...targetForm, frequency: v })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="DAILY">DAILY (YYYY-MM-DD)</SelectItem>
+                                        <SelectItem value="MONTHLY">MONTHLY (YYYY-MM)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Weight (%)</Label>
+                                <Input required type="number" value={targetForm.weight} onChange={e => setTargetForm({ ...targetForm, weight: e.target.value })} />
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label>Metric Name</Label>
-                            <Select value={targetForm.metric} onValueChange={v => setTargetForm({ ...targetForm, metric: v })}>
+                            <Label>Metric Name / Key</Label>
+                            <Select value={targetForm.metric_key} onValueChange={v => {
+                                const m = kpiMetrics.find(x => x.name === v);
+                                setTargetForm({ ...targetForm, metric_key: v, metric_label: m?.name || v });
+                            }}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a preset metric" />
                                 </SelectTrigger>
@@ -193,15 +226,9 @@ export default function TeamKPIs() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Target Value</Label>
-                                <Input required type="number" value={targetForm.targetValue} onChange={e => setTargetForm({ ...targetForm, targetValue: e.target.value })} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Weight (%)</Label>
-                                <Input required type="number" value={targetForm.weight} onChange={e => setTargetForm({ ...targetForm, weight: e.target.value })} />
-                            </div>
+                        <div className="space-y-2">
+                            <Label>Target Value</Label>
+                            <Input required type="number" value={targetForm.target_value} onChange={e => setTargetForm({ ...targetForm, target_value: e.target.value })} />
                         </div>
                     </div>
                 </EntityModal>
@@ -214,30 +241,49 @@ export default function TeamKPIs() {
                             {employeesLoading ? <div className="h-10 animate-pulse bg-muted rounded-md" /> : (
                                 <Combobox
                                     options={employeeOptions}
-                                    value={actualForm.employeeId}
-                                    onChange={(val) => setActualForm({ ...actualForm, employeeId: val })}
+                                    value={actualForm.employee_id}
+                                    onChange={(val) => setActualForm({ ...actualForm, employee_id: val })}
                                     placeholder="Select Employee..."
                                     searchPlaceholder="Search employee name/code/role..."
                                 />
                             )}
                         </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Frequency</Label>
+                                <Select value={actualForm.frequency} onValueChange={v => setActualForm({ ...actualForm, frequency: v, period_key: v === 'DAILY' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7) })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="DAILY">DAILY</SelectItem>
+                                        <SelectItem value="MONTHLY">MONTHLY</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>For Period</Label>
+                                <Input 
+                                    type={actualForm.frequency === 'DAILY' ? 'date' : 'month'} 
+                                    value={actualForm.period_key} 
+                                    onChange={e => setActualForm({ ...actualForm, period_key: e.target.value })} 
+                                />
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             <Label>Metric Name</Label>
-                            <Select value={actualForm.metric} onValueChange={v => setActualForm({ ...actualForm, metric: v })}>
+                            <Select value={actualForm.metric_key} onValueChange={v => setActualForm({ ...actualForm, metric_key: v })}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select a preset metric" />
+                                    <SelectValue placeholder="Select metric" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {kpiMetrics.map(m => (
                                         <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
                                     ))}
-                                    {kpiMetrics.length === 0 && <SelectItem value="none" disabled>No active metrics. Ask Admin to create some.</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Actual Value Achieved</Label>
-                            <Input required type="number" value={actualForm.actualValue} onChange={e => setActualForm({ ...actualForm, actualValue: e.target.value })} />
+                            <Label>Value to Add (Delta)</Label>
+                            <Input required type="number" placeholder="Enter amount to increment/decrement" value={actualForm.delta_value} onChange={e => setActualForm({ ...actualForm, delta_value: e.target.value })} />
                         </div>
                     </div>
                 </EntityModal>

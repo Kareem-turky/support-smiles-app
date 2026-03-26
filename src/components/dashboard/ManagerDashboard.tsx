@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { KPIService, TeamStats } from '@/services/kpi.service';
+import { KPIService, TeamStats, TeamTargetResponse } from '@/services/kpi.service';
 import { GamificationService } from '@/services/gamification.service';
 import { LeaderboardEntry } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,25 +10,27 @@ import { Progress } from '@/components/ui/progress';
 import { Trophy, Users, AlertTriangle, FileText, Target, Activity } from 'lucide-react';
 import { AccountingService, ReviewDeduction } from '@/services/accounting';
 import { useTranslation } from 'react-i18next';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function ManagerDashboard() {
     const { t } = useTranslation();
     const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [pendingReviews, setPendingReviews] = useState<ReviewDeduction[]>([]);
-    const [targets, setTargets] = useState<any[]>([]);
+    const [targets, setTargets] = useState<TeamTargetResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
+    const [frequency, setFrequency] = useState('DAILY');
+    const [period, setPeriod] = useState(new Date().toISOString().slice(0, 10));
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
                 const [teamRes, lbRes, reviewRes, targetsRes] = await Promise.all([
-                    KPIService.getTeamStats(period),
+                    KPIService.getTeamStats(period, frequency),
                     GamificationService.getLeaderboard(),
                     AccountingService.getReviewDeductions(),
-                    KPIService.getTeamTargets()
+                    KPIService.getTeamTargets({ period, frequency })
                 ]);
                 setTeamStats(teamRes);
                 setLeaderboard(Array.isArray(lbRes) ? lbRes : []);
@@ -41,7 +43,7 @@ export function ManagerDashboard() {
             }
         };
         fetchData();
-    }, [period]);
+    }, [period, frequency]);
 
     if (loading) return <div>Loading team data...</div>;
 
@@ -49,7 +51,7 @@ export function ManagerDashboard() {
         <div className="space-y-6">
             {/* Overview Cards */}
             <div className="grid gap-4 md:grid-cols-3">
-                <Card className="hover:shadow-md transition-shadow">
+                <Card className="hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.stats.tickets_resolved')}</CardTitle>
                         <div className="p-2 bg-primary/10 rounded-full">
@@ -61,7 +63,7 @@ export function ManagerDashboard() {
                         <p className="text-xs text-muted-foreground mt-1">Across entire team</p>
                     </CardContent>
                 </Card>
-                <Card className="hover:shadow-md transition-shadow">
+                <Card className="hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-blue-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.stats.avg_response')}</CardTitle>
                         <div className="p-2 bg-blue-500/10 rounded-full">
@@ -102,12 +104,23 @@ export function ManagerDashboard() {
                             Team Performance
                         </CardTitle>
                         <div className="flex items-center gap-2">
-                            <label className="text-xs text-muted-foreground font-medium">Month:</label>
+                            <Select value={frequency} onValueChange={(v) => {
+                                setFrequency(v);
+                                setPeriod(v === 'DAILY' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7));
+                            }}>
+                                <SelectTrigger className="w-[110px] h-8 text-xs">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="DAILY">Daily</SelectItem>
+                                    <SelectItem value="MONTHLY">Monthly</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <input
-                                type="month"
+                                type={frequency === 'DAILY' ? 'date' : 'month'}
                                 value={period}
                                 onChange={(e) => setPeriod(e.target.value)}
-                                className="text-xs bg-muted p-1 rounded border border-input focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="text-xs bg-muted p-1 rounded border border-input focus:outline-none focus:ring-1 focus:ring-primary h-8"
                             />
                         </div>
                     </CardHeader>
@@ -121,15 +134,16 @@ export function ManagerDashboard() {
                                     </Avatar>
                                     <div>
                                         <p className="text-sm font-bold leading-none">{member.name}</p>
-                                        <div className="flex items-center gap-2 mt-1.5 line-clamp-1">
-                                            <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">{member.score}% Score</span>
+                                        <div className="flex items-center gap-2 mt-1.5 line-clamp-1 text-xs text-muted-foreground">
+                                            <span>{member.role}</span>
+                                            {member.issuesCount > 0 && <span className="text-red-500 font-medium">• {member.issuesCount} Issues</span>}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-2 w-[120px]">
                                     <Badge variant={member.score >= 90 ? 'default' : member.score >= 70 ? 'secondary' : 'destructive'}
                                         className={`w-fit shadow-xs ${member.score >= 90 ? 'bg-green-500 hover:bg-green-600' : ''}`}>
-                                        {member.score >= 90 ? 'Excellent' : member.score >= 70 ? 'Good' : 'Needs Impr.'}
+                                        {member.score}%
                                     </Badge>
                                     <Progress value={member.score} className="h-1.5 w-full bg-muted/50" />
                                 </div>
@@ -138,7 +152,7 @@ export function ManagerDashboard() {
                         {(!teamStats?.member_performance || teamStats.member_performance.length === 0) && (
                             <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                                 <Users className="h-8 w-8 mb-2 opacity-20" />
-                                <p className="text-sm">No team data available.</p>
+                                <p className="text-sm">No team data available for this period.</p>
                             </div>
                         )}
                     </CardContent>
@@ -149,7 +163,7 @@ export function ManagerDashboard() {
                     <CardHeader className="pb-3 border-b">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <Trophy className="h-5 w-5 text-yellow-500" />
-                            Gamification Leaderboard
+                            Leaderboard (Life XP)
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6">
@@ -238,39 +252,56 @@ export function ManagerDashboard() {
             </Card>
 
             {/* Team Targets */}
-            <Card>
-                <CardHeader>
+            <Card className="border-t-4 border-t-indigo-500 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
                     <CardTitle className="flex items-center gap-2">
                         <Target className="h-5 w-5 text-indigo-500" />
-                        Active Team Targets
+                        Active Team Targets ({frequency})
                     </CardTitle>
+                    <Badge variant="outline" className="text-xs font-mono">{period}</Badge>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                     {!targets || targets.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">No targets set for your team yet.</p>
+                        <div className="py-12 text-center flex flex-col items-center">
+                            <Target className="h-10 w-10 text-muted-foreground/20 mb-2" />
+                            <p className="text-muted-foreground text-sm font-medium">No targets found for this frequency and period.</p>
+                            <p className="text-xs text-muted-foreground mt-1">Try switching frequency or setting new targets in Team KPIs.</p>
+                        </div>
                     ) : (
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="bg-muted/30">
                                 <TableRow>
                                     <TableHead>Employee</TableHead>
                                     <TableHead>Metric</TableHead>
-                                    <TableHead>Target Value</TableHead>
-                                    <TableHead>Actual</TableHead>
-                                    <TableHead>Weight</TableHead>
-                                    <TableHead>Target Month</TableHead>
+                                    <TableHead className="text-right">Target</TableHead>
+                                    <TableHead className="text-right">Actual</TableHead>
+                                    <TableHead>Progress</TableHead>
+                                    <TableHead>Status</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {(targets || []).map((t: any) => (
-                                    <TableRow key={t.id}>
-                                        <TableCell className="font-medium">{t.employee?.full_name}</TableCell>
-                                        <TableCell>{t.metric_name}</TableCell>
-                                        <TableCell>{Number(t.target_value).toLocaleString()}</TableCell>
-                                        <TableCell className="font-semibold text-indigo-600">
-                                            {(t.actual_value || 0).toLocaleString()}
+                                {(targets || []).map((t: TeamTargetResponse) => (
+                                    <TableRow key={t.target.id} className="group hover:bg-muted/30 transition-colors">
+                                        <TableCell className="font-semibold">{t.employee?.full_name}</TableCell>
+                                        <TableCell>
+                                            <span className="text-sm font-medium">{t.target.metric_label}</span>
+                                            <div className="text-[10px] text-muted-foreground uppercase">{t.target.frequency} • {t.target.weight}% weight</div>
                                         </TableCell>
-                                        <TableCell>{t.weight}%</TableCell>
-                                        <TableCell>{t.date && !isNaN(new Date(t.date).getTime()) ? new Date(t.date).toISOString().slice(0, 7) : 'N/A'}</TableCell>
+                                        <TableCell className="text-right font-mono">{Number(t.target.target_value).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-mono font-bold text-indigo-600">
+                                            {Number(t.actual_value).toLocaleString()}
+                                        </TableCell>
+                                        <TableCell className="w-[180px]">
+                                            <div className="flex flex-col gap-1.5 pt-1">
+                                                <Progress value={t.progress_percent} className={`h-2 ${t.status === 'AT_RISK' ? 'bg-red-100' : 'bg-green-100'}`} />
+                                                <span className="text-[10px] font-bold text-right">{t.progress_percent}%</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={t.status === 'EXCEEDED' ? 'default' : t.status === 'ON_TRACK' ? 'secondary' : 'destructive'} className="text-[10px] uppercase">
+                                                {t.status.replace('_', ' ')}
+                                            </Badge>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

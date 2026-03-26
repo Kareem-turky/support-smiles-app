@@ -788,6 +788,7 @@ model KPITarget {
   department       Department   @relation(fields: [department_id], references: [id])
   date             DateTime
   metric_name      String // e.g. "Ticket Volume", "Avg Response Time"
+  metric_label     String       @default("")
   target_value     Decimal
   weight           Decimal // Percentage 0-100
   frequency        KPIFrequency @default(DAILY)
@@ -804,6 +805,7 @@ model KPIActual {
   employee_id  String
   employee     Employee @relation(fields: [employee_id], references: [id])
   metric_name  String
+  frequency    KPIFrequency @default(DAILY)
   period_key   String // e.g. "2025-01-01"
   actual_value Decimal
   score        Decimal? // Calculated score for this metric
@@ -812,7 +814,7 @@ model KPIActual {
   user         User?    @relation(fields: [userId], references: [id])
   userId       String?
 
-  @@unique([employee_id, metric_name, period_key])
+  @@unique([employee_id, metric_name, frequency, period_key])
   @@map("kpi_actuals")
 }
 

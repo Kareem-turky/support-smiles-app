@@ -79,7 +79,12 @@ export class TicketsController {
   @Delete(':id')
   @Roles(UserRole.ADMIN, UserRole.CS_MANAGER)
   remove(@Param('id') id: string, @Request() req) {
-    console.log('[DEBUG] TicketsController.remove called for id:', id, 'by user:', req.user.id);
+    console.log(
+      '[DEBUG] TicketsController.remove called for id:',
+      id,
+      'by user:',
+      req.user.id,
+    );
     return this.ticketsService.remove(id, req.user);
   }
 }

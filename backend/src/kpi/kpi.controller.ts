@@ -53,11 +53,14 @@ export class KpiController {
   // --- END KPI Metrics Admin ---
 
   @Get('my-stats')
-  async getMyStats(@Request() req, @Query('period') period?: string) {
+  async getMyStats(
+    @Request() req,
+    @Query() query: { period?: string; frequency?: string },
+  ) {
     const employee = await this.kpiService.getEmployeeByUserId(req.user.id);
     if (!employee) {
       return {
-        period: period || new Date().toISOString().slice(0, 7),
+        period: query.period || new Date().toISOString().slice(0, 7),
         user_role: req.user.role,
         metrics: [],
         issues: [],
@@ -66,7 +69,11 @@ export class KpiController {
         final_score: 0,
       };
     }
-    return this.kpiService.getMetrics(employee.id, period);
+    return this.kpiService.getMetrics(
+      employee.id,
+      query.period,
+      query.frequency,
+    );
   }
 
   @Get('team-stats')
@@ -78,8 +85,8 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
-  getTeamStats(@Request() req, @Query('period') period?: string) {
-    return this.kpiService.getTeamStats(req.user, period);
+  getTeamStats(@Request() req, @Query() query: { period?: string; frequency?: string }) {
+    return this.kpiService.getTeamStats(req.user, query.period, query.frequency);
   }
 
   @Post('issues')
@@ -95,7 +102,7 @@ export class KpiController {
     return this.kpiService.logIssue(createIssueDto, req.user.id);
   }
 
-  @Get('targets/team')
+  @Get('team-active-targets')
   @Roles(
     UserRole.ADMIN,
     UserRole.CS_MANAGER,
@@ -103,8 +110,11 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
-  getTeamTargets(@Request() req, @Query('date') date: string) {
-    return this.kpiService.getTeamTargets(req.user, date);
+  getTeamTargets(
+    @Request() req,
+    @Query() query: { period?: string; frequency?: string },
+  ) {
+    return this.kpiService.getTeamTargets(req.user, query);
   }
 
   @Get('targets/my')
@@ -121,13 +131,52 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
-  createTarget(@Body() createTargetDto: CreateTargetDto, @Request() req) {
+  createTarget(@Body() createTargetDto: any, @Request() req) {
     return this.kpiService.createTarget(createTargetDto, req.user.id, req.user);
   }
 
-  @Post('actuals')
-  logActual(@Body() logActualDto: LogActualDto, @Request() req) {
+  @Patch('targets/:id')
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
+  updateTarget(
+    @Param('id') id: string,
+    @Body() updateDto: any,
+    @Request() req,
+  ) {
+    return this.kpiService.updateTarget(id, updateDto, req.user);
+  }
+
+  @Post('actuals/log')
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
+  logActual(@Body() logActualDto: any, @Request() req) {
     return this.kpiService.logActual(logActualDto, req.user);
+  }
+
+  @Patch('actuals/:id')
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.CS_MANAGER,
+    UserRole.ACC_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.WH_MANAGER,
+  )
+  updateActual(
+    @Param('id') id: string,
+    @Body() updateDto: any,
+    @Request() req,
+  ) {
+    return this.kpiService.updateActual(id, updateDto, req.user);
   }
 
   @Post('calculate-daily')
