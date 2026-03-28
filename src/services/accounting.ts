@@ -50,13 +50,26 @@ export interface Transfer {
     notes?: string;
 }
 
+export interface PayrollItem {
+    id: string;
+    employee?: { full_name: string };
+    base_salary: number;
+    fixed_pay: number;
+    kpi_pay: number;
+    net_salary: number;
+    net_pay: number;
+    total_deductions: number;
+    adjustments: number;
+    breakdown_json: string;
+}
+
 export interface PayrollRun {
     id: string;
     year: number;
     month: number;
     status: string;
     paid_at?: string;
-    items?: any[];
+    items?: PayrollItem[];
 }
 
 export interface ReviewDeduction {

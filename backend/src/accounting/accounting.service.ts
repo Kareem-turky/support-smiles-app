@@ -208,8 +208,11 @@ export class AccountingService {
       );
     }
 
+    const periodKey = `${year}-${String(month).padStart(2, '0')}`;
+
     const employees = await this.prisma.employee.findMany({
       where: { is_active: true },
+      include: { comp_plan: true },
     });
 
     const adjustments = await this.prisma.hRAdjustment.findMany({
@@ -221,27 +224,61 @@ export class AccountingService {
       },
     });
 
-    const payrollItemsData = employees.map((emp) => {
+    const payrollItemsData: Array<{
+      employee_id: string;
+      employee_full_name: string;
+      base_salary: number;
+      fixed_pay: number;
+      kpi_pay: number;
+      kpi_pool: number;
+      kpi_score: number;
+      total_deductions: number;
+      total_bonuses: number;
+      total_advances: number;
+      net_pay: number;
+      breakdown_json: string;
+    }> = [];
+
+    for (const emp of employees) {
       const empAdjustments = adjustments.filter(
         (a) => a.employee_id === emp.id,
       );
       let totalDeductions = 0;
       let totalBonuses = 0;
+      let totalAdvances = 0;
 
       empAdjustments.forEach((adj) => {
         if (adj.type === 'DEDUCTION') totalDeductions += Number(adj.amount);
         if (adj.type === 'BONUS') totalBonuses += Number(adj.amount);
+        if (adj.type === 'ADVANCE') totalAdvances += Number(adj.amount);
       });
 
-      const netSalary =
-        Number(emp.base_salary) - totalDeductions + totalBonuses;
+      const baseSalary = Number(emp.base_salary ?? 0);
+      const plan = emp.comp_plan || { fixed_ratio: 100, kpi_ratio: 0 };
+      const fixedPay = (baseSalary * plan.fixed_ratio) / 100;
+      const kpiPool = (baseSalary * plan.kpi_ratio) / 100;
+      const rawScore = await this.getMonthlyKpiScore(emp.id, periodKey);
+      const score = Math.min(Math.max(rawScore, 0), 100);
+      const kpiPay = kpiPool * (score / 100);
+      const netPay =
+        fixedPay +
+        kpiPay +
+        totalBonuses -
+        totalDeductions -
+        totalAdvances;
 
-      return {
+      payrollItemsData.push({
         employee_id: emp.id,
-        base_salary: emp.base_salary,
+        employee_full_name: emp.full_name,
+        base_salary: baseSalary,
+        fixed_pay: fixedPay,
+        kpi_pay: kpiPay,
+        kpi_pool: kpiPool,
+        kpi_score: score,
         total_deductions: totalDeductions,
-        adjustments: totalBonuses,
-        net_salary: netSalary,
+        total_bonuses: totalBonuses,
+        total_advances: totalAdvances,
+        net_pay: netPay,
         breakdown_json: JSON.stringify(
           empAdjustments.map((d) => ({
             type: d.type,
@@ -249,8 +286,19 @@ export class AccountingService {
             reason: d.reason,
           })),
         ),
-      };
-    });
+      });
+    }
+
+    const kpiResults = payrollItemsData.map((item) => ({
+      employee_id: item.employee_id,
+      period_type: 'MONTHLY',
+      period_key: periodKey,
+      base_salary: item.base_salary,
+      fixed_pay: item.fixed_pay,
+      kpi_pool: item.kpi_pool,
+      kpi_score: item.kpi_score,
+      kpi_pay: item.kpi_pay,
+    }));
 
     return this.prisma.$transaction(async (tx) => {
       let run = existingRun;
@@ -282,10 +330,43 @@ export class AccountingService {
             payroll_run_id: run.id,
             employee_id: item.employee_id,
             base_salary: item.base_salary,
-            total_deductions: item.total_deductions,
-            adjustments: item.adjustments,
-            net_salary: item.net_salary,
+            fixed_pay: item.fixed_pay,
+            kpi_pay: item.kpi_pay,
+            total_deductions: item.total_deductions + item.total_advances,
+            adjustments: item.total_bonuses,
+            net_salary: item.net_pay,
+            net_pay: item.net_pay,
             breakdown_json: item.breakdown_json,
+          },
+        });
+      }
+
+      for (const result of kpiResults) {
+        await tx.payrollKpiResult.upsert({
+          where: {
+            employee_id_period_type_period_key: {
+              employee_id: result.employee_id,
+              period_type: result.period_type,
+              period_key: result.period_key,
+            },
+          },
+          update: {
+            base_salary: result.base_salary,
+            fixed_pay: result.fixed_pay,
+            kpi_pool: result.kpi_pool,
+            kpi_score: result.kpi_score,
+            kpi_pay: result.kpi_pay,
+            updated_at: new Date(),
+          },
+          create: {
+            employee_id: result.employee_id,
+            period_type: result.period_type,
+            period_key: result.period_key,
+            base_salary: result.base_salary,
+            fixed_pay: result.fixed_pay,
+            kpi_pool: result.kpi_pool,
+            kpi_score: result.kpi_score,
+            kpi_pay: result.kpi_pay,
           },
         });
       }
@@ -318,6 +399,38 @@ export class AccountingService {
     // const totalNet = run.items.reduce((sum, item) => sum + Number(item.net_salary), 0);
     // Auto-transfer logic can be enabled later
     return run;
+  }
+
+  private async getMonthlyKpiScore(employeeId: string, periodKey: string) {
+    const monthly = await this.prisma.kPIScore.findUnique({
+      where: {
+        employee_id_period_key: {
+          employee_id: employeeId,
+          period_key: periodKey,
+        },
+      },
+    });
+
+    if (monthly && monthly.total_score !== null) {
+      return Number(monthly.total_score);
+    }
+
+    const dailyScores = await this.prisma.kPIScore.findMany({
+      where: {
+        employee_id: employeeId,
+        period_key: { startsWith: `${periodKey}-` },
+      },
+    });
+
+    if (dailyScores.length === 0) {
+      return 0;
+    }
+
+    const sum = dailyScores.reduce(
+      (acc, score) => acc + Number(score.total_score || 0),
+      0,
+    );
+    return sum / dailyScores.length;
   }
 
   // --- Transfers ---
