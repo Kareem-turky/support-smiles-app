@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,9 +16,6 @@ export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const isMock = import.meta.env.VITE_USE_MOCK_API === 'true';
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -48,31 +45,9 @@ export default function Login() {
     }
   };
 
-  const fillDemoCredentials = (role: 'admin' | 'accounting' | 'cs') => {
-    const credentials = {
-      admin: { email: 'admin@company.com', password: 'admin123' },
-      accounting: { email: 'sarah@company.com', password: 'accounting123' },
-      cs: { email: 'mike@company.com', password: 'cs123' },
-    };
-    setEmail(credentials[role].email);
-    setPassword(credentials[role].password);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <div className="w-full max-w-md space-y-4">
-        {/* Real Mode Proof Banner */}
-        <div className={`p-4 rounded-lg border flex items-start gap-3 ${!isMock ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
-          {!isMock ? <CheckCircle className="h-5 w-5 mt-0.5" /> : <AlertTriangle className="h-5 w-5 mt-0.5" />}
-          <div className="text-sm">
-            <p className="font-bold">{!isMock ? 'REAL MODE ACTIVE' : 'MOCK MODE ACTIVE'}</p>
-            <div className="font-mono text-xs mt-1 space-y-1">
-              <p>VITE_USE_MOCK_API: <span className="font-bold">{String(isMock)}</span></p>
-              <p>VITE_API_BASE_URL: <span className="font-bold">{apiBaseUrl}</span></p>
-            </div>
-          </div>
-        </div>
-
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
@@ -114,31 +89,6 @@ export default function Login() {
                 )}
               </Button>
             </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Demo Credentials
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <Button variant="outline" size="xs" onClick={() => fillDemoCredentials('admin')}>
-                  Admin
-                </Button>
-                <Button variant="outline" size="xs" onClick={() => fillDemoCredentials('accounting')}>
-                  Accounting
-                </Button>
-                <Button variant="outline" size="xs" onClick={() => fillDemoCredentials('cs')}>
-                  CS Agent
-                </Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
