@@ -51,7 +51,7 @@
 - `npm run test` ✅ all 81 Vitest tests pass under the mocked API.
 - `npm run build` ✅ succeeds but warns that `dist/assets/index-DThCYIap.js` is 1.3 MB (chunk size > 500 kB).
 - `npm run lint` ✅ ESLint passes.
--- Manual QA steps performed locally: ran the dev server (`npm run dev`), submitted the login form, and exercised protected dashboards/routes; no runtime errors or navigation issues were observed.
+- Manual QA steps performed locally: ran the dev server (`npm run dev`), submitted the login form, and exercised protected dashboards/routes; no runtime errors or navigation issues were observed.
 
 ## Security Notes & TODOs
 1. **Token storage** – `access_token`, `refresh_token`, `current_user` live in `localStorage`, so the app inherits any XSS surface. Plan to store tokens in httpOnly cookies or decrypt them server-side if you go live.
