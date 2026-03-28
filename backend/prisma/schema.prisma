@@ -156,8 +156,23 @@ model Employee {
   review_deductions ReviewDeduction[]
   assigned_orders   Order[]           @relation("OrderAssignee")
   kpiactuals        KPIActual[]
+  payroll_kpi_results PayrollKpiResult[]
+
+  comp_plan EmployeeCompPlan?
 
   @@map("employees")
+}
+
+model EmployeeCompPlan {
+  id          String   @id @default(uuid())
+  employee_id String   @unique
+  employee    Employee @relation(fields: [employee_id], references: [id])
+  fixed_ratio Int      @default(100)
+  kpi_ratio   Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("employee_comp_plans")
 }
 
 enum AdjustmentType {
@@ -354,13 +369,34 @@ model PayrollItem {
   employee_id      String
   employee         Employee   @relation(fields: [employee_id], references: [id])
   base_salary      Decimal
+  fixed_pay        Decimal    @default(0)
+  kpi_pay          Decimal    @default(0)
   total_deductions Decimal
   adjustments      Decimal    @default(0)
   net_salary       Decimal
+  net_pay          Decimal    @default(0)
   breakdown_json   String // details of deductions
 
   @@unique([payroll_run_id, employee_id])
   @@map("payroll_items")
+}
+
+model PayrollKpiResult {
+  id          String   @id @default(uuid())
+  employee_id String
+  employee    Employee @relation(fields: [employee_id], references: [id])
+  period_type String
+  period_key  String
+  base_salary Decimal
+  fixed_pay   Decimal
+  kpi_pool    Decimal
+  kpi_score   Decimal
+  kpi_pay     Decimal
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@unique([employee_id, period_type, period_key])
+  @@map("payroll_kpi_results")
 }
 
 enum IssueType {
