@@ -99,7 +99,7 @@ export class KpiController {
     UserRole.WH_MANAGER,
   )
   logIssue(@Body() createIssueDto: CreateIssueDto, @Request() req) {
-    return this.kpiService.logIssue(createIssueDto, req.user.id);
+    return this.kpiService.logIssue(createIssueDto, req.user);
   }
 
   @Get('team-active-targets')

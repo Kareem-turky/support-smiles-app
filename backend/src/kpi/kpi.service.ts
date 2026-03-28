@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
@@ -14,6 +15,14 @@ import {
   TicketReasonCategory,
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+
+const resolveCallerEmployeeId = (user: any): string => {
+  const employeeId = user?.employeeId ?? user?.id;
+  if (!employeeId) {
+    throw new UnauthorizedException('Invalid auth context');
+  }
+  return employeeId;
+};
 
 @Injectable()
 export class KpiService {
@@ -577,53 +586,62 @@ export class KpiService {
     return { efficiencyScore, punctualityScore, totalScore };
   }
 
-  async logIssue(dto: any, creatorId: string) {
-    console.log('logIssue DTO:', JSON.stringify(dto, null, 2));
-    console.log('logIssue Creator:', creatorId);
+  async logIssue(dto: any, user: any) {
+    const callerEmployeeId = resolveCallerEmployeeId(user);
     const { employeeId, type, description, date, severity, deductionPoints } =
       dto;
 
-    if (!employeeId) throw new BadRequestException('Employee ID is required');
-
-    // Validate employee exists
-    const emp = await this.prisma.employee.findUnique({
-      where: { id: employeeId },
+    const callerEmployee = await this.prisma.employee.findUnique({
+      where: { id: callerEmployeeId },
     });
-    if (!emp) throw new NotFoundException('Employee not found');
+    if (!callerEmployee) {
+      throw new UnauthorizedException('Invalid auth context');
+    }
+
+    const targetEmployeeId = employeeId || callerEmployeeId;
+    const targetEmployee = await this.prisma.employee.findUnique({
+      where: { id: targetEmployeeId },
+    });
+    if (!targetEmployee) {
+      throw new NotFoundException('Employee not found');
+    }
+
+    const issueDate = date ? new Date(date) : new Date();
+    const deductionPointsValue = Number(deductionPoints || 0);
 
     // @ts-ignore
     return this.prisma.$transaction(async (tx) => {
       const issue = await tx.employeeIssue.create({
         data: {
-          employee_id: employeeId,
-          department_id: emp.department_id,
+          employee_id: targetEmployeeId,
+          department_id: targetEmployee.department_id,
           type,
           description,
-          date: new Date(date),
+          date: issueDate,
           severity,
-          deduction_points: deductionPoints,
-          created_by: creatorId,
+          deduction_points: deductionPointsValue,
+          created_by: user?.id,
         },
       });
 
       if (deductionPoints > 0) {
         await tx.reviewDeduction.create({
-          data: {
-            employee_id: employeeId,
-            department_id: emp.department_id,
-            period_key: new Date(date).toISOString().slice(0, 7),
-            reason_key: type,
-            suggested_amount: deductionPoints,
-            status: 'REVIEW_NEEDED',
-            created_by_system: false,
-            details_json: JSON.stringify({
-              description,
-              severity,
-              manual_entry: true,
-            }),
-          },
-        });
-      }
+        data: {
+          employee_id: targetEmployeeId,
+          department_id: targetEmployee.department_id,
+          period_key: issueDate.toISOString().slice(0, 7),
+          reason_key: type,
+          suggested_amount: deductionPointsValue,
+          status: 'REVIEW_NEEDED',
+          created_by_system: false,
+          details_json: JSON.stringify({
+            description,
+            severity,
+            manual_entry: true,
+          }),
+        },
+      });
+    }
 
       return issue;
     });

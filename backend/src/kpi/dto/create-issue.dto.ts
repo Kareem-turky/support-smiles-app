@@ -2,8 +2,8 @@ import { IsString, IsNumber, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateIssueDto {
   @IsString()
-  @IsNotEmpty()
-  employeeId: string;
+  @IsOptional()
+  employeeId?: string;
 
   @IsString()
   @IsNotEmpty()
