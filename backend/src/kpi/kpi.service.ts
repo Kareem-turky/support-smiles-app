@@ -633,13 +633,18 @@ export class KpiService {
     const {
       employeeId,
       metric_name,
+      metric_key,
+      metric,
       metric_label,
       frequency,
       target_value,
       weight,
     } = dto;
 
+    const finalMetricName = metric_name || metric_key || metric || metric_label;
+
     if (!employeeId) throw new BadRequestException('Employee ID is required');
+    if (!finalMetricName) throw new BadRequestException('Metric name/key is required');
 
     const targetEmployee = await this.prisma.employee.findUnique({
       where: { id: employeeId },
@@ -667,8 +672,8 @@ export class KpiService {
         manager_id: managerId,
         department_id: targetEmployee.department_id,
         date: new Date(),
-        metric_name: metric_name,
-        metric_label: metric_label || metric_name,
+        metric_name: finalMetricName,
+        metric_label: metric_label || finalMetricName,
         target_value: target_value,
         weight: weight || 0,
         frequency: frequency || 'DAILY',
@@ -789,9 +794,11 @@ export class KpiService {
   }
 
   async logActual(dto: any, creatorUser: any) {
-    const { employee_id, metric_name, frequency, period_key, delta_value } = dto;
+    const { employee_id, metric_name, metric_key, frequency, period_key, delta_value } = dto;
 
-    if (!employee_id || !metric_name || !frequency || !period_key) {
+    const finalMetricName = metric_name || metric_key;
+
+    if (!employee_id || !finalMetricName || !frequency || !period_key) {
       throw new BadRequestException(
         'Missing required fields for logging actual',
       );
@@ -823,7 +830,7 @@ export class KpiService {
       where: {
         employee_id_metric_name_frequency_period_key: {
           employee_id,
-          metric_name,
+          metric_name: finalMetricName,
           frequency,
           period_key,
         },
@@ -841,7 +848,7 @@ export class KpiService {
       return this.prisma.kPIActual.create({
         data: {
           employee_id,
-          metric_name,
+          metric_name: finalMetricName,
           frequency,
           period_key,
           actual_value: delta_value,
