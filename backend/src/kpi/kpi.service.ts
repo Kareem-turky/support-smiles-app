@@ -587,13 +587,21 @@ export class KpiService {
   }
 
   async logIssue(dto: any, user: any) {
-    const callerEmployeeId = resolveCallerEmployeeId(user);
+    let callerEmployeeId = resolveCallerEmployeeId(user);
     const { employeeId, type, description, date, severity, deductionPoints } =
       dto;
 
-    const callerEmployee = await this.prisma.employee.findUnique({
+    let callerEmployee = await this.prisma.employee.findUnique({
       where: { id: callerEmployeeId },
     });
+    if (!callerEmployee && user?.id) {
+      callerEmployee = await this.prisma.employee.findUnique({
+        where: { user_id: user.id },
+      });
+      if (callerEmployee) {
+        callerEmployeeId = callerEmployee.id;
+      }
+    }
     if (!callerEmployee) {
       throw new UnauthorizedException('Invalid auth context');
     }
