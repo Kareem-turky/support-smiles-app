@@ -52,7 +52,7 @@ export default function Login() {
     const credentials = {
       admin: { email: 'admin@company.com', password: 'admin123' },
       accounting: { email: 'sarah@company.com', password: 'accounting123' },
-      cs: { email: 'agent@company.com', password: 'password123' },
+      cs: { email: 'mike@company.com', password: 'cs123' },
     };
     setEmail(credentials[role].email);
     setPassword(credentials[role].password);
