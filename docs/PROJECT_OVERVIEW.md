@@ -19,7 +19,7 @@
    - Operations (shipping)
    - Admin tools (ticket reasons, KPI types)
    - KPI/Gamification dashboards
-3. `/login` is the public entry. The login screen exposes demo credential buttons that now match the seeded users (`admin@company.com`, `sarah@company.com`, `mike@company.com`).
+3. `/login` is the public entry. The login screen now renders a simple sign-in card without the previous environment banner or demo credential shortcuts, so users only see the email/password fields.
 
 ## Services & Helpers
 - `src/services/auth.service.ts` handles login/logout/impersonation, stores tokens/current user in `localStorage`, and normalizes API responses.
@@ -36,7 +36,7 @@
 | Variable | Purpose | Notes |
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | Backend base URL when hitting the real server | Logged in `main.tsx` during dev for quick verification. |
-| `VITE_USE_MOCK_API` | Toggles `mockApiAdapter` so you can work offline | Demo credentials/buttons rely on the seeded values when mocks are active. |
+| `VITE_USE_MOCK_API` | Toggles `mockApiAdapter` so you can work offline | Mocks replace every API route with `mockApiAdapter`, but the login UI no longer shows the flag/URL proof banner. |
 
 ## Available Scripts
 - `npm run dev` – start Vite dev server on port 5173
@@ -51,7 +51,7 @@
 - `npm run test` ✅ all 81 Vitest tests pass under the mocked API.
 - `npm run build` ✅ succeeds but warns that `dist/assets/index-DThCYIap.js` is 1.3 MB (chunk size > 500 kB).
 - `npm run lint` ✅ ESLint passes.
-- Manual QA steps performed locally: ran dev server (bootstrapped via `npm run dev`, navigated login), verified authentication flows using seeded demo credentials, and exercised click targets covered by the router (login, dashboards, protected routes). Logs/no errors observed.
+-- Manual QA steps performed locally: ran the dev server (`npm run dev`), submitted the login form, and exercised protected dashboards/routes; no runtime errors or navigation issues were observed.
 
 ## Security Notes & TODOs
 1. **Token storage** – `access_token`, `refresh_token`, `current_user` live in `localStorage`, so the app inherits any XSS surface. Plan to store tokens in httpOnly cookies or decrypt them server-side if you go live.
@@ -59,7 +59,6 @@
 3. **Chunk size warning** – large minified bundle is worth splitting, especially once the router/page components grow.
 
 ## Next Steps for New Contributors
-1. Update `mockDb` seeds if you add new roles/pages so the demo buttons stay in sync.
+1. Update `mockDb` seeds if you later add custom login shortcuts or banners so the overview stays accurate.
 2. Add Playwright scripts under `e2e/` and hook them into CI via `verify_*` scripts.
 3. When wiring a real backend, swap out `mockApiAdapter` by setting `VITE_USE_MOCK_API=false` and confirm RBAC logic still works by hitting real endpoints.
-
