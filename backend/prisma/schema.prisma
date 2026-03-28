@@ -437,6 +437,7 @@ model User {
   id            String   @id @default(uuid())
   name          String
   email         String   @unique
+  email_normalized String?  @unique
   password_hash String
   role          UserRole
   is_active     Boolean  @default(true)

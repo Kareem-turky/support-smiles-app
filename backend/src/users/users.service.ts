@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
+import { normalizeEmail } from '../common/utils/email.utils';
 
 @Injectable()
 export class UsersService {
@@ -14,6 +15,7 @@ export class UsersService {
         id: true,
         name: true,
         email: true,
+        email_normalized: true,
         role: true,
         is_active: true,
         created_at: true,
@@ -36,12 +38,14 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto) {
+    const normalizedEmail = normalizeEmail(createUserDto.email);
+
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: createUserDto.email },
+      where: { email_normalized: normalizedEmail },
     });
 
     if (existingUser) {
-      throw new BadRequestException('Email already exists');
+      throw new ConflictException('Conflict');
     }
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -50,14 +54,16 @@ export class UsersService {
       data: {
         name: createUserDto.name,
         email: createUserDto.email,
+        email_normalized: normalizedEmail,
         password_hash: hashedPassword,
-        role: createUserDto.role,
+        role: createUserDto.role || UserRole.CS_AGENT,
         is_active: true,
       },
       select: {
         id: true,
         name: true,
         email: true,
+        email_normalized: true,
         role: true,
         is_active: true,
         created_at: true,

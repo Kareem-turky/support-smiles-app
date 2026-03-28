@@ -4,9 +4,11 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
+import { normalizeEmail } from '../common/utils/email.utils';
 import {
   CreateAttendanceDto,
   BulkAttendanceDto,
@@ -100,12 +102,14 @@ export class HRService {
 
     // Auto-create User account with default password 'password123'
     const password_hash = await bcrypt.hash('password123', 10);
+    const normalizedEmail = normalizeEmail(dto.email);
 
     let user;
     try {
       user = await this.prisma.user.create({
         data: {
           email: dto.email,
+          email_normalized: normalizedEmail,
           name: dto.full_name,
           password_hash,
           role: (dto.role as any) || UserRole.CS_AGENT,
@@ -113,9 +117,10 @@ export class HRService {
         },
       });
     } catch (error) {
-      throw new BadRequestException(
-        'User email already exists or invalid role.',
-      );
+      if (error.code === 'P2002') {
+        throw new ConflictException('Conflict');
+      }
+      throw new BadRequestException('Request failed');
     }
 
     return this.prisma.employee.create({
@@ -140,29 +145,40 @@ export class HRService {
     if (employee.user_id) {
       const userUpdate: any = {};
       if (dto.full_name) userUpdate.name = dto.full_name;
-      if (dto.email) userUpdate.email = dto.email;
+      if (dto.email) {
+        const normalizedEmail = normalizeEmail(dto.email);
+        userUpdate.email = dto.email;
+        userUpdate.email_normalized = normalizedEmail;
+
+        // Check for conflict
+        const existingUser = await this.prisma.user.findFirst({
+          where: {
+            email_normalized: normalizedEmail,
+            id: { not: employee.user_id },
+          },
+        });
+        if (existingUser) {
+          throw new ConflictException('Conflict');
+        }
+      }
       if (dto.role) userUpdate.role = dto.role as UserRole;
       if (dto.is_active !== undefined) userUpdate.is_active = dto.is_active;
 
       if (Object.keys(userUpdate).length > 0) {
-        try {
-          await this.prisma.user.update({
-            where: { id: employee.user_id },
-            data: userUpdate,
-          });
-        } catch (e) {
-          throw new BadRequestException(
-            'Email might already be in use by another user.',
-          );
-        }
+        await this.prisma.user.update({
+          where: { id: employee.user_id },
+          data: userUpdate,
+        });
       }
     } else if (dto.email && dto.full_name && dto.role) {
       // Generate a User account if this employee is orphaned (e.g., from old seeded data)
       const password_hash = await bcrypt.hash('password123', 10);
+      const normalizedEmail = normalizeEmail(dto.email);
       try {
         const newUser = await this.prisma.user.create({
           data: {
             email: dto.email,
+            email_normalized: normalizedEmail,
             password_hash,
             name: dto.full_name,
             role: dto.role as UserRole,
@@ -174,7 +190,9 @@ export class HRService {
           data: { user_id: newUser.id },
         });
       } catch (e) {
-        // Ignore silent unique failure if email collision occurs
+        if (e.code === 'P2002') {
+          throw new ConflictException('Email already exists');
+        }
       }
     }
 

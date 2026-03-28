@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
+import { normalizeEmail } from '../common/utils/email.utils';
 
 @Injectable()
 export class AuthService {
@@ -19,8 +20,9 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     console.log('Login attempt for:', loginDto.email);
+    const normalizedEmail = normalizeEmail(loginDto.email);
     const user = await this.prisma.user.findUnique({
-      where: { email: loginDto.email },
+      where: { email_normalized: normalizedEmail },
     });
 
     if (!user) {
@@ -57,10 +59,7 @@ export class AuthService {
 
     await this.prisma.refreshToken
       .upsert({
-        where: { token: refreshToken }, // Although token likely unique, better to use user_id logic if one token per user, but contract implies multiple? Let's keep it simple.
-        // Actually schema has token @unique.
-        // Ideally we might want to invalidate old tokens or just create new.
-        // For simplicity let's just create.
+        where: { token: refreshToken },
         create: {
           token: refreshToken,
           user_id: user.id,
@@ -71,9 +70,6 @@ export class AuthService {
         },
       })
       .catch(async () => {
-        // If collision or other issue, try finding by user_id to update?
-        // Schema has id as PK.
-        // Let's rely on create for now, or delete old for user.
         await this.prisma.refreshToken.deleteMany({
           where: { user_id: user.id },
         });
@@ -140,10 +136,6 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    // Invalidate all refresh tokens for user? Or just specific?
-    // Contract just says POST /auth/logout. Usually clears current session.
-    // We will clear all for simplicity or we need the token passed.
-    // Assuming we just want to protect future refreshes.
     await this.prisma.refreshToken.deleteMany({ where: { user_id: userId } });
     return { success: true };
   }

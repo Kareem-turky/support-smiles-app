@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateIssueDto } from './dto';
 import { v4 as uuidv4 } from 'uuid';
 import { WebhooksService } from './webhooks.service';
+import { normalizeEmail } from '../common/utils/email.utils';
 
 @Injectable()
 export class IntegrationsService {
@@ -165,14 +166,16 @@ export class IntegrationsService {
 
   private async getSystemUser(): Promise<string> {
     const sysEmail = 'system@integration.platform';
+    const normalizedEmail = normalizeEmail(sysEmail);
     let user = await this.prisma.user.findUnique({
-      where: { email: sysEmail },
+      where: { email_normalized: normalizedEmail },
     });
     if (!user) {
       user = await this.prisma.user.create({
         data: {
           name: 'System Integration',
           email: sysEmail,
+          email_normalized: normalizedEmail,
           password_hash: 'system_managed',
           role: 'ADMIN',
         },
