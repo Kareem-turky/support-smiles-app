@@ -795,6 +795,7 @@ model KPITarget {
   frequency        KPIFrequency @default(DAILY)
   period_key       String       @default("") // e.g. "2025-01-01"
   hourly_plan_json String?
+  is_active        Boolean      @default(true)
   created_at       DateTime     @default(now())
   updated_at       DateTime     @updatedAt
 
