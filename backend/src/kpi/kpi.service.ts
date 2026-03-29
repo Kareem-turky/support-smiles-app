@@ -24,6 +24,21 @@ const resolveCallerEmployeeId = (user: any): string => {
   return employeeId;
 };
 
+const resolveEmployeeRecord = async (
+  prisma: PrismaService,
+  employeeIdOrUserId: string,
+) => {
+  if (!employeeIdOrUserId) return null;
+  let employee = await prisma.employee.findUnique({
+    where: { id: employeeIdOrUserId },
+  });
+  if (employee) return employee;
+  employee = await prisma.employee.findUnique({
+    where: { user_id: employeeIdOrUserId },
+  });
+  return employee;
+};
+
 @Injectable()
 export class KpiService {
   constructor(
@@ -591,13 +606,12 @@ export class KpiService {
     const { employeeId, type, description, date, severity, deductionPoints } =
       dto;
 
-    let callerEmployee = await this.prisma.employee.findUnique({
-      where: { id: callerEmployeeId },
-    });
+    let callerEmployee = await resolveEmployeeRecord(
+      this.prisma,
+      callerEmployeeId,
+    );
     if (!callerEmployee && user?.id) {
-      callerEmployee = await this.prisma.employee.findUnique({
-        where: { user_id: user.id },
-      });
+      callerEmployee = await resolveEmployeeRecord(this.prisma, user.id);
       if (callerEmployee) {
         callerEmployeeId = callerEmployee.id;
       }
@@ -607,9 +621,10 @@ export class KpiService {
     }
 
     const targetEmployeeId = employeeId || callerEmployeeId;
-    const targetEmployee = await this.prisma.employee.findUnique({
-      where: { id: targetEmployeeId },
-    });
+    let targetEmployee = await resolveEmployeeRecord(
+      this.prisma,
+      targetEmployeeId,
+    );
     if (!targetEmployee) {
       throw new NotFoundException('Employee not found');
     }
