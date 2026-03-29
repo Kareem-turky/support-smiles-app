@@ -100,7 +100,7 @@ function AppSidebarContent() {
             <Ticket className="h-5 w-5 text-primary-foreground" />
           </div>
           {!collapsed && (
-            <span className="font-semibold text-lg">TMS</span>
+            <span className="font-semibold text-lg">Fulfly ticket System</span>
           )}
         </div>
       </SidebarHeader>
