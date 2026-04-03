@@ -18,6 +18,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { KpiModule } from './kpi/kpi.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { DevModule } from './dev/dev.module';
+import { PermissionsModule } from './permissions/permissions.module';
+
 
 @Module({
   imports: [
@@ -38,7 +40,9 @@ import { DevModule } from './dev/dev.module';
     KpiModule,
     GamificationModule,
     DevModule,
+    PermissionsModule,
   ],
+
   controllers: [AppController],
   providers: [AppService],
 })

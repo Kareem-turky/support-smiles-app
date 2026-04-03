@@ -8,8 +8,10 @@ interface LoginResponse {
     name: string;
     email: string;
     role: any;
+    permissions: string[];
   };
   access_token: string;
+
   refresh_token: string;
 }
 
@@ -35,7 +37,9 @@ export const authService = {
         name: loginData.user.name,
         email: loginData.user.email,
         role: loginData.user.role,
+        permissions: loginData.user.permissions || [],
       };
+
 
       // Store Auth Data
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, loginData.access_token);
@@ -67,7 +71,9 @@ export const authService = {
         name: loginData.user.name,
         email: loginData.user.email,
         role: loginData.user.role,
+        permissions: loginData.user.permissions || [],
       };
+
 
       // Destroy previous session explicitly and hook new token in
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);

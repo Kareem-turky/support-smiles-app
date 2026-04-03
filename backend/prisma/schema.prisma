@@ -480,6 +480,9 @@ model User {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
+  // Permissions
+  personal_permissions UserPermission[]
+
   // Relations
   created_tickets  Ticket[]        @relation("TicketCreator")
   assigned_tickets Ticket[]        @relation("TicketAssignee")
@@ -526,6 +529,7 @@ model User {
 
   @@map("users")
 }
+
 
 model Ticket {
   id              String       @id @default(uuid())
@@ -1044,4 +1048,56 @@ model RewardRedemption {
   updated_at DateTime         @updatedAt
 
   @@map("reward_redemptions")
+}
+
+// --- Permissions System ---
+
+enum PermissionEffect {
+  ALLOW
+  DENY
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique // e.g. "hr:employees:read"
+  description String?
+  domain      String // e.g. "hr", "accounting"
+  created_at  DateTime @default(now())
+
+  roles RolePermission[]
+  users UserPermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id            String     @id @default(uuid())
+  role          UserRole
+  permission_id String
+  permission    Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role, permission_id])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id            String           @id @default(uuid())
+  user_id       String
+  user          User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  permission_id String
+  permission    Permission       @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  effect        PermissionEffect @default(ALLOW)
+
+  @@unique([user_id, permission_id])
+  @@map("user_permissions")
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  is_enabled  Boolean  @default(false)
+  description String?
+  updated_at  DateTime @updatedAt
+
+  @@map("feature_flags")
 }

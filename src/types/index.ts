@@ -188,7 +188,9 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  permissions: string[];
 }
+
 
 export interface LoginCredentials {
   email: string;

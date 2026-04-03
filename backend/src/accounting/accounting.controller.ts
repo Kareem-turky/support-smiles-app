@@ -21,17 +21,23 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+
 @Controller('accounting')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class AccountingController {
+
   constructor(private readonly accountingService: AccountingService) {}
 
   // --- Payroll ---
   @Get('payroll')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('accounting:payroll:read')
   getPayrollRuns() {
     return this.accountingService.getPayrollRuns();
   }
+
 
   @Get('payroll/:id')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
@@ -41,15 +47,19 @@ export class AccountingController {
 
   @Post('payroll/calculate')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('accounting:payroll:calculate')
   calculatePayroll(@Body() dto: CalculatePayrollDto, @Request() req) {
     return this.accountingService.calculatePayroll(dto, req.user);
   }
 
+
   @Post('payroll/:id/approve')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('accounting:payroll:approve')
   approvePayroll(@Param('id') id: string, @Request() req) {
     return this.accountingService.approvePayroll(id, req.user);
   }
+
 
   @Post('payroll/:id/pay')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
@@ -66,9 +76,11 @@ export class AccountingController {
 
   @Post('vendors')
   @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
+  @RequirePermissions('accounting:vendors:create')
   createVendor(@Body() dto: CreateVendorDto) {
     return this.accountingService.createVendor(dto);
   }
+
 
   // --- Deposits ---
   @Get('deposits')
@@ -79,9 +91,11 @@ export class AccountingController {
 
   @Post('deposits')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('accounting:deposits:create')
   createDeposit(@Body() dto: CreateDepositDto) {
     return this.accountingService.createDeposit(dto);
   }
+
 
   // --- Purchases ---
   @Get('purchases')
@@ -92,9 +106,11 @@ export class AccountingController {
 
   @Post('purchases')
   @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
+  @RequirePermissions('accounting:purchases:create')
   createPurchase(@Body() dto: CreatePurchaseDto, @Request() req) {
     return this.accountingService.createPurchase(dto, req.user);
   }
+
 
   // --- Expenses ---
   @Get('expenses')
@@ -105,9 +121,11 @@ export class AccountingController {
 
   @Post('expenses')
   @Roles(UserRole.ACC_MANAGER, UserRole.ACC_AGENT, UserRole.ADMIN)
+  @RequirePermissions('accounting:expenses:create')
   createExpense(@Body() dto: CreateExpenseDto, @Request() req) {
     return this.accountingService.createExpense(dto, req.user);
   }
+
 
   // --- Transfers ---
   @Get('transfers')
@@ -118,9 +136,11 @@ export class AccountingController {
 
   @Post('transfers')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('accounting:transfers:create')
   createTransfer(@Body() dto: CreateTransferDto, @Request() req) {
     return this.accountingService.createTransfer(dto, req.user);
   }
+
 
   // --- Closings ---
   @Get('closings')
@@ -149,13 +169,16 @@ export class AccountingController {
 
   @Patch('review-deductions/:id/approve')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('accounting:deductions:update')
   approveReviewDeduction(@Param('id') id: string, @Request() req) {
     return this.accountingService.approveReviewDeduction(id, req.user);
   }
 
   @Patch('review-deductions/:id/reject')
   @Roles(UserRole.ACC_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('accounting:deductions:update')
   rejectReviewDeduction(@Param('id') id: string, @Request() req) {
     return this.accountingService.rejectReviewDeduction(id, req.user);
   }
+
 }

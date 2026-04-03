@@ -9,6 +9,8 @@ import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 import { normalizeEmail } from '../common/utils/email.utils';
+import { PermissionEffect } from '@prisma/client';
+
 
 @Injectable()
 export class AuthService {
@@ -90,7 +92,9 @@ export class AuthService {
           name: user.name,
           email: user.email,
           role: user.role,
+          permissions: Array.from(await this.getUserPermissions(user.id, user.role)),
         },
+
         access_token: this.jwtService.sign(payload),
         refresh_token: refreshToken,
         expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
@@ -184,11 +188,58 @@ export class AuthService {
           name: targetUser.name,
           email: targetUser.email,
           role: targetUser.role,
+          permissions: Array.from(await this.getUserPermissions(targetUser.id, targetUser.role)),
         },
+
         access_token: this.jwtService.sign(payload),
         refresh_token: refreshToken,
         expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
       },
     };
   }
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    return {
+      success: true,
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        permissions: Array.from(await this.getUserPermissions(user.id, user.role)),
+      },
+    };
+  }
+
+  async getUserPermissions(userId: string, role: string): Promise<Set<string>> {
+    const effectivePermissions = new Set<string>();
+
+    // 1. Get Role Permissions
+    const rolePerms = await this.prisma.rolePermission.findMany({
+      where: { role: role as any },
+      include: { permission: true },
+    });
+    rolePerms.forEach((rp) => effectivePermissions.add(rp.permission.key));
+
+    // 2. Get User Specific Overrides
+    const userPerms = await this.prisma.userPermission.findMany({
+      where: { user_id: userId },
+      include: { permission: true },
+    });
+
+    userPerms.forEach((up) => {
+      if (up.effect === PermissionEffect.ALLOW) {
+        effectivePermissions.add(up.permission.key);
+      } else {
+        effectivePermissions.delete(up.permission.key); // DENY wins
+      }
+    });
+
+    return effectivePermissions;
+  }
 }
+

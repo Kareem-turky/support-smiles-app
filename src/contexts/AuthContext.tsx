@@ -7,11 +7,13 @@ export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   hasRole: (roles: UserRole | UserRole[]) => boolean;
+  can: (permission: string) => boolean;
   canEditTicket: (ticketCreatorId: string) => boolean;
   canAssignTicket: () => boolean;
   canDeleteTicket: () => boolean;
   canManageUsers: () => boolean;
 }
+
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -61,41 +63,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return roleArray.includes(state.user.role);
   }, [state.user]);
 
-  // RBAC helpers
+  const can = useCallback((permission: string) => {
+    if (!state.user) return false;
+    // ADMIN has all permissions by default (as safety, but DB seed should cover it)
+    if (state.user.role === 'ADMIN') return true;
+    return (state.user.permissions || []).includes(permission);
+  }, [state.user]);
+
+  // RBAC helpers -> now powered by permissions
   const canEditTicket = useCallback((ticketCreatorId: string) => {
     if (!state.user) return false;
-    if (state.user.role === 'ADMIN') return true;
-    if (['ACC_MANAGER', 'ACC_AGENT'].includes(state.user.role)) {
-      return state.user.id === ticketCreatorId;
-    }
-    return false; // CS cannot edit ticket fields
-  }, [state.user]);
+    if (can('tickets:tickets:update')) return true;
+    // Allow creator to edit regardless of granular update permission (specific flow)
+    return state.user.id === ticketCreatorId;
+  }, [state.user, can]);
 
   const canAssignTicket = useCallback(() => {
-    if (!state.user) return false;
-    return ['ADMIN', 'ACC_MANAGER', 'CS_MANAGER'].includes(state.user.role);
-  }, [state.user]);
+    return can('tickets:tickets:manage');
+  }, [can]);
 
   const canDeleteTicket = useCallback(() => {
-    if (!state.user) return false;
-    return state.user.role === 'ADMIN';
-  }, [state.user]);
+    return can('tickets:tickets:manage'); // Assuming manage includes delete for CS, or map to specific key
+  }, [can]);
 
   const canManageUsers = useCallback(() => {
-    if (!state.user) return false;
-    return state.user.role === 'ADMIN';
-  }, [state.user]);
+    return can('security:users:manage');
+  }, [can]);
+
 
   const value: AuthContextType = {
     ...state,
     login,
     logout,
     hasRole,
+    can,
     canEditTicket,
     canAssignTicket,
     canDeleteTicket,
     canManageUsers,
   };
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -15,9 +15,13 @@ import { UserRole } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class UsersController {
+
   constructor(private usersService: UsersService) {}
 
   @Get()
@@ -28,28 +32,36 @@ export class UsersController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
+  @RequirePermissions('security:users:read')
   findAll() {
     return this.usersService.findAll();
   }
 
+
   @Patch(':id')
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('security:users:manage')
   updateStatus(@Param('id') id: string, @Body('is_active') isActive: boolean) {
     return this.usersService.updateStatus(id, isActive);
   }
 
+
   @Post()
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('security:users:manage')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
+
   @Patch(':id/password')
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('security:users:manage')
   updatePassword(
     @Param('id') id: string,
     @Body() updatePasswordDto: UpdatePasswordDto,
   ) {
     return this.usersService.updatePassword(id, updatePasswordDto.password);
   }
+
 }

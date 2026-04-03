@@ -19,13 +19,18 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+
 @Controller('kpi')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class KpiController {
+
   constructor(private readonly kpiService: KpiService) {}
 
   // --- KPI Metrics Admin ---
   @Get('metrics')
+  @RequirePermissions('kpi:metrics:read')
   getMetrics(@Query('activeOnly') activeOnly?: string) {
     if (activeOnly === 'true') {
       return this.kpiService.getActiveMetrics();
@@ -33,23 +38,30 @@ export class KpiController {
     return this.kpiService.getAllMetrics();
   }
 
+
   @Post('metrics')
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('kpi:metrics:manage')
   createMetric(@Body('name') name: string) {
     return this.kpiService.createMetric(name);
   }
 
+
   @Patch('metrics/:id')
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('kpi:metrics:manage')
   toggleMetric(@Param('id') id: string, @Body('is_active') is_active: boolean) {
     return this.kpiService.toggleMetric(id, is_active);
   }
 
+
   @Delete('metrics/:id')
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('kpi:metrics:manage')
   deleteMetric(@Param('id') id: string) {
     return this.kpiService.deleteMetric(id);
   }
+
   // --- END KPI Metrics Admin ---
 
   @Get('my-stats')
@@ -77,7 +89,6 @@ export class KpiController {
   }
 
   @Get('team-stats')
-  // @ts-ignore
   @Roles(
     UserRole.ADMIN,
     UserRole.CS_MANAGER,
@@ -85,12 +96,13 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
+  @RequirePermissions('kpi:metrics:read')
   getTeamStats(@Request() req, @Query() query: { period?: string; frequency?: string }) {
     return this.kpiService.getTeamStats(req.user, query.period, query.frequency);
   }
 
+
   @Post('issues')
-  // @ts-ignore
   @Roles(
     UserRole.ADMIN,
     UserRole.CS_MANAGER,
@@ -98,9 +110,11 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
+  @RequirePermissions('kpi:issues:create')
   logIssue(@Body() createIssueDto: CreateIssueDto, @Request() req) {
     return this.kpiService.logIssue(createIssueDto, req.user);
   }
+
 
   @Get('team-active-targets')
   @Roles(
@@ -110,6 +124,7 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
+  @RequirePermissions('kpi:targets:read')
   getTeamTargets(
     @Request() req,
     @Query() query: { period?: string; frequency?: string },
@@ -117,13 +132,13 @@ export class KpiController {
     return this.kpiService.getTeamTargets(req.user, query);
   }
 
+
   @Get('targets/my')
   getMyTargets(@Request() req, @Query('date') date: string) {
     return this.kpiService.getMyTargets(req.user.id, date);
   }
 
   @Post('targets')
-  // @ts-ignore
   @Roles(
     UserRole.ADMIN,
     UserRole.CS_MANAGER,
@@ -131,9 +146,11 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
+  @RequirePermissions('kpi:targets:create')
   createTarget(@Body() createTargetDto: any, @Request() req) {
     return this.kpiService.createTarget(createTargetDto, req.user.id, req.user);
   }
+
 
   @Patch('targets/:id')
   @Roles(
@@ -143,6 +160,7 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
+  @RequirePermissions('kpi:targets:update')
   updateTarget(
     @Param('id') id: string,
     @Body() updateDto: any,
@@ -150,6 +168,7 @@ export class KpiController {
   ) {
     return this.kpiService.updateTarget(id, updateDto, req.user);
   }
+
 
   @Post('actuals/log')
   @Roles(
@@ -159,9 +178,11 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
+  @RequirePermissions('kpi:actuals:log')
   logActual(@Body() logActualDto: any, @Request() req) {
     return this.kpiService.logActual(logActualDto, req.user);
   }
+
 
   @Patch('actuals/:id')
   @Roles(
@@ -180,7 +201,6 @@ export class KpiController {
   }
 
   @Post('calculate-daily')
-  // @ts-ignore
   @Roles(
     UserRole.ADMIN,
     UserRole.CS_MANAGER,
@@ -188,6 +208,7 @@ export class KpiController {
     UserRole.HR_MANAGER,
     UserRole.WH_MANAGER,
   )
+  @RequirePermissions('kpi:calculation:run')
   async calculateDaily(@Body() body: { employeeId: string; date: string }) {
     try {
       return await this.kpiService.calculateDailyScore(
@@ -199,4 +220,5 @@ export class KpiController {
       return { error: e.message, stack: e.stack };
     }
   }
+
 }

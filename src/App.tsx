@@ -34,7 +34,9 @@ import KPITypes from "./pages/admin/KPITypes";
 import MyKPIs from "./pages/MyKPIs";
 import TeamKPIs from "./pages/TeamKPIs";
 import Gamification from "./pages/Gamification";
+import PermissionsPage from "./pages/admin/PermissionsPage";
 import { DevTools } from "./components/DevTools";
+
 import { useEffect } from "react";
 import { api } from "@/lib/api";
 
@@ -130,6 +132,12 @@ const App = () => (
                   <KPITypes />
                 </ProtectedRoute>
               } />
+              <Route path="/admin/permissions" element={
+                <ProtectedRoute requiredPermission="security:permissions:manage">
+                  <PermissionsPage />
+                </ProtectedRoute>
+              } />
+
 
               {/* KPI & Gamification */}
               <Route path="/kpi" element={<MyKPIs />} />

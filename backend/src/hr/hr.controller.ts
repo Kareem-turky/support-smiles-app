@@ -26,9 +26,13 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+
 @Controller('hr')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class HRController {
+
   constructor(private readonly hrService: HRService) {}
 
   // --- Departments ---
@@ -40,9 +44,11 @@ export class HRController {
 
   @Post('departments')
   @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('hr:departments:create')
   createDepartment(@Body() dto: CreateDepartmentDto) {
     return this.hrService.createDepartment(dto);
   }
+
 
   // --- Employees ---
   @Get('employees')
@@ -59,27 +65,35 @@ export class HRController {
 
   @Post('employees')
   @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('hr:employees:create')
   createEmployee(@Body() dto: CreateEmployeeDto) {
     return this.hrService.createEmployee(dto);
   }
 
+
   @Put('employees/:id')
   @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('hr:employees:update')
   updateEmployee(@Param('id') id: string, @Body() dto: UpdateEmployeeDto) {
     return this.hrService.updateEmployee(id, dto);
   }
 
+
   @Delete('employees/:id')
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('hr:employees:delete')
   deleteEmployee(@Param('id') id: string) {
     return this.hrService.deleteEmployee(id);
   }
 
+
   @Post('employees/:id/toggle-status')
   @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('hr:employees:manage')
   toggleEmployeeStatus(@Param('id') id: string) {
     return this.hrService.toggleEmployeeStatus(id);
   }
+
 
   @Post('employees/:id/reset-password')
   @Roles(UserRole.ADMIN)
@@ -106,9 +120,11 @@ export class HRController {
 
   @Post('adjustments')
   @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('hr:adjustments:create')
   createAdjustment(@Body() dto: CreateAdjustmentDto, @Request() req) {
     return this.hrService.createAdjustment(dto, req.user);
   }
+
 
   // --- Months ---
   @Get('months')
@@ -124,6 +140,7 @@ export class HRController {
 
   @Post('months/:year/:month/submit')
   @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
+  @RequirePermissions('hr:months:submit')
   submitMonth(
     @Param('year', ParseIntPipe) year: number,
     @Param('month', ParseIntPipe) month: number,
@@ -132,8 +149,10 @@ export class HRController {
     return this.hrService.submitMonth(year, month, req.user);
   }
 
+
   @Post('months/:year/:month/lock')
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('hr:months:lock')
   lockMonth(
     @Param('year', ParseIntPipe) year: number,
     @Param('month', ParseIntPipe) month: number,
@@ -144,6 +163,7 @@ export class HRController {
 
   @Post('months/:year/:month/reopen')
   @Roles(UserRole.ADMIN)
+  @RequirePermissions('hr:months:reopen')
   reopenMonth(
     @Param('year', ParseIntPipe) year: number,
     @Param('month', ParseIntPipe) month: number,
@@ -151,6 +171,7 @@ export class HRController {
   ) {
     return this.hrService.reopenMonth(year, month, req.user);
   }
+
 
   // --- Attendance ---
   @Get('attendance')
@@ -165,9 +186,11 @@ export class HRController {
 
   @Post('attendance')
   @Roles(UserRole.HR_MANAGER, UserRole.HR_AGENT, UserRole.ADMIN)
+  @RequirePermissions('hr:attendance:update')
   upsertAttendance(@Body() dto: CreateAttendanceDto, @Request() req) {
     return this.hrService.upsertAttendance(dto, req.user);
   }
+
 
   @Post('attendance/bulk')
   @Roles(UserRole.HR_MANAGER, UserRole.ADMIN)
@@ -184,7 +207,9 @@ export class HRController {
 
   @Post('leaves')
   @Roles(UserRole.HR_MANAGER, UserRole.HR_AGENT, UserRole.ADMIN)
+  @RequirePermissions('hr:leaves:create')
   createLeave(@Body() dto: CreateLeaveDto, @Request() req) {
     return this.hrService.createLeave(dto, req.user);
   }
+
 }
