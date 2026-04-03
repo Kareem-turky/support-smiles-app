@@ -53,6 +53,15 @@ export const usersService = {
     }
   },
 
+  update: async (userId: string, data: { name?: string; email?: string; is_active?: boolean }): Promise<ApiResponse<User>> => {
+    try {
+      const response = await api.patch<User>(`/users/${userId}`, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  },
+
   create: async (userData: { name: string; email: string; password: string; role: UserRole }): Promise<ApiResponse<User>> => {
     try {
       const response = await api.post<User>('/users', userData);

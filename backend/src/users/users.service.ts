@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { normalizeEmail } from '../common/utils/email.utils';
 
 @Injectable()
@@ -81,4 +82,44 @@ export class UsersService {
       data: { password_hash: hashedPassword },
     });
   }
+
+  async updateUser(id: string, updateUserDto: UpdateUserDto) {
+    const data: any = {};
+    if (updateUserDto.name !== undefined) {
+      data.name = updateUserDto.name.trim();
+    }
+    
+    if (updateUserDto.email !== undefined) {
+      const normalizedEmail = normalizeEmail(updateUserDto.email);
+      // Check for conflict
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email_normalized: normalizedEmail },
+      });
+      if (existingUser && existingUser.id !== id) {
+        throw new ConflictException('Email already in use');
+      }
+      data.email = updateUserDto.email.trim();
+      data.email_normalized = normalizedEmail;
+    }
+
+    if (updateUserDto.is_active !== undefined) {
+      data.is_active = updateUserDto.is_active;
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        email_normalized: true,
+        role: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+  }
 }
+

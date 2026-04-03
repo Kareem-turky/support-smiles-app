@@ -15,6 +15,7 @@ import TicketDetails from "./pages/TicketDetails";
 import UsersPage from "./pages/UsersPage";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
+import ProfilePage from "./pages/ProfilePage";
 import Purchases from "./pages/accounting/Purchases";
 import Expenses from "./pages/accounting/Expenses";
 import Payroll from "./pages/accounting/Payroll";
@@ -68,6 +69,10 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/tickets" element={<TicketsList />} />
               <Route path="/tickets/:id" element={<TicketDetails />} />
+              
+              <Route path="/profile" element={
+                <ProtectedRoute requiredPermission="profile:self:update"><ProfilePage /></ProtectedRoute>
+              } />
 
               <Route path="/users" element={
                 <ProtectedRoute allowedRoles={['ADMIN']}><UsersPage /></ProtectedRoute>

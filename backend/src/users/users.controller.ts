@@ -13,6 +13,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -40,9 +41,9 @@ export class UsersController {
 
   @Patch(':id')
   @Roles(UserRole.ADMIN)
-  @RequirePermissions('security:users:manage')
-  updateStatus(@Param('id') id: string, @Body('is_active') isActive: boolean) {
-    return this.usersService.updateStatus(id, isActive);
+  @RequirePermissions('security:users:update')
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.updateUser(id, updateUserDto);
   }
 
 

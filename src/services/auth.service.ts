@@ -123,4 +123,52 @@ export const authService = {
   isAuthenticated: (): boolean => {
     return !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   },
+
+  getProfile: async (): Promise<ApiResponse<AuthUser>> => {
+    try {
+      const response = await api.get<any>('/auth/me');
+      const rawData = response.data;
+      const data = rawData.data || rawData;
+      
+      const user: AuthUser = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        permissions: data.permissions || [],
+      };
+      
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      return { success: true, data: user };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch profile'
+      };
+    }
+  },
+
+  updateProfile: async (payload: { name?: string; email?: string }): Promise<ApiResponse<AuthUser>> => {
+    try {
+      const response = await api.patch<any>('/auth/me', payload);
+      const rawData = response.data;
+      const data = rawData.data || rawData;
+      
+      const user: AuthUser = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        permissions: data.permissions || [],
+      };
+      
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      return { success: true, data: user };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to update profile'
+      };
+    }
+  },
 };

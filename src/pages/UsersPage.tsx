@@ -47,7 +47,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, UserCheck, UserX, MoreHorizontal, KeyRound, LogIn } from 'lucide-react';
+import { Plus, UserCheck, UserX, MoreHorizontal, KeyRound, LogIn, Edit } from 'lucide-react';
 import { User, ROLE_LABELS, UserRole } from '@/types';
 import { authService } from '@/services/auth.service';
 import { useTranslation } from 'react-i18next';
@@ -73,6 +73,13 @@ export default function UsersPage() {
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+
+  // Edit User State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -140,6 +147,29 @@ export default function UsersPage() {
       toast({ variant: 'destructive', title: t('users_page.messages.error'), description: result.error });
     }
     setIsResetting(false);
+  };
+
+  const handleEditUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setIsEditing(true);
+    const result = await usersService.update(editingUser.id, { name: editName, email: editEmail });
+    if (result.success) {
+      toast({ title: 'Success', description: 'User updated successfully' });
+      setEditModalOpen(false);
+      setEditingUser(null);
+      fetchUsers();
+    } else {
+      toast({ variant: 'destructive', title: 'Error', description: result.error });
+    }
+    setIsEditing(false);
+  };
+
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    setEditEmail(user.email);
+    setEditModalOpen(true);
   };
 
   const onSubmit = async (data: CreateUserForm) => {
@@ -237,6 +267,9 @@ export default function UsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditModal(user)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit User
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleToggleActive(user.id, user.is_active)}>
                             {user.is_active ? <><UserX className="mr-2 h-4 w-4" /> {t('users_page.actions.deactivate')}</> : <><UserCheck className="mr-2 h-4 w-4" /> {t('users_page.actions.activate')}</>}
                           </DropdownMenuItem>
@@ -371,6 +404,41 @@ export default function UsersPage() {
               {isResetting ? t('users_page.dialogs.reset.submitting') : t('users_page.dialogs.reset.submit')}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Edit User Profile</DialogTitle>
+            <DialogDescription>Update the name and email of this user.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditUserSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                required
+                minLength={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isEditing}>
+                {isEditing ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

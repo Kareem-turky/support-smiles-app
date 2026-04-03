@@ -12,7 +12,10 @@ export interface AuthContextType extends AuthState {
   canAssignTicket: () => boolean;
   canDeleteTicket: () => boolean;
   canManageUsers: () => boolean;
+  refreshUser: () => Promise<void>;
+  updateProfile: (payload: { name?: string; email?: string }) => Promise<{ success: boolean; error?: string }>;
 }
+
 
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +58,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: false,
       isLoading: false,
     });
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const result = await authService.getProfile();
+    if (result.success && result.data) {
+      setState(prev => ({ ...prev, user: result.data }));
+    }
+  }, []);
+
+  const updateProfile = useCallback(async (payload: { name?: string; email?: string }) => {
+    const result = await authService.updateProfile(payload);
+    if (result.success && result.data) {
+      setState(prev => ({ ...prev, user: result.data }));
+      return { success: true };
+    }
+    return { success: false, error: result.error };
   }, []);
 
   const hasRole = useCallback((roles: UserRole | UserRole[]) => {
@@ -101,7 +120,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     canAssignTicket,
     canDeleteTicket,
     canManageUsers,
+    refreshUser,
+    updateProfile,
   };
+
 
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

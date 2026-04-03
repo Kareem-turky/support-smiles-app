@@ -10,7 +10,8 @@ import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 import { normalizeEmail } from '../common/utils/email.utils';
 import { PermissionEffect } from '@prisma/client';
-
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ConflictException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -211,6 +212,42 @@ export class AuthService {
         email: user.email,
         role: user.role,
         permissions: Array.from(await this.getUserPermissions(user.id, user.role)),
+      },
+    };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const data: any = {};
+    if (dto.name !== undefined) {
+      data.name = dto.name.trim();
+    }
+    
+    if (dto.email !== undefined) {
+      const normalizedEmail = normalizeEmail(dto.email);
+      // Check for conflict
+      const existing = await this.prisma.user.findUnique({
+        where: { email_normalized: normalizedEmail },
+      });
+      if (existing && existing.id !== userId) {
+        throw new ConflictException('Email already in use');
+      }
+      data.email = dto.email.trim();
+      data.email_normalized = normalizedEmail;
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+    });
+
+    return {
+      success: true,
+      data: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        permissions: Array.from(await this.getUserPermissions(updatedUser.id, updatedUser.role)),
       },
     };
   }
