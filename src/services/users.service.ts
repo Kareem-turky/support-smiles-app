@@ -1,102 +1,82 @@
+import { api } from '@/lib/api';
 import { User, ApiResponse, UserRole } from '@/types';
-import { mockDb } from './mockDb';
 
 export const usersService = {
   getAll: async (): Promise<ApiResponse<User[]>> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const currentUser = mockDb.getCurrentUser();
-    if (!currentUser || currentUser.role !== 'ADMIN') {
-      return { success: false, error: 'Unauthorized: Admin access required' };
+    try {
+      const response = await api.get<User[]>('/users');
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
     }
-
-    const users = mockDb.getUsers();
-    // Don't return password hashes
-    const safeUsers = users.map(({ password_hash, ...user }) => ({ ...user, password_hash: '***' }));
-    
-    return { success: true, data: safeUsers as User[] };
   },
 
   getById: async (id: string): Promise<ApiResponse<User>> => {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const user = mockDb.getUserById(id);
-    
-    if (!user) {
-      return { success: false, error: 'User not found' };
+    try {
+      const response = await api.get<User>(`/users/${id}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
     }
-
-    const { password_hash, ...safeUser } = user;
-    return { success: true, data: { ...safeUser, password_hash: '***' } as User };
   },
 
   getByRole: async (role: UserRole): Promise<ApiResponse<User[]>> => {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const users = mockDb.getUsersByRole(role);
-    const safeUsers = users.map(({ password_hash, ...user }) => ({ ...user, password_hash: '***' }));
-    
-    return { success: true, data: safeUsers as User[] };
+    try {
+      const response = await api.get<User[]>('/users');
+      const filtered = response.data.filter(u => u.role === role);
+      return { success: true, data: filtered };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
   },
 
   getCSUsers: async (): Promise<ApiResponse<User[]>> => {
-    return usersService.getByRole('CS');
+    try {
+      const response = await api.get<User[]>('/users');
+      // Filter for roles that can handle tickets
+      const allowedRoles: UserRole[] = ['CS_AGENT', 'CS_MANAGER', 'ADMIN'];
+      const filtered = response.data.filter(u => 
+        allowedRoles.includes(u.role) && u.is_active
+      );
+      return { success: true, data: filtered };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
   },
 
-  toggleActive: async (userId: string): Promise<ApiResponse<User>> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const currentUser = mockDb.getCurrentUser();
-    if (!currentUser || currentUser.role !== 'ADMIN') {
-      return { success: false, error: 'Unauthorized: Admin access required' };
+  toggleActive: async (userId: string, currentIsActive: boolean): Promise<ApiResponse<User>> => {
+    try {
+      const response = await api.patch<User>(`/users/${userId}`, { is_active: !currentIsActive });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
     }
+  },
 
-    const user = mockDb.getUserById(userId);
-    
-    if (!user) {
-      return { success: false, error: 'User not found' };
+  update: async (userId: string, data: { name?: string; email?: string; is_active?: boolean }): Promise<ApiResponse<User>> => {
+    try {
+      const response = await api.patch<User>(`/users/${userId}`, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
     }
-
-    // Can't deactivate yourself
-    if (userId === currentUser.id) {
-      return { success: false, error: 'Cannot deactivate your own account' };
-    }
-
-    const updated = mockDb.updateUser(userId, {
-      is_active: !user.is_active,
-    });
-
-    if (!updated) {
-      return { success: false, error: 'Failed to update user' };
-    }
-    
-    const { password_hash, ...safeUser } = updated;
-    return { success: true, data: { ...safeUser, password_hash: '***' } as User };
   },
 
   create: async (userData: { name: string; email: string; password: string; role: UserRole }): Promise<ApiResponse<User>> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const currentUser = mockDb.getCurrentUser();
-    if (!currentUser || currentUser.role !== 'ADMIN') {
-      return { success: false, error: 'Unauthorized: Admin access required' };
+    try {
+      const response = await api.post<User>('/users', userData);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
     }
+  },
 
-    // Check for duplicate email
-    const existingUser = mockDb.getUserByEmail(userData.email);
-    if (existingUser) {
-      return { success: false, error: 'Email already exists' };
+  updatePassword: async (userId: string, newPassword: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.patch(`/users/${userId}/password`, { password: newPassword });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || error.message };
     }
-
-    const newUser = mockDb.createUser({
-      name: userData.name,
-      email: userData.email,
-      password_hash: btoa(userData.password),
-      role: userData.role,
-      is_active: true,
-    });
-
-    const { password_hash, ...safeUser } = newUser;
-    return { success: true, data: { ...safeUser, password_hash: '***' } as User };
   },
 };

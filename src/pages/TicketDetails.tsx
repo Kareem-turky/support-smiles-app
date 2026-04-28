@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { ticketsService } from '@/services/tickets.service';
 import { usersService } from '@/services/users.service';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -38,6 +38,7 @@ import {
   MessageSquare,
   History,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   Ticket,
   TicketMessage,
@@ -54,8 +55,9 @@ import {
 export default function TicketDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, canEditTicket, canAssignTicket, canDeleteTicket } = useAuth();
+  const { user, canEditTicket, canAssignTicket, canDeleteTicket, hasRole } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
@@ -73,11 +75,12 @@ export default function TicketDetails() {
     if (!id) return;
 
     setIsLoading(true);
-    const [ticketResult, messagesResult, eventsResult, csResult] = await Promise.all([
+    const [ticketResult, messagesResult, eventsResult, csResult, allUsersResult] = await Promise.all([
       ticketsService.getById(id),
       ticketsService.getMessages(id),
       ticketsService.getEvents(id),
       usersService.getCSUsers(),
+      usersService.getAll(),
     ]);
 
     if (ticketResult.success && ticketResult.data) {
@@ -86,7 +89,7 @@ export default function TicketDetails() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: ticketResult.error || 'Failed to load ticket',
+        description: ticketResult.error || t('ticket_details.messages.fetch_error'),
       });
       navigate('/tickets');
       return;
@@ -100,11 +103,13 @@ export default function TicketDetails() {
     }
     if (csResult.success && csResult.data) {
       setCsUsers(csResult.data);
-      setAllUsers(csResult.data);
+    }
+    if (allUsersResult.success && allUsersResult.data) {
+      setAllUsers(allUsersResult.data);
     }
 
     setIsLoading(false);
-  }, [id, navigate, toast]);
+  }, [id, navigate, toast, t]);
 
   useEffect(() => {
     fetchTicketData();
@@ -119,7 +124,7 @@ export default function TicketDetails() {
     if (result.success) {
       setNewMessage('');
       fetchTicketData();
-      toast({ title: 'Message sent' });
+      toast({ title: t('ticket_details.messages.sent') });
     } else {
       toast({
         variant: 'destructive',
@@ -136,7 +141,7 @@ export default function TicketDetails() {
     const result = await ticketsService.changeStatus(id, newStatus);
     if (result.success) {
       fetchTicketData();
-      toast({ title: `Status changed to ${STATUS_LABELS[newStatus]}` });
+      toast({ title: t('ticket_details.messages.status_changed', { status: STATUS_LABELS[newStatus] }) });
     } else {
       toast({
         variant: 'destructive',
@@ -154,7 +159,7 @@ export default function TicketDetails() {
       setShowAssignDialog(false);
       setSelectedAssignee('');
       fetchTicketData();
-      toast({ title: 'Ticket assigned successfully' });
+      toast({ title: t('ticket_details.messages.assigned') });
     } else {
       toast({
         variant: 'destructive',
@@ -170,7 +175,7 @@ export default function TicketDetails() {
     const result = await ticketsService.resolve(id);
     if (result.success) {
       fetchTicketData();
-      toast({ title: 'Ticket resolved' });
+      toast({ title: t('ticket_details.messages.resolved') });
     } else {
       toast({
         variant: 'destructive',
@@ -186,7 +191,7 @@ export default function TicketDetails() {
     const result = await ticketsService.reopen(id);
     if (result.success) {
       fetchTicketData();
-      toast({ title: 'Ticket reopened' });
+      toast({ title: t('ticket_details.messages.reopened') });
     } else {
       toast({
         variant: 'destructive',
@@ -201,7 +206,7 @@ export default function TicketDetails() {
 
     const result = await ticketsService.delete(id);
     if (result.success) {
-      toast({ title: 'Ticket deleted' });
+      toast({ title: t('ticket_details.messages.deleted') });
       navigate('/tickets');
     } else {
       toast({
@@ -212,61 +217,60 @@ export default function TicketDetails() {
     }
   };
 
-  const getUserName = (userId: string) => {
+  const getUserName = (userId: string, userObj?: User) => {
+    if (userObj?.name) return userObj.name;
     const u = allUsers.find(usr => usr.id === userId);
-    return u?.name || 'Unknown User';
+    return u?.name || t('ticket_details.unknown_user');
   };
 
   const getEventDescription = (event: TicketEvent): string => {
     const actorName = getUserName(event.actor_id);
     switch (event.event_type) {
       case 'TICKET_CREATED':
-        return `${actorName} created this ticket`;
-      case 'TICKET_ASSIGNED':
-        return `${actorName} assigned ticket to ${event.meta.assigned_to_name || 'someone'}`;
+        return t('ticket_details.events.created', { actor: actorName });
+      case 'TICKET_ASSIGNED': {
+        const targetName = event.meta.assigned_to_name || (event.meta.assigned_to ? getUserName(event.meta.assigned_to as string) : 'someone');
+        return t('ticket_details.events.assigned', { actor: actorName, target: targetName });
+      }
       case 'STATUS_CHANGED':
-        return `${actorName} changed status from ${event.meta.from} to ${event.meta.to}`;
+        return t('ticket_details.events.changed_status', { actor: actorName, from: event.meta.from, to: event.meta.to });
       case 'MESSAGE_SENT':
-        return `${actorName} sent a message`;
+        return t('ticket_details.events.sent_message', { actor: actorName });
       case 'TICKET_RESOLVED':
-        return `${actorName} resolved this ticket`;
+        return t('ticket_details.events.resolved', { actor: actorName });
       case 'TICKET_REOPENED':
-        return `${actorName} reopened this ticket`;
+        return t('ticket_details.events.reopened', { actor: actorName });
       case 'TICKET_UPDATED':
-        return `${actorName} updated ticket details`;
+        return t('ticket_details.events.updated', { actor: actorName });
       default:
-        return `${actorName} performed an action`;
+        return t('ticket_details.events.action', { actor: actorName });
     }
   };
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
     );
   }
 
   if (!ticket) {
     return (
-      <AppLayout>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Ticket not found</p>
-        </div>
-      </AppLayout>
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">{t('ticket_details.not_found')}</p>
+      </div>
     );
   }
 
   const isResolved = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
-  const canChangeStatus = user?.role === 'ADMIN' || 
-    (user?.role === 'CS' && ticket.assigned_to === user.id) ||
-    user?.role === 'ACCOUNTING';
+  const canChangeStatus = hasRole(['ADMIN']) ||
+    (hasRole(['CS_MANAGER', 'CS_AGENT']) && ticket.assigned_to === user?.id) ||
+    hasRole(['ACC_MANAGER', 'ACC_AGENT']);
 
   // Status options based on role
   const getStatusOptions = (): TicketStatus[] => {
-    if (user?.role === 'CS') {
+    if (hasRole(['CS_MANAGER', 'CS_AGENT'])) {
       return ['IN_PROGRESS', 'WAITING', 'RESOLVED'];
     }
     return ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED', 'REOPENED'];
@@ -292,7 +296,7 @@ export default function TicketDetails() {
                 </Badge>
               </div>
               <p className="text-muted-foreground mt-1">
-                {ticket.courier_company} • {ISSUE_TYPE_LABELS[ticket.issue_type]}
+                {ticket.courier_company} • {ISSUE_TYPE_LABELS[ticket.issue_type]} {ticket.reason ? `• ${ticket.reason.name}` : ''}
               </p>
             </div>
           </div>
@@ -301,25 +305,25 @@ export default function TicketDetails() {
             {canAssignTicket() && (
               <Button variant="outline" onClick={() => setShowAssignDialog(true)}>
                 <UserPlus className="mr-2 h-4 w-4" />
-                {ticket.assigned_to ? 'Reassign' : 'Assign'}
+                {ticket.assigned_to ? t('ticket_details.buttons.reassign') : t('ticket_details.buttons.assign')}
               </Button>
             )}
             {canChangeStatus && !isResolved && (
               <Button variant="default" onClick={handleResolve}>
                 <CheckCircle className="mr-2 h-4 w-4" />
-                Resolve
+                {t('ticket_details.buttons.resolve')}
               </Button>
             )}
             {canChangeStatus && isResolved && ticket.status !== 'CLOSED' && (
               <Button variant="outline" onClick={handleReopen}>
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Reopen
+                {t('ticket_details.buttons.reopen')}
               </Button>
             )}
             {canDeleteTicket() && (
               <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                {t('ticket_details.buttons.delete')}
               </Button>
             )}
           </div>
@@ -331,7 +335,7 @@ export default function TicketDetails() {
             {/* Description */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Description</CardTitle>
+                <CardTitle className="text-lg">{t('ticket_details.cards.description')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap">{ticket.description}</p>
@@ -343,14 +347,15 @@ export default function TicketDetails() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  Messages ({messages.length})
+                  {t('ticket_details.messages_count', { count: messages.length })}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {messages.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No messages yet</p>
+                {/* Defensive check for messages array */}
+                {(!messages || !Array.isArray(messages) || messages.length === 0) ? (
+                  <p className="text-muted-foreground text-sm">{t('ticket_details.no_messages')}</p>
                 ) : (
-                  messages.map((msg) => (
+                  (Array.isArray(messages) ? messages : []).map((msg) => (
                     <div key={msg.id} className="rounded-lg bg-muted/50 p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium">{getUserName(msg.sender_id)}</span>
@@ -367,13 +372,13 @@ export default function TicketDetails() {
 
                 <div className="flex gap-2">
                   <Textarea
-                    placeholder="Type your message..."
+                    placeholder={t('ticket_details.type_message')}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     className="min-h-[80px]"
                   />
-                  <Button 
-                    onClick={handleSendMessage} 
+                  <Button
+                    onClick={handleSendMessage}
                     disabled={isSending || !newMessage.trim()}
                     className="self-end"
                   >
@@ -389,45 +394,67 @@ export default function TicketDetails() {
             {/* Details */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Details</CardTitle>
+                <CardTitle className="text-lg">{t('ticket_details.cards.details')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Assigned To</p>
+                  <p className="text-sm text-muted-foreground">{t('ticket_details.cards.assigned_to')}</p>
                   <p className="font-medium">
-                    {ticket.assigned_to ? getUserName(ticket.assigned_to) : 'Unassigned'}
+                    {ticket.assignee 
+                      ? ticket.assignee.name 
+                      : (ticket.assigned_to ? getUserName(ticket.assigned_to) : t('ticket_details.unassigned'))}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Created By</p>
-                  <p className="font-medium">{getUserName(ticket.created_by)}</p>
+                  <p className="text-sm text-muted-foreground">{t('ticket_details.cards.created_by')}</p>
+                  <p className="font-medium">
+                    {ticket.creator ? ticket.creator.name : getUserName(ticket.created_by)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-sm text-muted-foreground">{t('ticket_details.cards.created')}</p>
                   <p className="font-medium">
                     {new Date(ticket.created_at).toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Last Updated</p>
+                  <p className="text-sm text-muted-foreground">{t('ticket_details.cards.last_updated')}</p>
                   <p className="font-medium">
                     {new Date(ticket.updated_at).toLocaleString()}
                   </p>
                 </div>
                 {ticket.resolved_at && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Resolved At</p>
+                    <p className="text-sm text-muted-foreground">{t('ticket_details.cards.resolved_at')}</p>
                     <p className="font-medium">
                       {new Date(ticket.resolved_at).toLocaleString()}
                     </p>
                   </div>
                 )}
 
+                {ticket.integration_inbox && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t('ticket_details.cards.source_system')}</p>
+                      <Badge variant="outline" className="mt-1">
+                        {ticket.integration_inbox.source}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t('ticket_details.cards.external_id')}</p>
+                      <p className="font-medium text-xs font-mono mt-1">
+                        {ticket.integration_inbox.external_id}
+                      </p>
+                    </div>
+                  </>
+                )}
+
                 {canChangeStatus && (
                   <>
                     <Separator />
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">Change Status</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t('ticket_details.cards.change_status')}</p>
                       <Select value={ticket.status} onValueChange={(v) => handleStatusChange(v as TicketStatus)}>
                         <SelectTrigger>
                           <SelectValue />
@@ -451,13 +478,13 @@ export default function TicketDetails() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <History className="h-5 w-5" />
-                  Timeline
+                  {t('ticket_details.cards.timeline')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {events.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No events</p>
+                    <p className="text-muted-foreground text-sm">{t('ticket_details.cards.no_events')}</p>
                   ) : (
                     events.map((event) => (
                       <div key={event.id} className="flex gap-3 text-sm">
@@ -482,14 +509,14 @@ export default function TicketDetails() {
       <AlertDialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Assign Ticket</AlertDialogTitle>
+            <AlertDialogTitle>{t('ticket_details.dialogs.assign_title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Select a customer service representative to assign this ticket to.
+              {t('ticket_details.dialogs.assign_desc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
             <SelectTrigger>
-              <SelectValue placeholder="Select assignee" />
+              <SelectValue placeholder={t('ticket_details.dialogs.select_assignee')} />
             </SelectTrigger>
             <SelectContent>
               {csUsers.map((csUser) => (
@@ -500,9 +527,9 @@ export default function TicketDetails() {
             </SelectContent>
           </Select>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('ticket_details.dialogs.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleAssign} disabled={!selectedAssignee}>
-              Assign
+              {t('ticket_details.buttons.assign')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -512,15 +539,15 @@ export default function TicketDetails() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Ticket</AlertDialogTitle>
+            <AlertDialogTitle>{t('ticket_details.dialogs.delete_title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this ticket? This action cannot be undone.
+              {t('ticket_details.dialogs.delete_desc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('ticket_details.dialogs.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
+              {t('ticket_details.buttons.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

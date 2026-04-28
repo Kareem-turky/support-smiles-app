@@ -1,4 +1,10 @@
 import "@testing-library/jest-dom";
+import { beforeEach, vi } from "vitest";
+
+// Initialize global coverage store if in test environment
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).__MOCK_API_COVERAGE__ = [];
+}
 
 // Mock localStorage for tests
 const localStorageMock = (() => {
@@ -27,10 +33,23 @@ Object.defineProperty(window, "matchMedia", {
     matches: false,
     media: query,
     onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => {},
+    addListener: () => { },
+    removeListener: () => { },
+    addEventListener: () => { },
+    removeEventListener: () => { },
+    dispatchEvent: () => { },
   }),
+});
+
+Object.defineProperty(window, 'location', {
+  value: {
+    href: window.location.href,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    assign: vi.fn(),
+    replace: vi.fn(),
+    reload: vi.fn()
+  },
+  writable: true
 });

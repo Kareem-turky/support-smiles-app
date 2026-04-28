@@ -27,7 +27,7 @@ describe('AuthService', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid email or password');
+      expect(result.error).toBe('Login failed. Please check your credentials.');
     });
 
     it('should fail with non-existent email', async () => {
@@ -37,7 +37,7 @@ describe('AuthService', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid email or password');
+      expect(result.error).toBe('Login failed. Please check your credentials.');
     });
 
     it('should store current user after successful login', async () => {
@@ -49,7 +49,7 @@ describe('AuthService', () => {
       const currentUser = authService.getCurrentUser();
       expect(currentUser).toBeDefined();
       expect(currentUser?.email).toBe('sarah@company.com');
-      expect(currentUser?.role).toBe('ACCOUNTING');
+      expect(currentUser?.role).toBe('ACC_MANAGER');
     });
   });
 

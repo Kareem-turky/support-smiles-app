@@ -1,19 +1,24 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { AuthUser, AuthState, LoginCredentials, UserRole } from '@/types';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { AuthState, LoginCredentials, UserRole } from '@/types';
 import { authService } from '@/services/auth.service';
 import { seedDatabase } from '@/services/seed';
 
-interface AuthContextType extends AuthState {
+export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   hasRole: (roles: UserRole | UserRole[]) => boolean;
+  can: (permission: string) => boolean;
   canEditTicket: (ticketCreatorId: string) => boolean;
   canAssignTicket: () => boolean;
   canDeleteTicket: () => boolean;
   canManageUsers: () => boolean;
+  refreshUser: () => Promise<void>;
+  updateProfile: (payload: { name?: string; email?: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -55,55 +60,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const result = await authService.getProfile();
+    if (result.success && result.data) {
+      setState(prev => ({ ...prev, user: result.data }));
+    }
+  }, []);
+
+  const updateProfile = useCallback(async (payload: { name?: string; email?: string }) => {
+    const result = await authService.updateProfile(payload);
+    if (result.success && result.data) {
+      setState(prev => ({ ...prev, user: result.data }));
+      return { success: true };
+    }
+    return { success: false, error: result.error };
+  }, []);
+
   const hasRole = useCallback((roles: UserRole | UserRole[]) => {
     if (!state.user) return false;
     const roleArray = Array.isArray(roles) ? roles : [roles];
     return roleArray.includes(state.user.role);
   }, [state.user]);
 
-  // RBAC helpers
+  const can = useCallback((permission: string) => {
+    if (!state.user) return false;
+    // ADMIN has all permissions by default (as safety, but DB seed should cover it)
+    if (state.user.role === 'ADMIN') return true;
+    return (state.user.permissions || []).includes(permission);
+  }, [state.user]);
+
+  // RBAC helpers -> now powered by permissions
   const canEditTicket = useCallback((ticketCreatorId: string) => {
     if (!state.user) return false;
-    if (state.user.role === 'ADMIN') return true;
-    if (state.user.role === 'ACCOUNTING') {
-      return state.user.id === ticketCreatorId;
-    }
-    return false; // CS cannot edit ticket fields
-  }, [state.user]);
+    if (can('tickets:tickets:update')) return true;
+    // Allow creator to edit regardless of granular update permission (specific flow)
+    return state.user.id === ticketCreatorId;
+  }, [state.user, can]);
 
   const canAssignTicket = useCallback(() => {
-    if (!state.user) return false;
-    return state.user.role === 'ADMIN' || state.user.role === 'ACCOUNTING';
-  }, [state.user]);
+    return can('tickets:tickets:manage');
+  }, [can]);
 
   const canDeleteTicket = useCallback(() => {
-    if (!state.user) return false;
-    return state.user.role === 'ADMIN';
-  }, [state.user]);
+    return can('tickets:tickets:manage'); // Assuming manage includes delete for CS, or map to specific key
+  }, [can]);
 
   const canManageUsers = useCallback(() => {
-    if (!state.user) return false;
-    return state.user.role === 'ADMIN';
-  }, [state.user]);
+    return can('security:users:manage');
+  }, [can]);
+
 
   const value: AuthContextType = {
     ...state,
     login,
     logout,
     hasRole,
+    can,
     canEditTicket,
     canAssignTicket,
     canDeleteTicket,
     canManageUsers,
+    refreshUser,
+    updateProfile,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

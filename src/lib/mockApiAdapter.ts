@@ -9,7 +9,6 @@
  */
 
 import { mockDb } from '@/services/mockDb';
-import { STORAGE_KEYS } from '@/services/storage';
 
 // Demo credentials matching mockDb users
 const VALID_CREDENTIALS: Record<string, { password: string; userId: string }> = {
@@ -49,6 +48,20 @@ function mockError(message: string, status = 400) {
     return error;
 }
 
+// Global Coverage Store
+declare global {
+    var __MOCK_API_COVERAGE__: string[];
+}
+
+function recordHit(method: string, url: string) {
+    if (!globalThis.__MOCK_API_COVERAGE__) {
+        globalThis.__MOCK_API_COVERAGE__ = [];
+    }
+    // Normalize URL for reporting (remove IDs)
+    const normalizedUrl = url.split('?')[0].replace(/\/[0-9a-f-]{36}/g, '/:id');
+    globalThis.__MOCK_API_COVERAGE__.push(`${method} ${normalizedUrl}`);
+}
+
 // Unhandled route error
 function unhandledRoute(method: string, url: string): never {
     console.error(`[MOCK_API] UNHANDLED: ${method} ${url}`);
@@ -66,6 +79,7 @@ export const mockApiAdapter = {
         const data = config.data;
         const params = config.params || {};
 
+        recordHit(method, url);
         console.log(`[MOCK_API] ${method} ${url}`, data || params || '');
 
         // ==================== AUTH ====================
@@ -86,10 +100,8 @@ export const mockApiAdapter = {
             const token = generateMockToken(user.id);
 
             return mockResponse({
-                data: {
-                    user: { ...user, password_hash: undefined },
-                    access_token: token,
-                }
+                user: { ...user, password_hash: undefined },
+                access_token: token,
             });
         }
 
@@ -101,9 +113,9 @@ export const mockApiAdapter = {
         if (url === '/auth/me' && method === 'GET') {
             const user = getCurrentUserFromMock();
             if (!user) {
-                throw mockError('Not authenticated', 401);
+                throw mockError('Unauthorized', 401);
             }
-            return mockResponse({ data: { ...user, password_hash: undefined } });
+            return mockResponse({ ...user, password_hash: undefined });
         }
 
         // ==================== TICKETS ====================
@@ -118,11 +130,11 @@ export const mockApiAdapter = {
             }
 
             // CS agents can only see their assigned tickets
-            if (currentUser?.role === 'CS') {
+            if (currentUser?.role === 'CS_AGENT') {
                 tickets = tickets.filter(t => t.assigned_to === currentUser.id);
             }
 
-            return mockResponse({ data: tickets });
+            return mockResponse(tickets);
         }
 
         if (url.match(/^\/tickets\/[^/]+$/) && method === 'GET') {
@@ -134,17 +146,17 @@ export const mockApiAdapter = {
                 throw mockError('Ticket not found', 404);
             }
 
-            if (currentUser?.role === 'CS' && ticket.assigned_to !== currentUser.id) {
+            if (currentUser?.role === 'CS_AGENT' && ticket.assigned_to !== currentUser.id) {
                 throw mockError('Access denied', 403);
             }
 
-            return mockResponse({ data: ticket });
+            return mockResponse(ticket);
         }
 
         if (url === '/tickets' && method === 'POST') {
             const currentUser = getCurrentUserFromMock();
 
-            if (!currentUser || currentUser.role === 'CS') {
+            if (!currentUser || currentUser.role === 'CS_AGENT') {
                 throw mockError('Access denied', 403);
             }
 
@@ -158,7 +170,33 @@ export const mockApiAdapter = {
                 deleted_at: null,
             });
 
-            return mockResponse({ data: newTicket }, 201);
+            if (data.assigned_to) {
+                mockDb.createNotification({
+                    user_id: data.assigned_to,
+                    type: 'TICKET_ASSIGNED',
+                    title: 'New Ticket Assigned',
+                    body: `You have been assigned to ticket ${newTicket.order_number}`,
+                    link: `/tickets/${newTicket.id}`,
+                    is_read: false
+                });
+            }
+
+            return mockResponse(newTicket, 201);
+        }
+
+        if (url.match(/^\/tickets\/[^/]+\/reopen$/) && method === 'PATCH') {
+            const id = url.split('/')[2];
+            const updated = mockDb.updateTicket(id, { status: 'REOPENED', resolved_at: null, closed_at: null });
+
+            // Reopening also creates an event in a real system
+            mockDb.createEvent({
+                ticket_id: id,
+                actor_id: getCurrentUserFromMock()?.id || 'system',
+                event_type: 'TICKET_REOPENED',
+                meta: {}
+            });
+
+            return mockResponse(updated);
         }
 
         if (url.match(/^\/tickets\/[^/]+\/status$/) && method === 'PATCH') {
@@ -170,11 +208,12 @@ export const mockApiAdapter = {
                 throw mockError('Ticket not found', 404);
             }
 
-            if (currentUser?.role === 'CS') {
+            if (currentUser?.role === 'CS_AGENT') {
                 if (ticket.assigned_to !== currentUser.id) {
                     throw mockError('Access denied', 403);
                 }
-                if (['CLOSED', 'REOPENED'].includes(data.status)) {
+                const allowedForCS = ['IN_PROGRESS', 'WAITING', 'RESOLVED'];
+                if (!allowedForCS.includes(data.status)) {
                     throw mockError('CS cannot set this status', 403);
                 }
             }
@@ -184,7 +223,7 @@ export const mockApiAdapter = {
             if (data.status === 'CLOSED') updates.closed_at = new Date().toISOString();
 
             const updated = mockDb.updateTicket(id, updates);
-            return mockResponse({ data: updated });
+            return mockResponse(updated);
         }
 
         if (url.match(/^\/tickets\/[^/]+\/assign$/) && method === 'POST') {
@@ -193,13 +232,21 @@ export const mockApiAdapter = {
                 assigned_to: data.assigned_to,
                 status: 'ASSIGNED'
             });
-            return mockResponse({ data: ticket });
+            mockDb.createNotification({
+                user_id: data.assigned_to,
+                type: 'TICKET_REASSIGNED',
+                title: 'Ticket Assigned',
+                body: `Ticket ${ticket?.order_number} assigned to you`,
+                link: `/tickets/${id}`,
+                is_read: false
+            });
+            return mockResponse(ticket);
         }
 
         if (url.match(/^\/tickets\/[^/]+\/messages$/) && method === 'GET') {
             const ticketId = url.split('/')[2];
             const messages = mockDb.getMessagesByTicketId(ticketId);
-            return mockResponse({ data: messages });
+            return mockResponse(messages);
         }
 
         if (url.match(/^\/tickets\/[^/]+\/messages$/) && method === 'POST') {
@@ -212,13 +259,13 @@ export const mockApiAdapter = {
                 message: data.message,
             });
 
-            return mockResponse({ data: newMessage }, 201);
+            return mockResponse(newMessage, 201);
         }
 
         if (url.match(/^\/tickets\/[^/]+\/events$/) && method === 'GET') {
             const ticketId = url.split('/')[2];
             const events = mockDb.getEventsByTicketId(ticketId);
-            return mockResponse({ data: events });
+            return mockResponse(events);
         }
 
         if (url.match(/^\/tickets\/[^/]+$/) && method === 'PATCH') {
@@ -230,12 +277,16 @@ export const mockApiAdapter = {
                 throw mockError('Ticket not found', 404);
             }
 
-            if (currentUser?.role === 'CS') {
+            if (currentUser?.role === 'CS_AGENT') {
                 throw mockError('CS cannot edit ticket fields', 403);
             }
 
+            if (currentUser?.role === 'ACC_MANAGER' && ticket.created_by !== currentUser.id) {
+                throw mockError('Only ticket creator can edit', 403);
+            }
+
             const updated = mockDb.updateTicket(id, data);
-            return mockResponse({ data: updated });
+            return mockResponse(updated);
         }
 
         if (url.match(/^\/tickets\/[^/]+$/) && method === 'DELETE') {
@@ -255,13 +306,23 @@ export const mockApiAdapter = {
             const currentUser = getCurrentUserFromMock();
 
             if (!currentUser) {
-                throw mockError('Not authenticated', 401);
+                throw mockError('Unauthorized', 401);
             }
-            // Allow all authenticated users to fetch users list (for assignees etc)
-            // if (currentUser?.role !== 'ADMIN') { ... } 
+            if (currentUser.role !== 'ADMIN') {
+                throw mockError('Admin access required', 403);
+            }
 
             const users = mockDb.getUsers().map(u => ({ ...u, password_hash: undefined }));
-            return mockResponse(users); // Return array directly!
+            return mockResponse(users);
+        }
+
+        if (url === '/users' && method === 'POST') {
+            const currentUser = getCurrentUserFromMock();
+            if (currentUser?.role !== 'ADMIN') {
+                throw mockError('Admin access required', 403);
+            }
+            const newUser = mockDb.createUser(data);
+            return mockResponse(newUser, 201);
         }
 
         if (url.match(/^\/users\/[^/]+$/) && method === 'GET') {
@@ -272,7 +333,7 @@ export const mockApiAdapter = {
                 throw mockError('User not found', 404);
             }
 
-            return mockResponse({ data: { ...user, password_hash: undefined } });
+            return mockResponse({ ...user, password_hash: undefined });
         }
 
         if (url.match(/^\/users\/[^/]+$/) && method === 'PATCH') {
@@ -283,8 +344,12 @@ export const mockApiAdapter = {
                 throw mockError('Admin access required', 403);
             }
 
+            if (data.is_active === false && id === currentUser.id) {
+                throw mockError('Cannot deactivate your own account', 400);
+            }
+
             const updated = mockDb.updateUser(id, data);
-            return mockResponse({ data: { ...updated, password_hash: undefined } });
+            return mockResponse({ ...updated, password_hash: undefined });
         }
 
         // ==================== NOTIFICATIONS ====================
@@ -292,7 +357,7 @@ export const mockApiAdapter = {
             const currentUser = getCurrentUserFromMock();
 
             if (!currentUser) {
-                throw mockError('Not authenticated', 401);
+                throw mockError('Unauthorized', 401);
             }
 
             const notifications = mockDb.getNotificationsByUserId(currentUser.id);
@@ -301,8 +366,15 @@ export const mockApiAdapter = {
 
         if (url.match(/^\/notifications\/[^/]+\/read$/) && method === 'POST') {
             const id = url.split('/')[2];
+            const currentUser = getCurrentUserFromMock();
+            const notification = mockDb.getNotificationById(id);
+
+            if (!notification || (currentUser && notification.user_id !== currentUser.id)) {
+                throw mockError('Notification not found', 404);
+            }
+
             const updated = mockDb.updateNotification(id, { is_read: true });
-            return mockResponse({ data: updated });
+            return mockResponse(updated);
         }
 
         if (url === '/notifications/read-all' && method === 'POST') {
@@ -336,18 +408,14 @@ export const mockApiAdapter = {
                     CLOSED: tickets.filter(t => t.status === 'CLOSED').length,
                 },
             };
-            return mockResponse({ data: stats });
+            return mockResponse(stats);
         }
 
-        // ==================== REASONS ====================
         // ==================== EMPLOYEES ====================
         if ((url === '/employees' || url.startsWith('/employees?')) && method === 'GET') {
             let employees = mockDb.getEmployees();
 
-            // Handle active filter
             let activeParam = params.active;
-
-            // Check params object first, then URL query string
             if (activeParam === undefined && url.includes('?')) {
                 const searchParams = new URLSearchParams(url.split('?')[1]);
                 if (searchParams.has('active')) {
@@ -355,13 +423,9 @@ export const mockApiAdapter = {
                 }
             }
 
-            // Filter logic:
-            // active=true -> return only active employees
-            // active=false (or missing) -> return ALL employees (no filter)
             if (String(activeParam) === 'true') {
                 employees = employees.filter(e => e.is_active);
             }
-            // If activeParam is 'false' or undefined, we return all (do nothing)
 
             return mockResponse(employees);
         }
@@ -369,8 +433,8 @@ export const mockApiAdapter = {
         if (url === '/employees' && method === 'POST') {
             const newEmployee = mockDb.createEmployee({
                 ...data,
-                is_active: data.is_active !== undefined ? data.is_active : true, // Default to true if not specified
-                start_date: data.start_date || new Date().toISOString(), // Fallback if missing, though UI should send it
+                is_active: data.is_active !== undefined ? data.is_active : true,
+                start_date: data.start_date || new Date().toISOString(),
             });
             return mockResponse(newEmployee, 201);
         }
@@ -378,27 +442,100 @@ export const mockApiAdapter = {
         // ==================== REASONS ====================
         if ((url === '/reasons' || url.startsWith('/ticket-reasons')) && method === 'GET') {
             const reasons = mockDb.getReasons();
+            let activeOnly = true;
 
-            // Handle activeOnly filter from URL query string or params object
-            let activeOnly = true; // Default as per service
-
-            // Check params object
             if (params.activeOnly !== undefined) {
                 activeOnly = String(params.activeOnly) === 'true';
-            }
-            // Check URL query string
-            else if (url.includes('?')) {
+            } else if (url.includes('?')) {
                 const searchParams = new URLSearchParams(url.split('?')[1]);
                 if (searchParams.has('activeOnly')) {
                     activeOnly = searchParams.get('activeOnly') === 'true';
                 }
             }
 
-            const filtered = activeOnly
-                ? reasons.filter(r => r.is_active)
-                : reasons;
-
+            const filtered = activeOnly ? reasons.filter(r => r.is_active) : reasons;
             return mockResponse(filtered);
+        }
+
+        // ==================== GAMIFICATION ====================
+        if (url === '/gamification/my-progress' && method === 'GET') {
+            return mockResponse({
+                points: 1250,
+                level: 5,
+                next_level_points: 2000,
+                badges: [],
+                streaks: [{ key: 'daily', current_count: 3, best_count: 7 }],
+                history: [
+                    { id: '1', reason: 'Ticket Resolved', amount: 50, created_at: new Date().toISOString() }
+                ]
+            });
+        }
+
+        if (url === '/gamification/leaderboard' && method === 'GET') {
+            const users = mockDb.getUsers();
+            const leaderboard = users.map(u => ({
+                user_id: u.id,
+                user: u.name,
+                role: u.role,
+                department: (u as any).department?.name || 'Operations',
+                points: Math.floor(Math.random() * 5000)
+            })).sort((a, b) => b.points - a.points);
+            return mockResponse(leaderboard);
+        }
+
+        if (url === '/gamification/missions/my' && method === 'GET') {
+            const missions = mockDb.getMissions().map(m => ({
+                ...m,
+                assignments: [{ status: 'ACTIVE', progress_value: 2 }]
+            }));
+            return mockResponse(missions);
+        }
+
+        if (url === '/gamification/rewards' && method === 'GET') {
+            const rewards = mockDb.getRewards();
+            return mockResponse(rewards);
+        }
+
+        if (url === '/gamification/rewards/redeem' && method === 'POST') {
+            const currentUser = getCurrentUserFromMock();
+            if (!currentUser) throw mockError('Unauthorized', 401);
+            const redemption = mockDb.createRedemption(currentUser.id, data.reward_id);
+            return mockResponse(redemption, 201);
+        }
+
+        if (url === '/gamification/missions' && method === 'GET') {
+            const missions = mockDb.getMissions();
+            return mockResponse(missions);
+        }
+
+        if (url === '/gamification/missions' && method === 'POST') {
+            const mission = mockDb.createMission(data);
+            return mockResponse(mission, 201);
+        }
+
+        if (url === '/gamification/rewards/redemptions' && method === 'GET') {
+            const redemptions = mockDb.getRedemptions();
+            return mockResponse(redemptions);
+        }
+
+        if (url.match(/^\/gamification\/rewards\/redemptions\/[^/]+$/) && method === 'PATCH') {
+            const id = url.split('/')[4];
+            const updated = mockDb.updateRedemption(id, data.status);
+            return mockResponse(updated);
+        }
+
+        if (url === '/gamification/actions/start-shift' && method === 'POST') {
+            return mockResponse({ success: true, message: 'Shift started' });
+        }
+
+        if (url === '/gamification/actions/end-shift' && method === 'POST') {
+            return mockResponse({ success: true, message: 'Shift ended' });
+        }
+
+        // ==================== HR DISCOVERY ====================
+        if (url === '/hr/departments' && method === 'GET') {
+            const depts = (mockDb as any).state.departments || [];
+            return mockResponse(depts);
         }
 
         // Unhandled route
