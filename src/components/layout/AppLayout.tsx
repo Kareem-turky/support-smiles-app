@@ -80,6 +80,7 @@ const settingsNavItems = [
 ];
 
 const securityNavItems = [
+  { titleKey: 'nav.admin.users', url: '/users', icon: Users, permission: 'security:users:read' },
   { titleKey: 'nav.admin.permissions', url: '/admin/permissions', icon: CheckCheck, permission: 'security:permissions:manage' },
 ];
 

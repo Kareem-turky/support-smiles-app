@@ -113,11 +113,13 @@ async function main() {
     // Security
     { key: 'security:users:read', domain: 'security', description: 'View system users' },
     { key: 'security:users:manage', domain: 'security', description: 'Create/Edit users and permissions' },
+    { key: 'security:users:update', domain: 'security', description: 'Update any user profile data' },
     { key: 'security:permissions:manage', domain: 'security', description: 'Audit and modify permission keys' },
     
     // System
     { key: 'dashboard:view', domain: 'system', description: 'Access dashboard summary' },
     { key: 'shipping:companies:manage', domain: 'system', description: 'Manage shipping carriers' },
+    { key: 'profile:self:update', domain: 'system', description: 'Update own profile data' },
   ];
 
   const permissionMap = new Map();
@@ -132,24 +134,24 @@ async function main() {
     [UserRole.ADMIN]: permissions.map(p => p.key), // Everything
     [UserRole.CS_MANAGER]: [
       'dashboard:view', 'tickets:tickets:read', 'tickets:tickets:create', 'tickets:tickets:update', 'tickets:tickets:manage',
-      'tickets:messages:manage', 'kpi:targets:read', 'kpi:issues:create', 'kpi:actuals:log'
+      'tickets:messages:manage', 'kpi:targets:read', 'kpi:issues:create', 'kpi:actuals:log', 'profile:self:update'
     ],
     [UserRole.CS_AGENT]: [
-      'dashboard:view', 'tickets:tickets:read', 'tickets:tickets:create', 'tickets:messages:manage', 'kpi:targets:read'
+      'dashboard:view', 'tickets:tickets:read', 'tickets:tickets:create', 'tickets:messages:manage', 'kpi:targets:read', 'profile:self:update'
     ],
     [UserRole.ACC_MANAGER]: [
       'dashboard:view', 'accounting:vendors:read', 'accounting:vendors:create', 'accounting:vendors:update',
       'accounting:purchases:read', 'accounting:purchases:create', 'accounting:expenses:read', 'accounting:expenses:create',
       'accounting:payroll:read', 'accounting:payroll:calculate', 'accounting:payroll:approve', 'accounting:deductions:read',
-      'accounting:deductions:update', 'hr:adjustments:read', 'hr:months:read'
+      'accounting:deductions:update', 'hr:adjustments:read', 'hr:months:read', 'profile:self:update'
     ],
     [UserRole.HR_MANAGER]: [
       'dashboard:view', 'hr:departments:read', 'hr:departments:create', 'hr:employees:read', 'hr:employees:create',
       'hr:employees:update', 'hr:employees:manage', 'hr:adjustments:read', 'hr:adjustments:create', 'hr:months:read',
-      'hr:months:submit', 'hr:attendance:read', 'hr:attendance:update', 'hr:leaves:read', 'hr:leaves:create'
+      'hr:months:submit', 'hr:attendance:read', 'hr:attendance:update', 'hr:leaves:read', 'hr:leaves:create', 'profile:self:update'
     ],
     [UserRole.WH_MANAGER]: [
-      'dashboard:view', 'shipping:companies:manage', 'tickets:tickets:read', 'kpi:targets:read'
+      'dashboard:view', 'shipping:companies:manage', 'tickets:tickets:read', 'kpi:targets:read', 'profile:self:update'
     ]
   };
 
